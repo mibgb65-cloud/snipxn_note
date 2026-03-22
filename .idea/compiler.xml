@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+      </profile>
+      <profile name="Annotation profile for snipxn-backend" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/../../Maven/repository/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
+        </processorPath>
+        <module name="snipxn-app" />
+        <module name="snipxn-sandbox" />
+        <module name="snipxn-note" />
+        <module name="snipxn-common" />
+        <module name="snipxn-auth" />
+        <module name="snipxn-community" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="snipxn-start" target="25" />
+      <module name="snipxn-user" target="25" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="snipxn-app" options="-parameters" />
+      <module name="snipxn-auth" options="-parameters" />
+      <module name="snipxn-backend" options="-parameters" />
+      <module name="snipxn-common" options="-parameters" />
+      <module name="snipxn-community" options="-parameters" />
+      <module name="snipxn-note" options="-parameters" />
+      <module name="snipxn-sandbox" options="-parameters" />
+      <module name="snipxn-start" options="-parameters" />
+      <module name="snipxn-user" options="-parameters" />
+    </option>
+  </component>
+</project>

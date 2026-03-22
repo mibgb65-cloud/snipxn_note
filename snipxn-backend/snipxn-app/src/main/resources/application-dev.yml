@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/snipxn?stringtype=unspecified
+    username: postgres
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 3000ms
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
+  mail:
+    host: smtp.resend.com
+    port: 465
+    username: resend
+    password: ${MAIL_API_KEY:${MAIL_API_KEY}}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+
+# 开发环境打印 SQL 日志
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+snipxn:
+  jwt:
+    secret: ${JWT_SECRET:${JWT_SECRET}}
+  mail:
+    from: noreply@zanolab.com
+
+logging:
+  level:
+    com.snipxn: debug

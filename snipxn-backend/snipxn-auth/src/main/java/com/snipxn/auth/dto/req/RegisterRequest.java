@@ -1,0 +1,29 @@
+package com.snipxn.auth.dto.req;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class RegisterRequest {
+
+    @NotBlank(message = "邮箱不能为空")
+    @Email(message = "邮箱格式不正确")
+    private String email;
+
+    @NotBlank(message = "验证码不能为空")
+    @Size(min = 6, max = 6, message = "验证码为6位数字")
+    private String code;
+
+    @NotBlank(message = "密码不能为空")
+    @Size(min = 8, max = 64, message = "密码长度8-64位")
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "密码必须包含字母和数字")
+    private String password;
+
+    @NotBlank(message = "设备ID不能为空")
+    private String deviceId;
+
+    private String deviceName;
+}

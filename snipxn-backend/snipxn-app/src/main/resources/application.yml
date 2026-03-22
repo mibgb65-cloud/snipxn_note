@@ -1,0 +1,46 @@
+spring:
+  profiles:
+    active: ${APP_ENV:dev}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.snipxn.**.entity
+  global-config:
+    db-config:
+      id-type: assign_uuid
+  configuration:
+    map-underscore-to-camel-case: true
+
+snipxn:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  jwt:
+    access-token-expire: 7200     # Access Token 有效期：2 小时（秒）
+    refresh-token-expire: 604800  # Refresh Token 有效期：7 天（秒）
+  mail:
+    code-expire: 300              # 验证码有效期：5 分钟（秒）
+    code-cooldown: 60             # 发送冷却时间：1 分钟（秒）
+  mq:
+    email-exchange: snipxn.email.exchange
+    email-queue: snipxn.email.queue
+    email-routing-key: email.send
+    email-retry-exchange: snipxn.email.retry.exchange
+    email-retry-queue: snipxn.email.retry.queue
+    email-retry-routing-key: email.send.retry
+    email-dlx-exchange: snipxn.email.dlx
+    email-dlq: snipxn.email.dlq
+    email-dlq-routing-key: email.send.dlq
+    email-max-retries: ${EMAIL_MAX_RETRIES:3}
+    email-retry-delay-ms: ${EMAIL_RETRY_DELAY_MS:30000}
+    view-exchange: snipxn.community.exchange
+    view-queue: snipxn.community.view.queue
+    view-routing-key: view.count
+  sandbox:
+    judge0-url: ${JUDGE0_URL:http://localhost:2358}
+    timeout: ${SANDBOX_TIMEOUT:15}

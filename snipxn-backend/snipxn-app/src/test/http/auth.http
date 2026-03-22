@@ -1,0 +1,110 @@
+### 基础配置
+@baseUrl = http://localhost:8080
+@email = test@example.com
+@password = test12345678
+
+# ============================================================
+# 第一步：发送验证码
+# 收到验证码后填入下方 @code 变量
+# ============================================================
+### 发送验证码
+POST {{baseUrl}}/api/v1/auth/code
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+
+# ============================================================
+# 第二步：注册
+# 把收到的验证码填入 @code，运行后会返回 accessToken 和 refreshToken
+# ============================================================
+@code = 123456
+
+### 注册
+# @name register
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "code": "{{code}}",
+  "password": "{{password}}",
+  "deviceId": "test-device-001",
+  "deviceName": "IntelliJ HTTP Client"
+}
+
+### 从注册响应中提取 token（运行上面的请求后自动填充）
+@accessToken = {{register.response.body.data.token.accessToken}}
+@refreshToken = {{register.response.body.data.token.refreshToken}}
+
+
+# ============================================================
+# 第三步：登录（已注册用户）
+# ============================================================
+### 登录
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "deviceId": "test-device-001",
+  "deviceName": "IntelliJ HTTP Client"
+}
+
+### 从登录响应中提取 token
+@accessToken = {{login.response.body.data.token.accessToken}}
+@refreshToken = {{login.response.body.data.token.refreshToken}}
+
+
+# ============================================================
+# 第四步：用 Token 访问受保护接口
+# ============================================================
+### 获取当前用户信息
+GET {{baseUrl}}/api/v1/user/me
+Authorization: Bearer {{accessToken}}
+
+
+### 更新个人资料
+PUT {{baseUrl}}/api/v1/user/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nickname": "测试用户",
+  "bio": "这是我的简介",
+  "gender": 1
+}
+
+
+### 查看所有登录设备
+GET {{baseUrl}}/api/v1/user/me/devices
+Authorization: Bearer {{accessToken}}
+
+
+# ============================================================
+# 第五步：刷新 Token
+# ============================================================
+### 刷新 Token
+# @name refresh
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}",
+  "deviceId": "test-device-001"
+}
+
+@accessToken = {{refresh.response.body.data.accessToken}}
+@refreshToken = {{refresh.response.body.data.refreshToken}}
+
+
+# ============================================================
+# 第六步：登出
+# ============================================================
+### 登出当前设备
+POST {{baseUrl}}/api/v1/auth/logout
+Authorization: Bearer {{accessToken}}

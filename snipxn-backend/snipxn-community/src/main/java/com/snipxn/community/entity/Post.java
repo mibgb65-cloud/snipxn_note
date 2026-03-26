@@ -21,5 +21,6 @@ public class Post extends BaseEntity {
     private Long likeCount;
     private Long collectCount;
     private Long commentCount;
+    private Long shareCount;
     private String status = "PUBLISHED";
 }

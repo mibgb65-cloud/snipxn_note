@@ -6,6 +6,7 @@ import com.snipxn.common.result.Result;
 import com.snipxn.community.dto.req.CreatePostRequest;
 import com.snipxn.community.dto.resp.PostDetailResponse;
 import com.snipxn.community.dto.resp.PostListItemResponse;
+import com.snipxn.community.dto.resp.SharePostResponse;
 import com.snipxn.community.service.InteractionService;
 import com.snipxn.community.service.PostService;
 import jakarta.validation.Valid;
@@ -43,6 +44,13 @@ public class PostController {
         return Result.success(postService.listUserPosts(userId, page, size));
     }
 
+    @GetMapping("/hot")
+    public Result<PageResult<PostListItemResponse>> listHotPosts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.success(postService.listHotPosts(page, size));
+    }
+
     @GetMapping("/{postId}")
     public Result<PostDetailResponse> getPost(
             @PathVariable String postId,
@@ -63,6 +71,28 @@ public class PostController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String postId) {
         postService.deletePost(userDetails.getUserId(), postId);
+        return Result.success();
+    }
+
+    @PostMapping("/{postId}/share")
+    public Result<SharePostResponse> share(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String postId) {
+        return Result.success(postService.sharePost(userDetails.getUserId(), postId));
+    }
+
+    @GetMapping("/{postId}/share")
+    public Result<SharePostResponse> checkShare(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String postId) {
+        return Result.success(postService.checkShareStatus(userDetails.getUserId(), postId));
+    }
+
+    @DeleteMapping("/{postId}/share")
+    public Result<Void> cancelShare(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String postId) {
+        postService.cancelShare(userDetails.getUserId(), postId);
         return Result.success();
     }
 

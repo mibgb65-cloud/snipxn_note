@@ -12,9 +12,13 @@ import com.snipxn.common.result.PageResult;
 import com.snipxn.community.dto.req.CreatePostRequest;
 import com.snipxn.community.dto.resp.PostDetailResponse;
 import com.snipxn.community.dto.resp.PostListItemResponse;
+import com.snipxn.community.dto.resp.PublicPostResponse;
+import com.snipxn.community.dto.resp.SharePostResponse;
 import com.snipxn.community.entity.Post;
+import com.snipxn.community.entity.PostShare;
 import com.snipxn.community.mapper.InteractionMapper;
 import com.snipxn.community.mapper.PostMapper;
+import com.snipxn.community.mapper.PostShareMapper;
 import com.snipxn.community.mq.message.ViewCountMessage;
 import com.snipxn.community.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -44,6 +49,7 @@ public class PostServiceImpl implements PostService {
     };
 
     private final PostMapper postMapper;
+    private final PostShareMapper postShareMapper;
     private final InteractionMapper interactionMapper;
     private final UserMapper userMapper;
     private final RabbitTemplate rabbitTemplate;
@@ -115,6 +121,7 @@ public class PostServiceImpl implements PostService {
         post.setLikeCount(0L);
         post.setCollectCount(0L);
         post.setCommentCount(0L);
+        post.setShareCount(0L);
         post.setStatus(POST_STATUS_PUBLISHED);
         postMapper.insert(post);
 
@@ -143,6 +150,110 @@ public class PostServiceImpl implements PostService {
     @Override
     public void recordView(String postId) {
         rabbitTemplate.convertAndSend(COMMUNITY_EXCHANGE, VIEW_COUNT_ROUTING_KEY, new ViewCountMessage(postId));
+    }
+
+    @Override
+    @Transactional
+    public SharePostResponse sharePost(String userId, String postId) {
+        Post post = postMapper.selectById(postId);
+        if (post == null || !POST_STATUS_PUBLISHED.equals(post.getStatus())) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        // 同一帖子复用同一个 token，任何登录用户都可以分享
+        PostShare existing = postShareMapper.selectByPostId(postId);
+        if (existing != null) {
+            SharePostResponse resp = new SharePostResponse();
+            resp.setShareToken(existing.getShareToken());
+            return resp;
+        }
+
+        PostShare share = new PostShare();
+        share.setPostId(postId);
+        share.setUserId(userId);
+        share.setShareToken(UUID.randomUUID().toString().replace("-", ""));
+        postShareMapper.insert(share);
+        postMapper.incrementShareCount(postId);
+
+        SharePostResponse resp = new SharePostResponse();
+        resp.setShareToken(share.getShareToken());
+        return resp;
+    }
+
+    @Override
+    public SharePostResponse checkShareStatus(String userId, String postId) {
+        PostShare share = postShareMapper.selectByPostId(postId);
+        if (share == null) {
+            return null;
+        }
+        SharePostResponse resp = new SharePostResponse();
+        resp.setShareToken(share.getShareToken());
+        return resp;
+    }
+
+    @Override
+    @Transactional
+    public void cancelShare(String userId, String postId) {
+        // 只有帖子作者才能取消分享
+        Post post = postMapper.selectById(postId);
+        if (post == null) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+        if (!userId.equals(post.getUserId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        PostShare share = postShareMapper.selectByPostId(postId);
+        if (share == null) {
+            throw new BusinessException(ErrorCode.SHARE_NOT_FOUND);
+        }
+        postShareMapper.deleteById(share.getId());
+    }
+
+    @Override
+    public PublicPostResponse getPublicPost(String shareToken) {
+        PostShare share = postShareMapper.selectByShareToken(shareToken);
+        if (share == null) {
+            throw new BusinessException(ErrorCode.SHARE_NOT_FOUND);
+        }
+
+        Post post = postMapper.selectById(share.getPostId());
+        if (post == null || !POST_STATUS_PUBLISHED.equals(post.getStatus())) {
+            throw new BusinessException(ErrorCode.SHARE_NOT_FOUND);
+        }
+
+        User author = userMapper.selectById(post.getUserId());
+
+        PublicPostResponse resp = new PublicPostResponse();
+        resp.setTitle(post.getTitle());
+        resp.setContent(post.getContent());
+        resp.setLanguage(post.getLanguage());
+        resp.setTags(parseTags(post.getTags()));
+        resp.setViewCount(defaultCount(post.getViewCount()));
+        resp.setLikeCount(defaultCount(post.getLikeCount()));
+        resp.setCommentCount(defaultCount(post.getCommentCount()));
+        resp.setCreatedAt(post.getCreatedAt());
+        resp.setUpdatedAt(post.getUpdatedAt());
+        if (author != null) {
+            resp.setAuthorNickname(author.getNickname());
+            resp.setAuthorAvatar(author.getAvatar());
+        }
+        return resp;
+    }
+
+    @Override
+    public PageResult<PostListItemResponse> listHotPosts(int page, int size) {
+        long current = normalizePage(page);
+        long pageSize = normalizeSize(size);
+        long offset = (current - 1) * pageSize;
+
+        List<Post> posts = postMapper.selectHotPage(pageSize, offset);
+        long total = postMapper.countPublished();
+        Map<String, User> authors = getAuthorsByUserId(posts);
+        List<PostListItemResponse> records = posts.stream()
+                .map(post -> toListItemResponse(post, authors.get(post.getUserId())))
+                .toList();
+
+        return buildPageResult(current, pageSize, total, records);
     }
 
     private PageResult<PostListItemResponse> buildPageResult(long current,
@@ -182,6 +293,7 @@ public class PostServiceImpl implements PostService {
         response.setLikeCount(defaultCount(post.getLikeCount()));
         response.setCollectCount(defaultCount(post.getCollectCount()));
         response.setCommentCount(defaultCount(post.getCommentCount()));
+        response.setShareCount(defaultCount(post.getShareCount()));
         response.setStatus(post.getStatus());
         response.setCreatedAt(post.getCreatedAt());
         if (author != null) {
@@ -204,6 +316,7 @@ public class PostServiceImpl implements PostService {
         response.setLikeCount(defaultCount(post.getLikeCount()));
         response.setCollectCount(defaultCount(post.getCollectCount()));
         response.setCommentCount(defaultCount(post.getCommentCount()));
+        response.setShareCount(defaultCount(post.getShareCount()));
         response.setStatus(post.getStatus());
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());

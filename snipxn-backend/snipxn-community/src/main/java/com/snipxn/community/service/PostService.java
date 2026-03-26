@@ -4,6 +4,8 @@ import com.snipxn.common.result.PageResult;
 import com.snipxn.community.dto.req.CreatePostRequest;
 import com.snipxn.community.dto.resp.PostDetailResponse;
 import com.snipxn.community.dto.resp.PostListItemResponse;
+import com.snipxn.community.dto.resp.PublicPostResponse;
+import com.snipxn.community.dto.resp.SharePostResponse;
 
 public interface PostService {
 
@@ -18,4 +20,14 @@ public interface PostService {
     void deletePost(String userId, String postId);
 
     void recordView(String postId);
+
+    SharePostResponse sharePost(String userId, String postId);
+
+    SharePostResponse checkShareStatus(String userId, String postId);
+
+    void cancelShare(String userId, String postId);
+
+    PublicPostResponse getPublicPost(String shareToken);
+
+    PageResult<PostListItemResponse> listHotPosts(int page, int size);
 }

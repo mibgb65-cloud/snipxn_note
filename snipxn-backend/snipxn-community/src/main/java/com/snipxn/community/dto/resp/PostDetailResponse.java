@@ -19,6 +19,7 @@ public class PostDetailResponse {
     private Long likeCount;
     private Long collectCount;
     private Long commentCount;
+    private Long shareCount;
     private String status;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

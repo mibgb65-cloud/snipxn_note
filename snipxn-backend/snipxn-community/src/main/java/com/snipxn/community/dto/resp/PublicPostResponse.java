@@ -6,20 +6,16 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @Data
-public class PostListItemResponse {
-
-    private String id;
-    private String userId;
+public class PublicPostResponse {
     private String title;
+    private String content;
     private String language;
     private List<String> tags;
-    private Long viewCount;
-    private Long likeCount;
-    private Long collectCount;
-    private Long commentCount;
-    private Long shareCount;
-    private String status;
-    private OffsetDateTime createdAt;
     private String authorNickname;
     private String authorAvatar;
+    private Long viewCount;
+    private Long likeCount;
+    private Long commentCount;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 }

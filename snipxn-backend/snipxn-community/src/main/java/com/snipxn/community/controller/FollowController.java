@@ -4,6 +4,8 @@ import com.snipxn.auth.security.CustomUserDetails;
 import com.snipxn.common.exception.BusinessException;
 import com.snipxn.common.exception.ErrorCode;
 import com.snipxn.common.result.Result;
+import com.snipxn.community.dto.resp.RecommendedUserResponse;
+import com.snipxn.community.dto.resp.UserProfileResponse;
 import com.snipxn.community.mapper.UserFollowMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -57,6 +60,13 @@ public class FollowController {
         return Result.success(userFollowMapper.selectFollowerIds(userDetails.getUserId()));
     }
 
+    @GetMapping("/recommended")
+    public Result<List<RecommendedUserResponse>> recommended(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "5") int limit) {
+        return Result.success(userFollowMapper.selectRecommendedUsers(userDetails.getUserId(), Math.min(limit, 20)));
+    }
+
     @GetMapping("/stats")
     public Result<Map<String, Long>> stats(@AuthenticationPrincipal CustomUserDetails userDetails) {
         String userId = userDetails.getUserId();
@@ -65,5 +75,22 @@ public class FollowController {
                 "followerCount", userFollowMapper.countFollowers(userId)
         );
         return Result.success(map);
+    }
+
+    @GetMapping("/user/{userId}/profile")
+    public Result<UserProfileResponse> userProfile(
+            @PathVariable String userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        UserProfileResponse profile = userFollowMapper.selectUserProfile(userId);
+        if (profile == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        if (userDetails != null) {
+            String currentUserId = userDetails.getUserId();
+            profile.setIsFollowing(
+                    !currentUserId.equals(userId) && userFollowMapper.isFollowing(currentUserId, userId) > 0
+            );
+        }
+        return Result.success(profile);
     }
 }

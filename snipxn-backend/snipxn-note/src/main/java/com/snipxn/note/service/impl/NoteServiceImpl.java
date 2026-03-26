@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.snipxn.auth.entity.User;
 import com.snipxn.auth.mapper.UserMapper;
 import com.snipxn.common.exception.BusinessException;
 import com.snipxn.common.exception.ErrorCode;
@@ -11,16 +12,23 @@ import com.snipxn.note.dto.req.CreateNoteRequest;
 import com.snipxn.note.dto.req.UpdateNoteRequest;
 import com.snipxn.note.dto.resp.NoteDetailResponse;
 import com.snipxn.note.dto.resp.NoteListItemResponse;
+import com.snipxn.note.dto.resp.PublicNoteResponse;
+import com.snipxn.note.dto.resp.ShareNoteResponse;
+import com.snipxn.note.dto.resp.StorageBreakdownResponse;
 import com.snipxn.note.entity.DeletedRecord;
 import com.snipxn.note.entity.Folder;
 import com.snipxn.note.entity.Note;
+import com.snipxn.note.entity.NoteShare;
 import com.snipxn.note.entity.NoteTag;
 import com.snipxn.note.entity.Tag;
+import com.snipxn.note.entity.UserFile;
 import com.snipxn.note.mapper.DeletedRecordMapper;
 import com.snipxn.note.mapper.FolderMapper;
 import com.snipxn.note.mapper.NoteMapper;
+import com.snipxn.note.mapper.NoteShareMapper;
 import com.snipxn.note.mapper.NoteTagMapper;
 import com.snipxn.note.mapper.TagMapper;
+import com.snipxn.note.mapper.UserFileMapper;
 import com.snipxn.note.service.NoteService;
 import com.snipxn.note.util.MarkdownUtils;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +45,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,11 +53,13 @@ import java.util.stream.Collectors;
 public class NoteServiceImpl implements NoteService {
 
     private final NoteMapper noteMapper;
+    private final NoteShareMapper noteShareMapper;
     private final NoteTagMapper noteTagMapper;
     private final FolderMapper folderMapper;
     private final TagMapper tagMapper;
     private final DeletedRecordMapper deletedRecordMapper;
     private final UserMapper userMapper;
+    private final UserFileMapper userFileMapper;
 
     @Override
     public IPage<NoteListItemResponse> listNotes(String userId, String folderId, int page, int size) {
@@ -99,6 +110,9 @@ public class NoteServiceImpl implements NoteService {
         List<String> tagIds = validateOwnedTagIds(userId, req.getTagIds());
 
         String content = req.getContent() == null ? "" : req.getContent();
+        long contentBytes = countContentBytes(content);
+        checkStorageQuota(userId, contentBytes);
+
         Note note = new Note();
         note.setUserId(userId);
         note.setFolderId(req.getFolderId());
@@ -112,6 +126,8 @@ public class NoteServiceImpl implements NoteService {
         note.setIsDeleted(false);
         note.setVersion(1L);
         noteMapper.insert(note);
+
+        addStorageUsed(userId, contentBytes);
 
         if (!tagIds.isEmpty()) {
             noteTagMapper.insertBatch(note.getId(), tagIds);
@@ -131,6 +147,17 @@ public class NoteServiceImpl implements NoteService {
             ensureFolderOwned(userId, req.getFolderId());
         }
         List<String> tagIds = req.getTagIds() == null ? null : validateOwnedTagIds(userId, req.getTagIds());
+
+        // Calculate storage delta if content changed
+        long storageDelta = 0;
+        if (req.getContent() != null) {
+            long oldBytes = countContentBytes(note.getContent());
+            long newBytes = countContentBytes(req.getContent());
+            storageDelta = newBytes - oldBytes;
+            if (storageDelta > 0) {
+                checkStorageQuota(userId, storageDelta);
+            }
+        }
 
         LambdaUpdateWrapper<Note> update = new LambdaUpdateWrapper<Note>()
                 .eq(Note::getId, noteId)
@@ -170,6 +197,10 @@ public class NoteServiceImpl implements NoteService {
             if (updated == 0) {
                 throw new BusinessException(ErrorCode.SYNC_VERSION_CONFLICT);
             }
+        }
+
+        if (storageDelta != 0) {
+            addStorageUsed(userId, storageDelta);
         }
 
         if (tagIds != null) {
@@ -218,10 +249,14 @@ public class NoteServiceImpl implements NoteService {
         if (note == null || !userId.equals(note.getUserId()) || !Boolean.TRUE.equals(note.getIsDeleted())) {
             throw new BusinessException(ErrorCode.NOTE_NOT_FOUND);
         }
+        long contentBytes = countContentBytes(note.getContent());
         noteTagMapper.deleteByNoteId(noteId);
         int deleted = noteMapper.deletePermanentlyDeletedNote(userId, noteId);
         if (deleted == 0) {
             throw new BusinessException(ErrorCode.NOTE_NOT_FOUND);
+        }
+        if (contentBytes > 0) {
+            addStorageUsed(userId, -contentBytes);
         }
     }
 
@@ -260,24 +295,31 @@ public class NoteServiceImpl implements NoteService {
             targetFolderId = defaultFolder.getId();
         }
 
-        List<NoteDetailResponse> results = new ArrayList<>();
+        // Pre-read all file contents and calculate total storage needed
+        List<String[]> fileContents = new ArrayList<>(); // [title, content]
+        long totalBytes = 0;
         for (MultipartFile file : files) {
             String originalName = file.getOriginalFilename();
             String title = originalName.substring(0, originalName.length() - 3);
-
             String content;
             try {
                 content = new String(file.getBytes(), StandardCharsets.UTF_8);
             } catch (IOException e) {
                 throw new BusinessException(ErrorCode.INTERNAL_ERROR);
             }
+            fileContents.add(new String[]{title, content});
+            totalBytes += countContentBytes(content);
+        }
+        checkStorageQuota(userId, totalBytes);
 
+        List<NoteDetailResponse> results = new ArrayList<>();
+        for (String[] fc : fileContents) {
             Note note = new Note();
             note.setUserId(userId);
             note.setFolderId(targetFolderId);
-            note.setTitle(StringUtils.hasText(title) ? title : "无标题笔记");
-            note.setContent(content);
-            note.setSummary(MarkdownUtils.buildSummary(content));
+            note.setTitle(StringUtils.hasText(fc[0]) ? fc[0] : "无标题笔记");
+            note.setContent(fc[1]);
+            note.setSummary(MarkdownUtils.buildSummary(fc[1]));
             note.setPrimaryLanguage("Markdown");
             note.setIsStarred(false);
             note.setStatus("NORMAL");
@@ -287,7 +329,96 @@ public class NoteServiceImpl implements NoteService {
 
             results.add(toDetailResponse(note, List.of()));
         }
+
+        addStorageUsed(userId, totalBytes);
         return results;
+    }
+
+    @Override
+    public ShareNoteResponse shareNote(String userId, String noteId) {
+        getOwnedActiveNote(userId, noteId);
+
+        NoteShare existing = noteShareMapper.selectByNoteIdAndUserId(noteId, userId);
+        if (existing != null) {
+            ShareNoteResponse response = new ShareNoteResponse();
+            response.setShareToken(existing.getShareToken());
+            return response;
+        }
+
+        String token = UUID.randomUUID().toString().replace("-", "");
+        NoteShare share = new NoteShare();
+        share.setNoteId(noteId);
+        share.setUserId(userId);
+        share.setShareToken(token);
+        noteShareMapper.insert(share);
+
+        ShareNoteResponse response = new ShareNoteResponse();
+        response.setShareToken(token);
+        return response;
+    }
+
+    @Override
+    public ShareNoteResponse checkShareStatus(String userId, String noteId) {
+        getOwnedActiveNote(userId, noteId);
+        NoteShare existing = noteShareMapper.selectByNoteIdAndUserId(noteId, userId);
+        if (existing == null) {
+            return null;
+        }
+        ShareNoteResponse response = new ShareNoteResponse();
+        response.setShareToken(existing.getShareToken());
+        return response;
+    }
+
+    @Override
+    public void cancelShare(String userId, String noteId) {
+        getOwnedActiveNote(userId, noteId);
+        NoteShare existing = noteShareMapper.selectByNoteIdAndUserId(noteId, userId);
+        if (existing != null) {
+            noteShareMapper.deleteById(existing.getId());
+        }
+    }
+
+    @Override
+    public StorageBreakdownResponse getStorageBreakdown(String userId) {
+        User user = userMapper.selectById(userId);
+
+        long noteBytes = noteMapper.sumContentBytes(userId);
+        long deletedBytes = noteMapper.sumDeletedContentBytes(userId);
+        long imageBytes = userFileMapper.sumFileBytes(userId);
+        int noteCount = (int) noteMapper.countActive(userId, null);
+        int imageCount = Math.toIntExact(userFileMapper.selectCount(
+                new LambdaQueryWrapper<UserFile>().eq(UserFile::getUserId, userId)));
+
+        StorageBreakdownResponse response = new StorageBreakdownResponse();
+        response.setTotalLimit(user.getStorageLimit() == null ? 0L : user.getStorageLimit());
+        response.setTotalUsed(user.getStorageUsed() == null ? 0L : user.getStorageUsed());
+        response.setNoteBytes(noteBytes);
+        response.setImageBytes(imageBytes);
+        response.setDeletedBytes(deletedBytes);
+        response.setNoteCount(noteCount);
+        response.setImageCount(imageCount);
+        return response;
+    }
+
+    @Override
+    public PublicNoteResponse getPublicNote(String shareToken) {
+        NoteShare share = noteShareMapper.selectByShareToken(shareToken);
+        if (share == null) {
+            throw new BusinessException(ErrorCode.SHARE_NOT_FOUND);
+        }
+
+        Note note = noteMapper.selectById(share.getNoteId());
+        if (note == null) {
+            throw new BusinessException(ErrorCode.SHARE_NOT_FOUND);
+        }
+
+        PublicNoteResponse response = new PublicNoteResponse();
+        response.setTitle(note.getTitle());
+        response.setContent(note.getContent());
+        response.setPrimaryLanguage(note.getPrimaryLanguage());
+        response.setCreatedAt(note.getCreatedAt());
+        response.setUpdatedAt(note.getUpdatedAt());
+        return response;
     }
 
     private Note getOwnedActiveNote(String userId, String noteId) {
@@ -386,6 +517,30 @@ public class NoteServiceImpl implements NoteService {
             return 0L;
         }
         return (long) content.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    private void checkStorageQuota(String userId, long additionalBytes) {
+        if (additionalBytes <= 0) {
+            return;
+        }
+        User user = userMapper.selectById(userId);
+        long used = user.getStorageUsed() == null ? 0L : user.getStorageUsed();
+        long limit = user.getStorageLimit() == null ? 0L : user.getStorageLimit();
+        if (used + additionalBytes > limit) {
+            throw new BusinessException(ErrorCode.STORAGE_LIMIT_EXCEEDED);
+        }
+    }
+
+    private void addStorageUsed(String userId, long deltaBytes) {
+        if (deltaBytes == 0) {
+            return;
+        }
+        User user = userMapper.selectById(userId);
+        long used = user.getStorageUsed() == null ? 0L : user.getStorageUsed();
+        long newUsed = Math.max(0, used + deltaBytes);
+        userMapper.update(null, new LambdaUpdateWrapper<User>()
+                .eq(User::getId, userId)
+                .set(User::getStorageUsed, newUsed));
     }
 
     private NoteDetailResponse toDetailResponse(Note note) {

@@ -7,6 +7,8 @@ import com.snipxn.note.dto.req.CreateNoteRequest;
 import com.snipxn.note.dto.req.UpdateNoteRequest;
 import com.snipxn.note.dto.resp.NoteDetailResponse;
 import com.snipxn.note.dto.resp.NoteListItemResponse;
+import com.snipxn.note.dto.resp.ShareNoteResponse;
+import com.snipxn.note.dto.resp.StorageBreakdownResponse;
 import com.snipxn.note.service.NoteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -87,6 +89,31 @@ public class NoteController {
                                             @PathVariable String noteId) {
         noteService.permanentDeleteNote(userDetails.getUserId(), noteId);
         return Result.success();
+    }
+
+    @GetMapping("/{noteId}/share")
+    public Result<ShareNoteResponse> checkShareStatus(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                      @PathVariable String noteId) {
+        return Result.success(noteService.checkShareStatus(userDetails.getUserId(), noteId));
+    }
+
+    @PostMapping("/{noteId}/share")
+    public Result<ShareNoteResponse> shareNote(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                               @PathVariable String noteId) {
+        return Result.success(noteService.shareNote(userDetails.getUserId(), noteId));
+    }
+
+    @DeleteMapping("/{noteId}/share")
+    public Result<Void> cancelShare(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                    @PathVariable String noteId) {
+        noteService.cancelShare(userDetails.getUserId(), noteId);
+        return Result.success();
+    }
+
+    @GetMapping("/storage-breakdown")
+    public Result<StorageBreakdownResponse> getStorageBreakdown(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return Result.success(noteService.getStorageBreakdown(userDetails.getUserId()));
     }
 
     @PostMapping("/import")

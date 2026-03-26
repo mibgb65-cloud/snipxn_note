@@ -127,4 +127,10 @@ public interface NoteMapper extends BaseMapper<Note> {
     })
     List<Note> selectForSync(@Param("userId") String userId,
                              @Param("lastPulledAt") OffsetDateTime lastPulledAt);
+
+    @Select("SELECT COALESCE(SUM(OCTET_LENGTH(content)), 0) FROM notes WHERE user_id = #{userId} AND is_deleted = FALSE")
+    long sumContentBytes(@Param("userId") String userId);
+
+    @Select("SELECT COALESCE(SUM(OCTET_LENGTH(content)), 0) FROM notes WHERE user_id = #{userId} AND is_deleted = TRUE")
+    long sumDeletedContentBytes(@Param("userId") String userId);
 }

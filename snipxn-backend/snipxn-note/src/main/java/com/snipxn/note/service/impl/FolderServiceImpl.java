@@ -49,7 +49,7 @@ public class FolderServiceImpl implements FolderService {
         Folder folder = new Folder();
         folder.setUserId(userId);
         folder.setName(req.getName());
-        folder.setIcon(StringUtils.hasText(req.getIcon()) ? req.getIcon() : "folder");
+        folder.setIcon(StringUtils.hasText(req.getIcon()) ? req.getIcon() : "pi pi-folder");
         folder.setRankIndex(req.getRankIndex());
         folder.setIsDefault(false);
         folder.setIsDeleted(false);
@@ -130,7 +130,7 @@ public class FolderServiceImpl implements FolderService {
         Folder folder = new Folder();
         folder.setUserId(userId);
         folder.setName("Inbox");
-        folder.setIcon("inbox");
+        folder.setIcon("pi pi-inbox");
         folder.setIsDefault(true);
         folder.setRankIndex("a");
         folder.setIsDeleted(false);

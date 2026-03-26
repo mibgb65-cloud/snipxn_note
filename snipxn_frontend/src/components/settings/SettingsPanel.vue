@@ -2,85 +2,86 @@
   <div class="settings-shell">
     <aside class="settings-nav">
       <div class="settings-nav-hero">
-        <p class="settings-description">{{ t('settings.description') }}</p>
+        <span class="settings-nav-kicker">{{ t('settings.heroKicker') }}</span>
+        <h2 class="settings-nav-title">{{ t('settings.title') }}</h2>
+        <p class="settings-description">{{ t('settings.quickHint') }}</p>
       </div>
 
-      <button
-        v-for="section in sections"
-        :key="section.id"
-        type="button"
-        class="settings-nav-item"
-        :class="{ 'settings-nav-item-active': activeSection === section.id }"
-        @click="activeSection = section.id"
-      >
-        <span class="settings-nav-icon">
-          <i :class="section.icon" />
-        </span>
-        <span>{{ section.label }}</span>
-      </button>
+      <div class="settings-nav-list">
+        <button
+          v-for="section in sections"
+          :key="section.id"
+          type="button"
+          class="settings-nav-item"
+          :class="{ 'settings-nav-item-active': activeSection === section.id }"
+          @click="activeSection = section.id"
+        >
+          <span class="settings-nav-icon">
+            <i :class="section.icon" />
+          </span>
+
+          <span class="settings-nav-copy">
+            <strong>{{ section.label }}</strong>
+            <span>{{ section.description }}</span>
+          </span>
+        </button>
+      </div>
     </aside>
 
     <main class="settings-content">
-      <ProfileForm
-        v-if="activeSection === 'profile'"
-        :profile="userStore.profile"
-        :saving="userStore.savingProfile"
-        @submit="handleProfileSave"
-        @upload-avatar="handleAvatarUpload"
-      />
-
-      <PasswordForm
-        v-else-if="activeSection === 'password'"
-        :loading="userStore.changingPassword"
-        @submit="handlePasswordSave"
-      />
-
-      <DeviceList
-        v-else-if="activeSection === 'devices'"
-        :devices="userStore.devices"
-        :loading="userStore.loadingDevices"
-        :current-device-id="currentDeviceId"
-        @revoke="handleRevokeDevice"
-        @revoke-others="handleRevokeOthers"
-      />
-
-      <section v-else-if="activeSection === 'theme'" class="settings-section">
-        <div class="settings-card">
-          <div>
-            <h3 class="m-0">{{ t('settings.theme') }}</h3>
-            <p class="m-0 settings-description">{{ t('theme.description') }}</p>
-          </div>
-          <ThemeToggle />
+      <header class="settings-content-header">
+        <div class="settings-content-heading">
+          <span class="settings-content-kicker">{{ t('settings.title') }}</span>
+          <h3 class="settings-content-title">{{ activeSectionMeta.label }}</h3>
+          <p class="settings-content-description">{{ activeSectionMeta.description }}</p>
         </div>
-      </section>
+      </header>
 
-      <section v-else-if="activeSection === 'language'" class="settings-section">
-        <div class="settings-card">
-          <div>
-            <h3 class="m-0">{{ t('language.title') }}</h3>
-            <p class="m-0 settings-description">{{ t('language.description') }}</p>
-          </div>
-          <div class="language-actions">
-            <Button
-              :outlined="locale !== 'zh'"
-              :label="t('language.zh')"
-              @click="switchLanguage('zh')"
-            />
-            <Button
-              :outlined="locale !== 'en'"
-              :label="t('language.en')"
-              @click="switchLanguage('en')"
-            />
-          </div>
-        </div>
-      </section>
+      <div class="settings-content-body">
+        <ProfileForm
+          v-if="activeSection === 'profile'"
+          :profile="userStore.profile"
+          :saving="userStore.savingProfile"
+          @submit="handleProfileSave"
+          @upload-avatar="handleAvatarUpload"
+        />
 
-      <StorageBar
-        v-else
-        :profile="userStore.profile"
-        :loading="userStore.loadingProfile"
-        :percent="userStore.storageUsagePercent"
-      />
+        <AccountSecurityForm
+          v-else-if="activeSection === 'security'"
+          :linked-accounts="userStore.linkedAccounts"
+          :loading-linked-accounts="userStore.loadingLinkedAccounts"
+          :password-loading="userStore.changingPassword"
+          @submit-password="handlePasswordSave"
+          @unbind="handleUnbind"
+        />
+
+        <DeviceList
+          v-else-if="activeSection === 'devices'"
+          :devices="userStore.devices"
+          :loading="userStore.loadingDevices"
+          :current-device-id="currentDeviceId"
+          @revoke="handleRevokeDevice"
+          @revoke-others="handleRevokeOthers"
+        />
+
+        <section v-else-if="activeSection === 'theme'" class="settings-section">
+          <ThemeSelector />
+        </section>
+
+        <section v-else-if="activeSection === 'font'" class="settings-section">
+          <FontSelector />
+        </section>
+
+        <section v-else-if="activeSection === 'language'" class="settings-section">
+          <LanguageSelector />
+        </section>
+
+        <StorageBar
+          v-else
+          :breakdown="userStore.storageBreakdown"
+          :loading="userStore.loadingStorageBreakdown"
+        />
+      </div>
     </main>
 
     <Dialog
@@ -124,12 +125,14 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
-import { setAppLocale } from '../../i18n';
 import { getDeviceId } from '../../composables/useDeviceId';
 import { useUserStore } from '../../stores/user';
-import ThemeToggle from '../common/ThemeToggle.vue';
+import { buildSettingsSections } from './settingsSections';
+import ThemeSelector from './ThemeSelector.vue';
+import FontSelector from './FontSelector.vue';
+import LanguageSelector from './LanguageSelector.vue';
 import ProfileForm from './ProfileForm.vue';
-import PasswordForm from './PasswordForm.vue';
+import AccountSecurityForm from './AccountSecurityForm.vue';
 import DeviceList from './DeviceList.vue';
 import StorageBar from './StorageBar.vue';
 
@@ -140,52 +143,70 @@ const props = defineProps({
   },
 });
 
-const { locale, t } = useI18n();
+const emit = defineEmits(['section-change']);
+const { t } = useI18n();
 const toast = useToast();
 const userStore = useUserStore();
 
-const activeSection = ref(props.initialSection);
+const activeSection = ref(props.initialSection || 'profile');
 const currentDeviceId = getDeviceId();
 const confirmDialogVisible = ref(false);
 const confirmSubmitting = ref(false);
 const confirmDialogMode = ref('');
 const confirmDialogTarget = ref(null);
 
-const sections = computed(() => ([
-  { id: 'profile', label: t('settings.profile'), icon: 'pi pi-user' },
-  { id: 'password', label: t('settings.password'), icon: 'pi pi-lock' },
-  { id: 'devices', label: t('settings.devices'), icon: 'pi pi-desktop' },
-  { id: 'theme', label: t('settings.theme'), icon: 'pi pi-palette' },
-  { id: 'language', label: t('settings.language'), icon: 'pi pi-language' },
-  { id: 'storage', label: t('settings.storage'), icon: 'pi pi-database' },
-]));
-
-const confirmTitle = computed(() => (
-  confirmDialogMode.value === 'revoke-others'
-    ? t('devices.revokeOthers')
-    : t('devices.revoke')
+const sections = computed(() => buildSettingsSections(t));
+const activeSectionMeta = computed(() => (
+  sections.value.find((section) => section.id === activeSection.value) || sections.value[0]
 ));
-const confirmActionLabel = computed(() => (
-  confirmDialogMode.value === 'revoke-others'
-    ? t('devices.revokeOthers')
-    : t('devices.revoke')
-));
-const confirmMessage = computed(() => (
-  confirmDialogMode.value === 'revoke-others'
-    ? t('devices.revokeOthersConfirm')
-    : t('devices.revokeConfirm')
-));
-const confirmIcon = computed(() => (
-  confirmDialogMode.value === 'revoke-others'
-    ? 'pi pi-shield'
-    : 'pi pi-trash'
-));
+const confirmTitle = computed(() => {
+  if (confirmDialogMode.value === 'revoke-others') return t('devices.revokeOthers');
+  if (confirmDialogMode.value === 'unbind') return t('security.unbind');
+  return t('devices.revoke');
+});
+const confirmActionLabel = computed(() => {
+  if (confirmDialogMode.value === 'revoke-others') return t('devices.revokeOthers');
+  if (confirmDialogMode.value === 'unbind') return t('security.unbind');
+  return t('devices.revoke');
+});
+const confirmMessage = computed(() => {
+  if (confirmDialogMode.value === 'revoke-others') return t('devices.revokeOthersConfirm');
+  if (confirmDialogMode.value === 'unbind') return t('security.unbindConfirm');
+  return t('devices.revokeConfirm');
+});
+const confirmIcon = computed(() => {
+  if (confirmDialogMode.value === 'revoke-others') return 'pi pi-shield';
+  if (confirmDialogMode.value === 'unbind') return 'pi pi-link';
+  return 'pi pi-trash';
+});
 
 watch(
   () => props.initialSection,
   (section) => {
-    activeSection.value = section || 'profile';
+    const nextSection = section || 'profile';
+
+    if (sections.value.some((item) => item.id === nextSection)) {
+      activeSection.value = nextSection;
+    }
   },
+);
+
+watch(
+  activeSection,
+  (section) => {
+    emit('section-change', section);
+  },
+  { immediate: true },
+);
+
+watch(
+  sections,
+  (nextSections) => {
+    if (!nextSections.some((section) => section.id === activeSection.value)) {
+      activeSection.value = nextSections[0]?.id || 'profile';
+    }
+  },
+  { immediate: true },
 );
 
 onMounted(async () => {
@@ -206,6 +227,8 @@ async function loadSettingsData() {
   await Promise.allSettled([
     userStore.fetchProfile(),
     userStore.fetchDevices(),
+    userStore.fetchLinkedAccounts(),
+    userStore.fetchStorageBreakdown(),
   ]);
 }
 
@@ -252,6 +275,12 @@ async function handlePasswordSave(payload) {
   }
 }
 
+function handleUnbind(identityType) {
+  confirmDialogMode.value = 'unbind';
+  confirmDialogTarget.value = identityType;
+  confirmDialogVisible.value = true;
+}
+
 function handleRevokeDevice(deviceId) {
   confirmDialogMode.value = 'revoke-device';
   confirmDialogTarget.value = deviceId;
@@ -282,7 +311,15 @@ async function handleConfirmDialogAction() {
   confirmSubmitting.value = true;
 
   try {
-    if (confirmDialogMode.value === 'revoke-others') {
+    if (confirmDialogMode.value === 'unbind') {
+      await userStore.unbindOAuth(confirmDialogTarget.value);
+      toast.add({
+        severity: 'success',
+        summary: t('common.success'),
+        detail: t('security.unbindSuccess'),
+        life: 2500,
+      });
+    } else if (confirmDialogMode.value === 'revoke-others') {
       await userStore.deleteOtherDevices();
       toast.add({
         severity: 'success',
@@ -308,88 +345,165 @@ async function handleConfirmDialogAction() {
   }
 }
 
-function switchLanguage(nextLocale) {
-  setAppLocale(nextLocale);
-  toast.add({
-    severity: 'success',
-    summary: t('common.success'),
-    detail: t('language.changed'),
-    life: 2500,
-  });
-}
 </script>
 
 <style scoped>
 .settings-shell {
+  height: 100%;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr);
-  gap: 1rem;
-  min-height: 34rem;
+  grid-template-columns: minmax(17rem, 19rem) minmax(0, 1fr);
+  gap: 0;
 }
 
 .settings-nav,
 .settings-content {
-  border: 1px solid color-mix(in srgb, var(--surface-border) 85%, var(--primary-color));
-  border-radius: 1.2rem;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-card) 97%, transparent), color-mix(in srgb, var(--surface-card) 93%, transparent));
+  min-height: 0;
 }
 
 .settings-nav {
+  border-right: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-subtle) 92%, transparent);
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .settings-nav-hero {
   padding: 1rem;
+  border: 1px solid var(--app-border);
   border-radius: 1rem;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 12%, var(--surface-card)), color-mix(in srgb, var(--surface-card) 96%, transparent));
+    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 9%, var(--app-panel-strong)), color-mix(in srgb, var(--app-panel-strong) 97%, transparent));
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
-.settings-description {
+.settings-nav-kicker,
+.settings-content-kicker,
+.settings-nav-copy span {
   color: var(--text-color-secondary);
-  font-size: 0.875rem;
-  line-height: 1.7;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.settings-nav-kicker,
+.settings-content-kicker {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-nav-title,
+.settings-content-title,
+.settings-card-title {
+  margin: 0;
+  color: var(--text-color);
+  letter-spacing: -0.04em;
+}
+
+.settings-nav-title {
+  font-size: 1.2rem;
+}
+
+.settings-description,
+.settings-content-description,
+.settings-confirm-message {
+  margin: 0;
+  color: var(--text-color-secondary);
+  line-height: 1.65;
+}
+
+.settings-nav-list {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .settings-nav-item {
-  border: 1px solid transparent;
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--app-border);
   border-radius: 1rem;
-  padding: 0.9rem 1rem;
-  background: color-mix(in srgb, var(--surface-ground) 22%, transparent);
+  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
   color: inherit;
   font: inherit;
+  text-align: left;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.85rem;
   cursor: pointer;
-  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease;
-}
-
-.settings-nav-icon {
-  width: 2rem;
-  height: 2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--primary-color) 9%, var(--surface-card));
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
 
 .settings-nav-item:hover,
 .settings-nav-item-active {
-  border-color: color-mix(in srgb, var(--primary-color) 28%, var(--surface-border));
-  background: color-mix(in srgb, var(--primary-color) 10%, var(--surface-card));
-  color: var(--primary-color);
+  border-color: color-mix(in srgb, var(--primary-color) 28%, var(--app-border));
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--app-panel-subtle));
   transform: translateY(-1px);
 }
 
-.settings-content {
-  padding: 1rem;
+.settings-nav-item-active .settings-nav-icon {
+  color: var(--primary-color);
+  border-color: color-mix(in srgb, var(--primary-color) 24%, var(--app-border));
+}
+
+.settings-nav-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-subtle) 92%, transparent);
+}
+
+.settings-nav-copy {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.settings-nav-copy strong {
+  color: var(--text-color);
+  font-size: 0.96rem;
+  line-height: 1.25;
+}
+
+.settings-nav-copy span {
+  line-height: 1.55;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--app-panel-strong) 98%, transparent);
+}
+
+.settings-content-header {
+  padding: 1.1rem 1.2rem 1rem;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-subtle) 94%, transparent);
+}
+
+.settings-content-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settings-content-title {
+  font-size: clamp(1.35rem, 1.8vw, 1.8rem);
+}
+
+.settings-content-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
 }
 
 .settings-section {
@@ -403,14 +517,17 @@ function switchLanguage(nextLocale) {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.1rem;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 85%, var(--primary-color));
+  padding: 1rem;
+  border: 1px solid var(--app-border);
   border-radius: 1rem;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 8%, var(--surface-card)), color-mix(in srgb, var(--surface-card) 96%, transparent));
+    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 8%, var(--app-panel-strong)), color-mix(in srgb, var(--app-panel-strong) 97%, transparent));
 }
 
-.language-actions,
+.settings-card-title {
+  font-size: 1.05rem;
+}
+
 .settings-confirm-actions {
   display: flex;
   gap: 0.75rem;
@@ -434,19 +551,62 @@ function switchLanguage(nextLocale) {
   flex-shrink: 0;
 }
 
-.settings-confirm-message {
-  margin: 0;
-  color: var(--text-color-secondary);
-  line-height: 1.7;
-}
-
 .settings-confirm-actions {
   justify-content: flex-end;
   margin-top: 1.25rem;
 }
 
-@media (max-width: 960px) {
+.settings-empty-state {
+  min-height: 14rem;
+  padding: 1.2rem;
+  border: 1px dashed color-mix(in srgb, var(--primary-color) 18%, var(--app-border));
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--app-panel-subtle) 72%, transparent);
+  display: grid;
+  place-items: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.settings-empty-state-subtle {
+  min-height: 8rem;
+  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
+}
+
+.settings-empty-icon {
+  font-size: 1.15rem;
+  color: var(--primary-color);
+}
+
+.settings-empty-copy {
+  margin: 0;
+  color: var(--text-color-secondary);
+  line-height: 1.65;
+}
+
+@media (max-width: 1080px) {
   .settings-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .settings-nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .settings-content-header,
+  .settings-content-body,
+  .settings-nav {
+    padding: 0.9rem;
+  }
+
+  .settings-nav-list {
     grid-template-columns: 1fr;
   }
 

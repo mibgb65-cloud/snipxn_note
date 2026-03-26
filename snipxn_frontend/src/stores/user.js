@@ -7,10 +7,14 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     profile: null,
     devices: [],
+    linkedAccounts: [],
     loadingProfile: false,
     loadingDevices: false,
+    loadingLinkedAccounts: false,
     savingProfile: false,
     changingPassword: false,
+    storageBreakdown: null,
+    loadingStorageBreakdown: false,
   }),
   getters: {
     storageUsagePercent: (state) => {
@@ -81,6 +85,36 @@ export const useUserStore = defineStore('user', {
     async deleteOtherDevices() {
       await userApi.deleteOtherDevices();
       await this.fetchDevices();
+    },
+    async fetchLinkedAccounts() {
+      this.loadingLinkedAccounts = true;
+
+      try {
+        const res = await userApi.getLinkedAccounts();
+        this.linkedAccounts = res.data || [];
+        return this.linkedAccounts;
+      } finally {
+        this.loadingLinkedAccounts = false;
+      }
+    },
+    async bindOAuth(provider, code, redirectUri) {
+      await userApi.bindOAuthAccount(provider, code, redirectUri);
+      await this.fetchLinkedAccounts();
+    },
+    async unbindOAuth(identityType) {
+      await userApi.unbindOAuthAccount(identityType);
+      await this.fetchLinkedAccounts();
+    },
+    async fetchStorageBreakdown() {
+      this.loadingStorageBreakdown = true;
+
+      try {
+        const res = await userApi.getStorageBreakdown();
+        this.storageBreakdown = res.data || null;
+        return this.storageBreakdown;
+      } finally {
+        this.loadingStorageBreakdown = false;
+      }
     },
     async uploadAvatar(file) {
       const res = await uploadFile(file);

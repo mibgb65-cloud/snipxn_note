@@ -1,11 +1,13 @@
 import axios from 'axios';
 import router from '../router';
 import { getDeviceId } from '../composables/useDeviceId';
+import { resetActiveStores } from '../utils/session';
 
 function clearStoredAuth() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('authUser');
+  resetActiveStores(['auth']);
 }
 
 async function redirectToLogin() {
@@ -13,9 +15,70 @@ async function redirectToLogin() {
   const redirect = currentRoute?.meta?.requiresAuth ? currentRoute.fullPath : undefined;
 
   await router.push({
-    name: 'login',
-    query: redirect ? { redirect } : undefined,
+    name: 'landing',
+    query: { auth: 'true', ...(redirect ? { redirect } : {}) },
   });
+}
+
+function extractErrorMessage(source, fallback = 'Request failed') {
+  const messages = [];
+
+  function pushMessage(value) {
+    if (typeof value === 'string' && value.trim()) {
+      messages.push(value.trim());
+    }
+  }
+
+  function inspectPayload(payload) {
+    if (!payload) return;
+
+    if (typeof payload === 'string') {
+      pushMessage(payload);
+      return;
+    }
+
+    if (typeof payload !== 'object') {
+      return;
+    }
+
+    pushMessage(payload.message);
+    pushMessage(payload.msg);
+    pushMessage(payload.detail);
+    pushMessage(payload.error);
+    pushMessage(payload.error_description);
+
+    if (Array.isArray(payload.errors)) {
+      for (const item of payload.errors) {
+        if (typeof item === 'string') {
+          pushMessage(item);
+          break;
+        }
+
+        if (item && typeof item === 'object') {
+          pushMessage(item.message);
+          pushMessage(item.msg);
+          pushMessage(item.defaultMessage);
+          pushMessage(item.detail);
+
+          if (messages.length) {
+            break;
+          }
+        }
+      }
+    }
+
+    if (payload.data && typeof payload.data === 'object') {
+      pushMessage(payload.data.message);
+      pushMessage(payload.data.msg);
+      pushMessage(payload.data.detail);
+    }
+  }
+
+  inspectPayload(source?.response?.data);
+  inspectPayload(source?.data);
+  pushMessage(source?.message);
+
+  return messages[0] || fallback;
 }
 
 const api = axios.create({
@@ -50,7 +113,7 @@ api.interceptors.response.use(
       return result;
     }
 
-    return Promise.reject(new Error(result.message || 'Request failed'));
+    return Promise.reject(new Error(extractErrorMessage(result)));
   },
   async (error) => {
     const originalRequest = error.config;
@@ -111,7 +174,7 @@ api.interceptors.response.use(
       await redirectToLogin();
     }
 
-    return Promise.reject(error);
+    return Promise.reject(new Error(extractErrorMessage(error)));
   },
 );
 

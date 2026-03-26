@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import * as authApi from '../api/auth';
+import { resetActiveStores } from '../utils/session';
 
 const AUTH_USER_KEY = 'authUser';
 
@@ -55,11 +56,13 @@ export const useAuthStore = defineStore('auth', {
     clearAuth() {
       this.setUser(null);
       this.setTokens(null, null);
+      resetActiveStores(['auth']);
     },
     async login(email, password) {
       const res = await authApi.login(email, password);
       const token = res.data?.token || {};
 
+      resetActiveStores(['auth']);
       this.setTokens(token.accessToken, token.refreshToken);
       this.setUser(res.data?.user || null);
 
@@ -69,6 +72,17 @@ export const useAuthStore = defineStore('auth', {
       const res = await authApi.register(email, code, password);
       const token = res.data?.token || {};
 
+      resetActiveStores(['auth']);
+      this.setTokens(token.accessToken, token.refreshToken);
+      this.setUser(res.data?.user || null);
+
+      return res;
+    },
+    async oauthLogin(provider, code, redirectUri) {
+      const res = await authApi.oauthLogin(provider, code, redirectUri);
+      const token = res.data?.token || {};
+
+      resetActiveStores(['auth']);
       this.setTokens(token.accessToken, token.refreshToken);
       this.setUser(res.data?.user || null);
 

@@ -24,3 +24,8 @@ export function getFollowers() {
 export function getFollowStats() {
   return api.get('/follow/stats');
 }
+
+// 推荐用户
+export function getRecommendedUsers(limit = 5) {
+  return api.get('/follow/recommended', { params: { limit } });
+}

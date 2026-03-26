@@ -62,7 +62,7 @@ const toggleMenu = (event) => {
   padding: 0 0.85rem;
   border-radius: 999px;
   border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-strong) 86%, transparent);
+  background: color-mix(in srgb, var(--app-panel-raised) 88%, transparent);
   backdrop-filter: blur(16px);
   color: var(--text-color);
   display: inline-flex;
@@ -71,14 +71,14 @@ const toggleMenu = (event) => {
   gap: 0.5rem;
   cursor: pointer;
   transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 var(--app-control-highlight), var(--app-control-shadow);
   font-family: var(--font-sans);
   font-weight: 700;
   font-size: 0.85rem;
 }
 
 .icon-control-btn:hover {
-  background: color-mix(in srgb, var(--primary-color) 8%, var(--app-panel-strong));
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--app-panel-raised));
   border-color: color-mix(in srgb, var(--primary-color) 28%, var(--app-border-strong));
   color: var(--primary-color);
   transform: translateY(-1px);
@@ -87,7 +87,7 @@ const toggleMenu = (event) => {
 
 .icon-control-btn:active {
   transform: translateY(0);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 var(--app-control-highlight), var(--app-control-shadow);
 }
 
 .btn-text {
@@ -99,14 +99,14 @@ const toggleMenu = (event) => {
   border-radius: 1rem;
   border: 1px solid var(--app-border);
   box-shadow: var(--app-shadow-soft);
-  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
   backdrop-filter: blur(18px);
   overflow: hidden;
   min-width: 140px;
 }
 
-html[data-theme='dark'] :deep(.lang-menu) {
-  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
+html.app-dark :deep(.lang-menu) {
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
 }
 
 :deep(.lang-menu .p-menuitem-link) {
@@ -117,7 +117,7 @@ html[data-theme='dark'] :deep(.lang-menu) {
 }
 
 :deep(.lang-menu .p-menuitem-link:hover) {
-  background: color-mix(in srgb, var(--primary-color) 8%, var(--app-panel));
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--app-panel-raised));
   color: var(--primary-color);
 }
 

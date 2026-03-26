@@ -9,6 +9,16 @@ const router = createRouter({
       component: () => import('../views/LandingView.vue')
     },
     {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/LoginView.vue')
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/RegisterView.vue')
+    },
+    {
       path: '/workspace',
       name: 'workspace',
       component: () => import('../views/MainView.vue'),
@@ -33,9 +43,37 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/LoginView.vue')
+      path: '/user/:userId',
+      name: 'userProfile',
+      component: () => import('../views/UserProfileView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/share/post/:shareToken',
+      name: 'publicPost',
+      component: () => import('../views/PublicPostView.vue')
+    },
+    {
+      path: '/share/:shareToken',
+      name: 'publicNote',
+      component: () => import('../views/PublicNoteView.vue')
+    },
+    {
+      path: '/setup-profile',
+      name: 'setup-profile',
+      component: () => import('../views/SetupProfileView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/auth/callback/:provider',
+      name: 'oauth-callback',
+      component: () => import('../views/OAuthCallbackView.vue')
+    },
+    {
+      path: '/auth/bind-callback/:provider',
+      name: 'oauth-bind-callback',
+      component: () => import('../views/OAuthBindCallbackView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
@@ -46,16 +84,52 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !token) {
     next({
-      name: 'login',
+      name: 'landing',
       query: {
+        auth: 'true',
         redirect: to.fullPath,
       },
     });
-  } else if (to.name === 'login' && token) {
-    next({ name: 'workspace' });
-  } else {
-    next();
+    return;
   }
+
+  // OAuth callback route should always pass through
+  if (to.name === 'oauth-callback') {
+    next();
+    return;
+  }
+
+  // Already logged in but visiting auth-related URLs → go to workspace
+  if (token && (
+    (to.name === 'landing' && to.query.auth) ||
+    to.name === 'login' ||
+    to.name === 'register'
+  )) {
+    next({ name: 'workspace' });
+    return;
+  }
+
+  // Force setup-profile if nickname is missing
+  if (token) {
+    let authUser = null;
+    try {
+      authUser = JSON.parse(localStorage.getItem('authUser'));
+    } catch { /* ignore */ }
+
+    const hasNickname = Boolean(authUser?.nickname);
+
+    if (!hasNickname && to.name !== 'setup-profile' && to.meta.requiresAuth) {
+      next({ name: 'setup-profile' });
+      return;
+    }
+
+    if (hasNickname && to.name === 'setup-profile') {
+      next({ name: 'workspace' });
+      return;
+    }
+  }
+
+  next();
 });
 
 export default router

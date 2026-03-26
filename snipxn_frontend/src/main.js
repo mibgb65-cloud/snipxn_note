@@ -8,13 +8,16 @@ import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
 import Toast from 'primevue/toast'
 import { initializeTheme } from './composables/useTheme'
+import { initializeFont } from './composables/useFont'
 import SnipxnPreset from './theme/preset'
 
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
 import './assets/main.css'
+import './theme/schemes.css'
 
 initializeTheme()
+initializeFont()
 
 const app = createApp(App)
 

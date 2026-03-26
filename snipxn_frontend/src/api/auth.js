@@ -1,6 +1,10 @@
 import api from './axios';
 import { getDeviceId, getDeviceName } from '../composables/useDeviceId';
 
+export function checkEmail(email) {
+  return api.post('/auth/check-email', { email });
+}
+
 export function sendCode(email, scene) {
   return api.post('/auth/code', { email, scene });
 }
@@ -30,4 +34,13 @@ export function resetPassword(email, code, newPassword) {
 
 export function logout() {
   return api.post('/auth/logout');
+}
+
+export function oauthLogin(provider, code, redirectUri) {
+  return api.post(`/auth/oauth/${provider}`, {
+    code,
+    deviceId: getDeviceId(),
+    deviceName: getDeviceName(),
+    redirectUri,
+  });
 }

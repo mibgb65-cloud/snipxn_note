@@ -10,7 +10,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>snipxn-sandbox</artifactId>
+    <artifactId>snipxn-ai</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>

@@ -88,7 +88,11 @@
               <Tag v-for="tag in (post.tags || [])" :key="tag" :value="tag" severity="secondary" />
             </div>
 
-            <article class="post-detail-body-copy" v-html="renderedContent" />
+            <article
+              ref="postDetailMarkdownContentRef"
+              class="post-detail-body-copy"
+              v-html="renderedContent"
+            />
           </section>
 
           <section v-else class="post-detail-empty">
@@ -227,7 +231,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
@@ -241,7 +245,7 @@ import ThemeToggle from '../components/common/ThemeToggle.vue';
 import logoUrl from '../assets/logo.svg';
 import { useAuthStore } from '../stores/auth';
 import { useCommunityStore } from '../stores/community';
-import { renderMarkdown } from '../utils/markdown';
+import { bindMarkdownCodeActions, renderMarkdown } from '../utils/markdown';
 
 const DETAIL_STACKED_BREAKPOINT = 1080;
 
@@ -255,7 +259,9 @@ const communityStore = useCommunityStore();
 const deleteDialogVisible = ref(false);
 const deleting = ref(false);
 const followLoading = ref(false);
+const postDetailMarkdownContentRef = ref(null);
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1280);
+let teardownPostDetailMarkdownCodeActions = null;
 
 const postId = computed(() => route.params.postId);
 const post = computed(() => communityStore.currentPost);
@@ -285,7 +291,11 @@ const formattedCreatedAt = computed(() => {
     day: 'numeric',
   }).format(date);
 });
-const renderedContent = computed(() => renderMarkdown(post.value?.content || ''));
+const renderedContent = computed(() => renderMarkdown(post.value?.content || '', {
+  enhancedCodeBlocks: true,
+  copyButtonLabel: t('common.copy'),
+  defaultCodeLanguageLabel: t('common.plainText'),
+}));
 const detailMetrics = computed(() => ([
   { id: 'views', label: t('community.views'), value: post.value?.viewCount || 0 },
   { id: 'likes', label: t('community.likes'), value: post.value?.likeCount || 0 },
@@ -298,6 +308,37 @@ function showError(error, fallbackMessage) {
     summary: t('common.error'),
     detail: error?.message || fallbackMessage,
     life: 3200,
+  });
+}
+
+function cleanupPostDetailMarkdownCodeActions() {
+  if (typeof teardownPostDetailMarkdownCodeActions === 'function') {
+    teardownPostDetailMarkdownCodeActions();
+    teardownPostDetailMarkdownCodeActions = null;
+  }
+}
+
+function setupPostDetailMarkdownCodeActions() {
+  cleanupPostDetailMarkdownCodeActions();
+
+  if (!postDetailMarkdownContentRef.value) {
+    return;
+  }
+
+  teardownPostDetailMarkdownCodeActions = bindMarkdownCodeActions(postDetailMarkdownContentRef.value, {
+    copyButtonLabel: t('common.copy'),
+    copiedButtonLabel: t('common.copied'),
+    onCopySuccess() {
+      toast.add({
+        severity: 'success',
+        summary: t('common.success'),
+        detail: t('community.copyCodeSuccess'),
+        life: 1800,
+      });
+    },
+    onCopyError(error) {
+      showError(error, t('community.copyCodeFailed'));
+    },
   });
 }
 
@@ -402,6 +443,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  cleanupPostDetailMarkdownCodeActions();
   unlockDetailViewport();
   window.removeEventListener('resize', handleResize);
 });
@@ -411,6 +453,15 @@ watch(postId, (newId, oldId) => {
     bootstrapPostDetail();
   }
 });
+
+watch(
+  [renderedContent, () => locale.value, () => postId.value],
+  async () => {
+    await nextTick();
+    setupPostDetailMarkdownCodeActions();
+  },
+  { flush: 'post' },
+);
 </script>
 
 <style scoped>
@@ -658,9 +709,81 @@ watch(postId, (newId, oldId) => {
   border: 1px solid var(--app-border);
 }
 
+.post-detail-body-copy :deep(.markdown-code-block) {
+  margin: 0 0 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--app-panel-subtle) 95%, transparent);
+  overflow: hidden;
+}
+
+.post-detail-body-copy :deep(.markdown-code-toolbar) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.72rem 0.95rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--app-border) 88%, transparent);
+  background: color-mix(in srgb, var(--app-panel-subtle) 92%, transparent);
+}
+
+.post-detail-body-copy :deep(.markdown-code-language) {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+}
+
+.post-detail-body-copy :deep(.markdown-code-copy) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.38rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 90%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
+  color: var(--text-color);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.post-detail-body-copy :deep(.markdown-code-copy:hover) {
+  border-color: color-mix(in srgb, var(--primary-color) 34%, var(--app-border));
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--app-panel-strong));
+}
+
+.post-detail-body-copy :deep(.markdown-code-copy:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--primary-color) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.post-detail-body-copy :deep(.markdown-code-copy[data-copied='true']) {
+  border-color: color-mix(in srgb, var(--primary-color) 42%, var(--app-border));
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--app-panel-strong));
+  color: var(--primary-color);
+}
+
 .post-detail-body-copy :deep(pre code) {
   padding: 0;
   background: transparent;
+}
+
+.post-detail-body-copy :deep(.markdown-code-block pre) {
+  margin: 0;
+  padding: 1rem 1rem 1.1rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.post-detail-body-copy :deep(.markdown-code-block pre code) {
+  display: block;
+  min-width: max-content;
 }
 
 .post-detail-body-copy :deep(blockquote) {

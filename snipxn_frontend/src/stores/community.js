@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import * as postApi from '../api/post';
 import * as followApi from '../api/follow';
+import * as commentApi from '../api/comment';
+import { getUserProfile } from '../api/user';
 
 export const useCommunityStore = defineStore('community', {
   state: () => ({
@@ -16,6 +18,24 @@ export const useCommunityStore = defineStore('community', {
     // 关注
     followingIds: [],
     followStats: null,
+
+    // 评论
+    comments: [],
+    commentTotal: 0,
+    commentPage: 1,
+    loadingComments: false,
+
+    // 热榜
+    hotPosts: [],
+    loadingHot: false,
+
+    // 推荐用户
+    recommendedUsers: [],
+    loadingRecommended: false,
+
+    // 用户主页
+    userProfile: null,
+    loadingProfile: false,
   }),
 
   getters: {
@@ -156,6 +176,126 @@ export const useCommunityStore = defineStore('community', {
       } else {
         await followApi.followUser(userId);
         this.followingIds.push(userId);
+      }
+    },
+
+    // ── 分享 ──
+    async sharePost(postId) {
+      const res = await postApi.sharePost(postId);
+      if (this.currentPost && String(this.currentPost.id) === String(postId)) {
+        this.currentPost.shareCount = (this.currentPost.shareCount || 0) + 1;
+      }
+      return res.data?.shareToken || null;
+    },
+
+    async checkPostShare(postId) {
+      const res = await postApi.checkPostShare(postId);
+      return res.data?.shareToken || null;
+    },
+
+    async cancelPostShare(postId) {
+      await postApi.cancelPostShare(postId);
+    },
+
+    // ── 评论 ──
+    async fetchComments(postId, options = {}) {
+      const page = options.page ?? 1;
+      const size = options.size ?? 20;
+      this.loadingComments = true;
+
+      try {
+        const res = await commentApi.listComments(postId, { page, size });
+        const data = res.data || {};
+        this.comments = data.records || [];
+        this.commentTotal = data.total ?? 0;
+        this.commentPage = data.page ?? page;
+        return res;
+      } finally {
+        this.loadingComments = false;
+      }
+    },
+
+    async fetchReplies(postId, commentId, options = {}) {
+      const page = options.page ?? 1;
+      const size = options.size ?? 20;
+      const res = await commentApi.listReplies(postId, commentId, { page, size });
+      return res.data || {};
+    },
+
+    async createComment(postId, payload, options = {}) {
+      const res = await commentApi.createComment(postId, payload);
+      const refreshPage = options.page ?? (payload?.parentId ? this.commentPage : 1);
+      await this.fetchComments(postId, { page: refreshPage });
+      if (this.currentPost && String(this.currentPost.id) === String(postId)) {
+        this.currentPost.commentCount = (this.currentPost.commentCount || 0) + 1;
+      }
+      return res.data;
+    },
+
+    async deleteComment(postId, commentId) {
+      await commentApi.deleteComment(postId, commentId);
+      await this.fetchComments(postId, { page: this.commentPage });
+      if (this.currentPost && String(this.currentPost.id) === String(postId)) {
+        this.currentPost.commentCount = Math.max(0, (this.currentPost.commentCount || 0) - 1);
+      }
+    },
+
+    async likeComment(postId, commentId) {
+      await commentApi.likeComment(postId, commentId);
+      const comment = this.comments.find((c) => c.id === commentId);
+      if (comment) {
+        comment.liked = true;
+        comment.likeCount = (comment.likeCount || 0) + 1;
+      }
+    },
+
+    async unlikeComment(postId, commentId) {
+      await commentApi.unlikeComment(postId, commentId);
+      const comment = this.comments.find((c) => c.id === commentId);
+      if (comment) {
+        comment.liked = false;
+        comment.likeCount = Math.max(0, (comment.likeCount || 0) - 1);
+      }
+    },
+
+    // ── 热榜 ──
+    async fetchHotPosts(options = {}) {
+      const page = options.page ?? 1;
+      const size = options.size ?? 20;
+      this.loadingHot = true;
+
+      try {
+        const res = await postApi.listHotPosts({ page, size });
+        const data = res.data || {};
+        this.hotPosts = data.records || [];
+        return res;
+      } finally {
+        this.loadingHot = false;
+      }
+    },
+
+    // ── 用户主页 ──
+    async fetchUserProfile(userId) {
+      this.loadingProfile = true;
+      try {
+        const res = await getUserProfile(userId);
+        this.userProfile = res.data || null;
+        return this.userProfile;
+      } finally {
+        this.loadingProfile = false;
+      }
+    },
+
+    // ── 推荐用户 ──
+    async fetchRecommendedUsers(limit = 5) {
+      this.loadingRecommended = true;
+
+      try {
+        const res = await followApi.getRecommendedUsers(limit);
+        this.recommendedUsers = res.data || [];
+        return res;
+      } finally {
+        this.loadingRecommended = false;
       }
     },
   },

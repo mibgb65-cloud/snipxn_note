@@ -47,11 +47,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 公开接口：发验证码、注册、登录、刷新 Token、重置密码
                 .requestMatchers(
+                    "/api/v1/auth/check-email",
                     "/api/v1/auth/code",
                     "/api/v1/auth/register",
                     "/api/v1/auth/login",
                     "/api/v1/auth/refresh",
-                    "/api/v1/auth/reset-password"
+                    "/api/v1/auth/reset-password",
+                    "/api/v1/auth/oauth/github",
+                    "/api/v1/auth/oauth/google"
                 ).permitAll()
                 // Swagger / 健康检查
                 .requestMatchers(
@@ -60,9 +63,18 @@ public class SecurityConfig {
                     "/actuator/health"
                 ).permitAll()
                 .requestMatchers("/api/v1/files/*").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/public/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/follow/user/*/profile").permitAll()
                 // 其余所有接口需要认证
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(401);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":401,\"message\":\"未登录或 Token 已过期\"}");
+                })
             )
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

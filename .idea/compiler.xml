@@ -15,12 +15,13 @@
         <processorPath useClasspath="false">
           <entry name="$PROJECT_DIR$/../../Maven/repository/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
         </processorPath>
-        <module name="snipxn-app" />
         <module name="snipxn-sandbox" />
-        <module name="snipxn-note" />
-        <module name="snipxn-common" />
+        <module name="snipxn-ai" />
         <module name="snipxn-auth" />
         <module name="snipxn-community" />
+        <module name="snipxn-app" />
+        <module name="snipxn-note" />
+        <module name="snipxn-common" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -30,6 +31,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="snipxn-ai" options="-parameters" />
       <module name="snipxn-app" options="-parameters" />
       <module name="snipxn-auth" options="-parameters" />
       <module name="snipxn-backend" options="-parameters" />

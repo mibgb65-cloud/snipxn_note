@@ -31,6 +31,7 @@
         <module>snipxn-note</module>
         <module>snipxn-community</module>
         <module>snipxn-sandbox</module>
+        <module>snipxn-ai</module>
         <module>snipxn-app</module>
     </modules>
 
@@ -67,6 +68,11 @@
             <dependency>
                 <groupId>com.snipxn</groupId>
                 <artifactId>snipxn-sandbox</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.snipxn</groupId>
+                <artifactId>snipxn-ai</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

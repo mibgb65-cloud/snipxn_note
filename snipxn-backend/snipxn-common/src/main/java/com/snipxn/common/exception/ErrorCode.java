@@ -33,6 +33,11 @@ public enum ErrorCode {
     TOKEN_INVALID(401, "Token 无效"),
     TOKEN_REVOKED(401, "Token 已被吊销，请重新登录"),
     DEVICE_NOT_FOUND(404, "设备不存在"),
+    OAUTH_CODE_INVALID(400, "第三方授权码无效或已过期"),
+    OAUTH_USER_INFO_FAILED(502, "获取第三方用户信息失败"),
+    OAUTH_ALREADY_BOUND(409, "该第三方账号已绑定到其他用户"),
+    OAUTH_ALREADY_LINKED(409, "你已绑定了该平台的账号"),
+    OAUTH_UNBIND_LAST_AUTH(403, "至少保留一种登录方式，无法解绑"),
 
     // ── 笔记模块 ──────────────────────────────────────────
     NOTE_NOT_FOUND(404, "笔记不存在"),
@@ -48,6 +53,7 @@ public enum ErrorCode {
     IMPORT_FILE_TYPE_INVALID(400, "仅支持导入 .md 文件"),
     IMPORT_FILE_TOO_LARGE(400, "单个文件不能超过 2MB"),
     IMPORT_FILE_TOO_MANY(400, "单次最多导入 20 个文件"),
+    SHARE_NOT_FOUND(404, "分享链接不存在或已取消"),
 
     // ── 社区模块 ──────────────────────────────────────────
     POST_NOT_FOUND(404, "帖子不存在"),
@@ -55,10 +61,18 @@ public enum ErrorCode {
     POST_ALREADY_COLLECTED(409, "已经收藏过了"),
     FOLLOW_SELF(400, "不能关注自己"),
     ALREADY_FOLLOWED(409, "已经关注过了"),
+    USER_NOT_FOUND(404, "用户不存在"),
+    COMMENT_NOT_FOUND(404, "评论不存在"),
+    COMMENT_ALREADY_LIKED(409, "已经点赞过该评论了"),
+    COMMENT_NESTING_EXCEEDED(400, "不支持三级及以上嵌套评论"),  // 保留备用，当前已改为自动重定向
 
     // ── 沙箱模块 ──────────────────────────────────────────
     SANDBOX_LANGUAGE_NOT_SUPPORTED(400, "不支持的编程语言"),
-    SANDBOX_EXECUTION_FAILED(500, "代码执行服务异常");
+    SANDBOX_EXECUTION_FAILED(500, "代码执行服务异常"),
+
+    // ── AI 模块 ──────────────────────────────────────────
+    AI_SERVICE_UNAVAILABLE(503, "AI 服务暂不可用"),
+    AI_REQUEST_FAILED(500, "AI 请求失败");
 
     /** HTTP 状态码 */
     private final int code;

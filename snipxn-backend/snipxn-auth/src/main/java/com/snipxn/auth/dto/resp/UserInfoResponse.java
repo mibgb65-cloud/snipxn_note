@@ -18,5 +18,10 @@ public class UserInfoResponse {
     private Long storageLimit;
     private Long storageUsed;
     private String status;
+    private String website;
+    private String github;
+    private String location;
+    private String company;
+    private String techStack;
     private OffsetDateTime createdAt;
 }

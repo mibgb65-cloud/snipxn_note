@@ -1,10 +1,13 @@
 package com.snipxn.auth.controller;
 
+import com.snipxn.auth.dto.req.OAuthBindRequest;
 import com.snipxn.auth.dto.req.SetPasswordRequest;
 import com.snipxn.auth.dto.req.UpdateProfileRequest;
 import com.snipxn.auth.dto.resp.DeviceResponse;
+import com.snipxn.auth.dto.resp.LinkedAccountResponse;
 import com.snipxn.auth.dto.resp.UserInfoResponse;
 import com.snipxn.auth.security.CustomUserDetails;
+import com.snipxn.auth.service.OAuthService;
 import com.snipxn.auth.service.UserService;
 import com.snipxn.common.result.Result;
 import jakarta.validation.Valid;
@@ -20,6 +23,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final OAuthService oAuthService;
 
     /** 获取当前用户信息 */
     @GetMapping("/me")
@@ -61,6 +65,39 @@ public class UserController {
     @DeleteMapping("/me/devices")
     public Result<Void> revokeAllOtherDevices(@AuthenticationPrincipal CustomUserDetails userDetails) {
         userService.revokeAllOtherDevices(userDetails.getUserId(), userDetails.getDeviceId());
+        return Result.success();
+    }
+
+    // ── 绑定认证方式 ──────────────────────────────────────────
+
+    /** 查询当前用户绑定的所有认证方式 */
+    @GetMapping("/me/linked-accounts")
+    public Result<List<LinkedAccountResponse>> listLinkedAccounts(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return Result.success(oAuthService.listLinkedAccounts(userDetails.getUserId()));
+    }
+
+    /** 绑定 GitHub 账号 */
+    @PostMapping("/me/linked-accounts/github")
+    public Result<Void> bindGitHub(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                   @Valid @RequestBody OAuthBindRequest req) {
+        oAuthService.bindGitHub(userDetails.getUserId(), req);
+        return Result.success();
+    }
+
+    /** 绑定 Google 账号 */
+    @PostMapping("/me/linked-accounts/google")
+    public Result<Void> bindGoogle(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                   @Valid @RequestBody OAuthBindRequest req) {
+        oAuthService.bindGoogle(userDetails.getUserId(), req);
+        return Result.success();
+    }
+
+    /** 解绑认证方式 */
+    @DeleteMapping("/me/linked-accounts/{identityType}")
+    public Result<Void> unbindAccount(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                      @PathVariable String identityType) {
+        oAuthService.unbind(userDetails.getUserId(), identityType.toUpperCase());
         return Result.success();
     }
 }

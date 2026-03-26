@@ -21,6 +21,11 @@ public class User extends BaseEntity {
     private LocalDate birthday;
     private Long storageLimit;
     private Long storageUsed;
+    private String website;
+    private String github;
+    private String location;
+    private String company;
+    private String techStack;
     /** ACTIVE / BANNED / LOCKED */
     private String status;
 }

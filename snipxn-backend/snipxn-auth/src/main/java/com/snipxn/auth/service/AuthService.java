@@ -24,6 +24,9 @@ public interface AuthService {
     /** 忘记密码：通过邮箱验证码重置密码 */
     void resetPassword(ResetPasswordRequest request);
 
+    /** 检查邮箱是否已注册 */
+    boolean emailExists(String email);
+
     /** 修改用户状态（ACTIVE / BANNED / LOCKED），同步 Redis 黑名单使 Token 立即失效/恢复 */
     void updateUserStatus(String userId, String status);
 }

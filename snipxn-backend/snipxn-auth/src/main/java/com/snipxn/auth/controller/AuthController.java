@@ -1,6 +1,8 @@
 package com.snipxn.auth.controller;
 
+import com.snipxn.auth.dto.req.CheckEmailRequest;
 import com.snipxn.auth.dto.req.LoginRequest;
+import com.snipxn.auth.dto.req.OAuthLoginRequest;
 import com.snipxn.auth.dto.req.RefreshTokenRequest;
 import com.snipxn.auth.dto.req.RegisterRequest;
 import com.snipxn.auth.dto.req.ResetPasswordRequest;
@@ -10,6 +12,7 @@ import com.snipxn.auth.dto.resp.TokenResponse;
 import com.snipxn.auth.security.CustomUserDetails;
 import com.snipxn.auth.service.AuthService;
 import com.snipxn.auth.service.EmailService;
+import com.snipxn.auth.service.OAuthService;
 import com.snipxn.common.result.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -24,6 +27,13 @@ public class AuthController {
 
     private final EmailService emailService;
     private final AuthService authService;
+    private final OAuthService oAuthService;
+
+    /** 检查邮箱是否已注册 */
+    @PostMapping("/check-email")
+    public Result<Boolean> checkEmail(@Valid @RequestBody CheckEmailRequest req) {
+        return Result.success(authService.emailExists(req.getEmail()));
+    }
 
     /** 发送验证码 */
     @PostMapping("/code")
@@ -64,6 +74,20 @@ public class AuthController {
     public Result<Void> logout(@AuthenticationPrincipal CustomUserDetails userDetails) {
         authService.logout(userDetails.getUserId(), userDetails.getDeviceId());
         return Result.success();
+    }
+
+    /** GitHub OAuth 登录 */
+    @PostMapping("/oauth/github")
+    public Result<LoginResponse> oauthGitHub(@Valid @RequestBody OAuthLoginRequest req,
+                                              HttpServletRequest httpRequest) {
+        return Result.success(oAuthService.loginWithGitHub(req, getClientIp(httpRequest)));
+    }
+
+    /** Google OAuth 登录 */
+    @PostMapping("/oauth/google")
+    public Result<LoginResponse> oauthGoogle(@Valid @RequestBody OAuthLoginRequest req,
+                                              HttpServletRequest httpRequest) {
+        return Result.success(oAuthService.loginWithGoogle(req, getClientIp(httpRequest)));
     }
 
     private String getClientIp(HttpServletRequest request) {

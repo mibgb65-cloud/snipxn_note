@@ -22,11 +22,11 @@ import com.snipxn.auth.security.JwtUtil;
 import com.snipxn.auth.service.AuthService;
 import com.snipxn.auth.service.DeviceRevokeService;
 import com.snipxn.auth.service.EmailService;
+import com.snipxn.auth.service.TokenIssuanceService;
 import com.snipxn.common.event.UserRegisteredEvent;
 import com.snipxn.common.exception.BusinessException;
 import com.snipxn.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.AuthenticationException;
@@ -40,11 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +54,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserSettingsMapper userSettingsMapper;
     private final EmailService emailService;
     private final DeviceRevokeService deviceRevokeService;
+    private final TokenIssuanceService tokenIssuanceService;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
@@ -113,10 +110,10 @@ public class AuthServiceImpl implements AuthService {
         userSettingsMapper.insert(settings);
 
         // 签发 Token
-        TokenResponse token = issueTokens(user.getId(), req.getDeviceId(), req.getDeviceName(), clientIp);
+        TokenResponse token = tokenIssuanceService.issueTokens(user.getId(), req.getDeviceId(), req.getDeviceName(), clientIp);
         eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
 
-        UserInfoResponse userInfo = toUserInfo(user);
+        UserInfoResponse userInfo = tokenIssuanceService.toUserInfo(user);
         return new LoginResponse(userInfo, token);
     }
 
@@ -146,8 +143,8 @@ public class AuthServiceImpl implements AuthService {
             // 登录成功，清除失败计数
             redisTemplate.delete(failKey);
 
-            TokenResponse token = issueTokens(user.getId(), req.getDeviceId(), req.getDeviceName(), clientIp);
-            return new LoginResponse(toUserInfo(user), token);
+            TokenResponse token = tokenIssuanceService.issueTokens(user.getId(), req.getDeviceId(), req.getDeviceName(), clientIp);
+            return new LoginResponse(tokenIssuanceService.toUserInfo(user), token);
         } catch (LockedException e) {
             throw new BusinessException(ErrorCode.ACCOUNT_LOCKED);
         } catch (DisabledException e) {
@@ -162,7 +159,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public TokenResponse refresh(RefreshTokenRequest req) {
-        String tokenHash = sha256(req.getRefreshToken());
+        String tokenHash = tokenIssuanceService.sha256(req.getRefreshToken());
 
         UserDevice device = userDeviceMapper.selectOne(new LambdaQueryWrapper<UserDevice>()
                 .eq(UserDevice::getRefreshTokenHash, tokenHash)
@@ -194,7 +191,7 @@ public class AuthServiceImpl implements AuthService {
 
         // CAS 轮换：WHERE refresh_token_hash = oldHash 保证原子性
         String newRefreshToken = jwtUtil.generateRefreshToken();
-        String newHash = sha256(newRefreshToken);
+        String newHash = tokenIssuanceService.sha256(newRefreshToken);
         int updated = userDeviceMapper.update(new LambdaUpdateWrapper<UserDevice>()
                 .eq(UserDevice::getId, device.getId())
                 .eq(UserDevice::getRefreshTokenHash, tokenHash)
@@ -208,7 +205,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.TOKEN_REVOKED);
         }
 
-        String tokenVersion = reuseOrIssueDeviceTokenVersion(device.getUserId(), device.getDeviceId());
+        String tokenVersion = deviceRevokeService.reuseOrIssueDeviceTokenVersion(
+                device.getUserId(), device.getDeviceId(), refreshTokenExpire + accessTokenExpire);
         String newAccessToken = jwtUtil.generateAccessToken(device.getUserId(), device.getDeviceId(), tokenVersion);
         return new TokenResponse(newAccessToken, newRefreshToken, accessTokenExpire);
     }
@@ -260,6 +258,13 @@ public class AuthServiceImpl implements AuthService {
 
         // 重置密码后吊销所有设备（防止泄露的 Refresh Token 继续使用）
         revokeAllDevices(user.getId());
+    }
+
+    @Override
+    public boolean emailExists(String email) {
+        String normalized = email.strip().toLowerCase();
+        return userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getEmail, normalized)) > 0;
     }
 
     @Override
@@ -319,79 +324,6 @@ public class AuthServiceImpl implements AuthService {
         for (UserDevice device : devices) {
             deviceRevokeService.revoke(userId, device.getDeviceId());
         }
-    }
-
-    private TokenResponse issueTokens(String userId, String deviceId, String deviceName, String clientIp) {
-        String refreshToken = jwtUtil.generateRefreshToken();
-
-        // 更新或新建设备记录（同一设备 ID 覆盖）
-        UserDevice existing = userDeviceMapper.selectOne(new LambdaQueryWrapper<UserDevice>()
-                .eq(UserDevice::getUserId, userId)
-                .eq(UserDevice::getDeviceId, deviceId));
-
-        OffsetDateTime expiresAt = OffsetDateTime.now().plusSeconds(refreshTokenExpire);
-
-        if (existing != null) {
-            existing.setRefreshTokenHash(sha256(refreshToken));
-            existing.setPrevRefreshTokenHash(null);
-            existing.setExpiresAt(expiresAt);
-            existing.setLastLoginIp(clientIp);
-            existing.setLastLoginAt(OffsetDateTime.now());
-            existing.setIsRevoked(false);
-            userDeviceMapper.updateById(existing);
-        } else {
-            UserDevice device = new UserDevice();
-            device.setUserId(userId);
-            device.setDeviceId(deviceId);
-            device.setDeviceName(truncate(deviceName, 100));
-            device.setRefreshTokenHash(sha256(refreshToken));
-            device.setExpiresAt(expiresAt);
-            device.setLastLoginIp(clientIp);
-            device.setLastLoginAt(OffsetDateTime.now());
-            device.setIsRevoked(false);
-            userDeviceMapper.insert(device);
-        }
-
-        String tokenVersion = issueDeviceTokenVersion(userId, deviceId);
-        String accessToken = jwtUtil.generateAccessToken(userId, deviceId, tokenVersion);
-        return new TokenResponse(accessToken, refreshToken, accessTokenExpire);
-    }
-
-    private String issueDeviceTokenVersion(String userId, String deviceId) {
-        return deviceRevokeService.issueDeviceTokenVersion(
-                userId,
-                deviceId,
-                refreshTokenExpire + accessTokenExpire
-        );
-    }
-
-    private String reuseOrIssueDeviceTokenVersion(String userId, String deviceId) {
-        return deviceRevokeService.reuseOrIssueDeviceTokenVersion(
-                userId,
-                deviceId,
-                refreshTokenExpire + accessTokenExpire
-        );
-    }
-
-    private UserInfoResponse toUserInfo(User user) {
-        UserInfoResponse resp = new UserInfoResponse();
-        BeanUtils.copyProperties(user, resp);
-        return resp;
-    }
-
-    private String sha256(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
-    }
-
-    private String truncate(String value, int maxLength) {
-        if (value == null) return null;
-        return value.length() > maxLength ? value.substring(0, maxLength) : value;
     }
 
     private String buildLoginFailKey(String email, String clientIp) {

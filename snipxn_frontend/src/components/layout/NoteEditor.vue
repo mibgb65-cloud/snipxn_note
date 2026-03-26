@@ -10,15 +10,22 @@
         :note="note"
         :saving="saving"
         :is-trash-view="isTrashView"
+        :has-public-share="noteHasPublicShare"
         @update:title="$emit('update:title', $event)"
         @update:language="$emit('update:language', $event)"
+        @update:tag-ids="handleTagIdsUpdate"
         @toggle-star="$emit('toggle-star')"
         @delete="$emit('delete')"
         @restore="$emit('restore')"
         @purge="$emit('purge')"
         @upload-image="fileInput?.click()"
         @insert-markdown="handleMarkdownInsert"
-        @share-note="openShareDialog"
+        @share-link="handleShareLink"
+        @share-markdown="handleShareMarkdown"
+        @share-image="handleShareImage"
+        @share-community="handleShareCommunity"
+        @cancel-share="handleCancelShare"
+        @ai-generate="openAiGenerateDialog"
       />
 
       <div class="editor-workbench">
@@ -41,6 +48,7 @@
                 <textarea
                   ref="markdownTextareaRef"
                   class="markdown-textarea"
+                  :style="markdownTextareaStyle"
                   :value="markdownContent"
                   :readonly="isTrashView"
                   :placeholder="t('notes.contentPlaceholder')"
@@ -49,10 +57,38 @@
                   @keyup="syncSelectionFromEvent"
                   @select="syncSelectionFromEvent"
                   @focus="syncSelectionFromEvent"
+                  @keydown="handleTextareaKeydown"
+                  @scroll="handleTextareaScroll"
                   @dragover.prevent
                   @drop.prevent="handleTextareaDrop"
                   @paste="handleTextareaPaste"
                 />
+                <transition name="ai-hint-fade">
+                  <div
+                    v-if="showAiSlashHint"
+                    class="ai-slash-hint"
+                    :style="{ top: aiHintPos.top + 'px', left: aiHintPos.left + 'px' }"
+                  >
+                    <i class="pi pi-sparkles" />
+                    <span>{{ t('notes.aiSlashPlaceholder') }}</span>
+                    <kbd>Enter</kbd>
+                  </div>
+                </transition>
+                <transition name="ai-hint-fade">
+                  <div
+                    v-if="aiSlashGenerating"
+                    class="ai-generating-indicator"
+                    :style="{ top: aiGeneratingPos.top + 'px', left: aiGeneratingPos.left + 'px' }"
+                  >
+                    <i class="pi pi-sparkles" />
+                    <span class="ai-generating-dots">
+                      <span class="ai-dot" />
+                      <span class="ai-dot" />
+                      <span class="ai-dot" />
+                    </span>
+                    <span>{{ t('notes.aiSlashLoading') }}</span>
+                  </div>
+                </transition>
               </div>
             </div>
 
@@ -68,7 +104,7 @@
                 </div>
                 <small>{{ note.primaryLanguage || 'Markdown' }}</small>
               </div>
-              <div class="markdown-preview" v-html="previewHtml" />
+              <div ref="markdownPreviewRef" class="markdown-preview" v-html="previewHtml" @scroll="handlePreviewScroll" />
             </div>
           </div>
         </div>
@@ -81,109 +117,65 @@
           :running="runningCode"
           :result="codeRunResult"
           :stdin="codeRunnerStdin"
+          :reviewing="reviewingCode"
+          :review-result="aiReviewResult"
           @toggle="handleToggleCodePanel"
           @insert-code="handleInsertCodeFromRunner"
           @update:code="handleCodeBlockUpdate"
+          @update:language="handleCodeBlockLanguageUpdate"
           @update:stdin="handleCodeRunnerStdinUpdate"
           @run="handleRunActiveCode"
-        />
-      </div>
-
-      <div v-if="!isTrashView" class="editor-footer">
-        <div class="editor-footer-copy">
-          <span>{{ t('notes.saveHint') }}</span>
-        </div>
-        <Button
-          icon="pi pi-save"
-          :label="t('common.save')"
-          :loading="saving"
-          @click="$emit('save')"
+          @ai-review="handleAiReview"
         />
       </div>
 
       <Dialog
-        v-model:visible="shareDialogVisible"
+        v-model:visible="aiGenerateDialogVisible"
         modal
         :draggable="false"
-        :header="t('notes.shareNote')"
-        :style="{ width: 'min(42rem, 94vw)' }"
+        :header="t('notes.aiGenerateCode')"
+        :style="{ width: 'min(38rem, 94vw)' }"
       >
-        <div class="share-note-form">
-          <div class="share-note-current">
-            <span class="share-note-current-icon" aria-hidden="true">
-              <i class="pi pi-file-edit" />
-            </span>
-            <div class="share-note-current-copy">
-              <span class="share-note-current-label">{{ t('notes.shareCurrentNote') }}</span>
-              <strong class="share-note-current-title">{{ resolvedShareTitle }}</strong>
-              <span class="share-note-current-meta">{{ shareCurrentMeta }}</span>
-            </div>
+        <div class="ai-generate-form">
+          <div class="ai-generate-field">
+            <label class="toolbar-label">{{ t('notes.aiGeneratePrompt') }}</label>
+            <textarea
+              v-model="aiPrompt"
+              class="ai-generate-textarea"
+              :style="aiGenerateTextareaStyle"
+              :placeholder="t('notes.aiGeneratePromptPlaceholder')"
+              rows="3"
+            />
           </div>
 
-          <div class="share-note-control-stack">
-            <div class="share-note-field">
-              <label class="toolbar-label">{{ t('notes.shareTarget') }}</label>
-              <div class="share-note-toggle">
-                <button
-                  v-for="option in shareTargetOptions"
-                  :key="option.value"
-                  type="button"
-                  class="share-note-toggle-btn"
-                  :class="{ 'share-note-toggle-btn-active': shareTarget === option.value }"
-                  @click="shareTarget = option.value"
-                >
-                  <i class="pi share-note-toggle-icon" :class="option.icon" aria-hidden="true" />
-                  <span>{{ option.label }}</span>
-                </button>
-              </div>
-            </div>
-
-            <div v-if="shareTarget === 'external'" class="share-note-field">
-              <label class="toolbar-label">{{ t('notes.shareFormat') }}</label>
-              <div class="share-note-toggle">
-                <button
-                  v-for="option in shareFormatOptions"
-                  :key="option.value"
-                  type="button"
-                  class="share-note-toggle-btn"
-                  :class="{ 'share-note-toggle-btn-active': shareFormat === option.value }"
-                  @click="shareFormat = option.value"
-                >
-                  <i class="pi share-note-toggle-icon" :class="option.icon" aria-hidden="true" />
-                  <span>{{ option.label }}</span>
-                </button>
-              </div>
-            </div>
+          <div v-if="aiGenerateResult" class="ai-generate-result">
+            <div class="ai-generate-result-head">{{ t('notes.aiGenerateResult') }}</div>
+            <div class="ai-generate-result-body" v-html="aiGenerateResult" />
           </div>
 
-          <div v-if="shareTarget === 'community'" class="share-note-hint">
-            <i class="pi pi-send" aria-hidden="true" />
-            <span>{{ t('notes.shareCommunityHint') }}</span>
-          </div>
-
-          <div class="share-note-actions">
+          <div class="ai-generate-actions">
             <Button
               type="button"
               text
               severity="secondary"
               :label="t('common.cancel')"
-              @click="shareDialogVisible = false"
+              @click="aiGenerateDialogVisible = false"
             />
             <Button
-              v-if="shareTarget === 'community'"
+              v-if="aiGenerateResult"
               type="button"
-              icon="pi pi-send"
-              :label="t('notes.publishToCommunity')"
-              :loading="shareSubmitting"
-              @click="handleCommunityShare"
+              icon="pi pi-arrow-down-left"
+              :label="t('notes.aiInsertCode')"
+              @click="handleInsertAiResult"
             />
             <Button
-              v-else
               type="button"
-              :icon="effectiveShareFormat === 'link' ? 'pi pi-copy' : 'pi pi-download'"
-              :label="effectiveShareFormat === 'link' ? t('notes.copyLink') : t('notes.saveLocalShare')"
-              :loading="shareSubmitting"
-              @click="handleExternalShare"
+              icon="pi pi-sparkles"
+              severity="help"
+              :label="generatingCode ? t('notes.aiGenerating') : t('notes.aiGenerateCode')"
+              :loading="generatingCode"
+              :disabled="!aiPrompt.trim()"
+              @click="handleAiGenerate"
             />
           </div>
         </div>
@@ -202,7 +194,7 @@
       <i class="pi pi-file-edit editor-empty-icon" />
       <h3 class="mb-2">{{ t('notes.noSelection') }}</h3>
       <p class="m-0">{{ isTrashView ? t('notes.noSelectionReadonlyDescription') : t('notes.noSelectionDescription') }}</p>
-      <Button v-if="!isTrashView" class="mt-4" icon="pi pi-plus" :label="t('notes.newNote')" @click="$emit('create-note')" />
+      <Button v-if="!isTrashView" class="mt-4" icon="pi pi-plus" :label="t('notes.newNoteAction')" @click="$emit('create-note')" />
     </div>
 
     <div v-if="loading && note" class="editor-loading-overlay" aria-hidden="true">
@@ -220,11 +212,14 @@ import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Skeleton from 'primevue/skeleton';
 import { runCode } from '../../api/sandbox';
+import { reviewCode as apiReviewCode, generateCode as apiGenerateCode } from '../../api/ai';
+import { shareNote as apiShareNote, cancelShare as apiCancelShare, checkShare as apiCheckShare } from '../../api/note';
 import { uploadFile } from '../../api/file';
 import { renderMarkdown } from '../../utils/markdown';
 import { buildNoteShareFileStem, createNoteShareImageBlob, summarizeNoteShareContent } from '../../utils/noteShare';
 import { useTheme } from '../../composables/useTheme';
 import { useCommunityStore } from '../../stores/community';
+import { useNoteStore } from '../../stores/note';
 import NoteToolbar from '../note/NoteToolbar.vue';
 import CodeRunnerSidebar from '../note/CodeRunnerSidebar.vue';
 
@@ -255,7 +250,6 @@ const emit = defineEmits([
   'update:title',
   'update:language',
   'update:content',
-  'save',
   'toggle-star',
   'delete',
   'restore',
@@ -267,22 +261,53 @@ const { locale, t } = useI18n();
 const toast = useToast();
 const { isDarkTheme } = useTheme();
 const communityStore = useCommunityStore();
+const noteStore = useNoteStore();
 
 const markdownTextareaRef = ref(null);
+const markdownPreviewRef = ref(null);
 const fileInput = ref(null);
+let scrollSyncSource = null;
 const selectionStart = ref(0);
 const selectionEnd = ref(0);
 const pendingSelection = ref(null);
-const shareDialogVisible = ref(false);
-const shareSubmitting = ref(false);
-const shareTarget = ref('community');
-const shareFormat = ref('markdown');
+const noteHasPublicShare = ref(false);
 const codePanelExpanded = ref(false);
 const runningCode = ref(false);
 const codeRunnerStdin = ref('');
 const codeRunResult = ref(null);
+const reviewingCode = ref(false);
+const aiReviewResult = ref('');
+const generatingCode = ref(false);
+const aiGenerateResult = ref('');
+const aiGenerateRawContent = ref('');
+const aiPrompt = ref('');
+const aiGenerateDialogVisible = ref(false);
+const showAiSlashHint = ref(false);
+const aiHintPos = ref({ top: 0, left: 0 });
+const aiHintCharPos = ref(0);
+const aiSlashGenerating = ref(false);
+const aiGeneratingPos = ref({ top: 0, left: 0 });
+const aiGeneratingCharPos = ref(0);
 
 const monacoTheme = computed(() => (isDarkTheme.value ? 'vs-dark' : 'vs'));
+const markdownTextareaStyle = computed(() => (
+  isDarkTheme.value
+    ? {
+        color: '#e6f0fa',
+        WebkitTextFillColor: '#e6f0fa',
+        caretColor: '#5eead4',
+      }
+    : {}
+));
+const aiGenerateTextareaStyle = computed(() => (
+  isDarkTheme.value
+    ? {
+        color: '#e6f0fa',
+        WebkitTextFillColor: '#e6f0fa',
+        caretColor: '#5eead4',
+      }
+    : {}
+));
 const markdownContent = computed(() => props.note?.content || '');
 const shareSourceTitle = computed(() => String(props.note?.title || '').trim());
 const shareSourceContent = computed(() => String(props.note?.content || ''));
@@ -308,18 +333,6 @@ const activeCodeBlock = computed(() => {
     editorLanguage: block.language || fallbackCodeLanguage.value,
   };
 });
-const shareTargetOptions = computed(() => ([
-  { value: 'community', label: t('notes.shareTargetCommunity'), icon: 'pi-users' },
-  { value: 'external', label: t('notes.shareTargetExternal'), icon: 'pi-folder-open' },
-]));
-const shareFormatOptions = computed(() => ([
-  { value: 'markdown', label: t('notes.shareFormatMarkdown'), icon: 'pi-file-edit' },
-  { value: 'link', label: t('notes.shareFormatLink'), icon: 'pi-link' },
-  { value: 'image', label: t('notes.shareFormatImage'), icon: 'pi-image' },
-]));
-const effectiveShareFormat = computed(() => (
-  shareTarget.value === 'community' ? 'markdown' : shareFormat.value
-));
 const resolvedShareTitle = computed(() => shareSourceTitle.value || t('notes.untitled'));
 const formattedUpdatedAt = computed(() => {
   const source = props.note?.updatedAt;
@@ -341,37 +354,6 @@ const formattedUpdatedAt = computed(() => {
     minute: '2-digit',
   }).format(date);
 });
-const shareLink = computed(() => {
-  if (!props.note?.id) {
-    return '';
-  }
-
-  const resolvedRoute = router.resolve({
-    name: 'workspace',
-    query: {
-      noteId: props.note.id,
-      folderId: props.note.folderId || undefined,
-    },
-  });
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-
-  return origin ? `${origin}${resolvedRoute.href}` : resolvedRoute.href;
-});
-const shareCurrentMeta = computed(() => {
-  const parts = [];
-
-  if (shareSourceLanguage.value) {
-    parts.push(shareSourceLanguage.value);
-  } else {
-    parts.push(t('notes.shareLanguageFallback'));
-  }
-
-  if (formattedUpdatedAt.value) {
-    parts.push(t('notes.updatedAtListValue', { time: formattedUpdatedAt.value }));
-  }
-
-  return parts.join(' · ');
-});
 const shareImageSummary = computed(() => (
   summarizeNoteShareContent(shareSourceContent.value || markdownContent.value)
 ));
@@ -379,23 +361,37 @@ const shareFileStem = computed(() => buildNoteShareFileStem(resolvedShareTitle.v
 
 watch(
   () => props.note?.id,
-  () => {
+  async (noteId) => {
     selectionStart.value = 0;
     selectionEnd.value = 0;
     pendingSelection.value = null;
-    shareDialogVisible.value = false;
-    shareSubmitting.value = false;
-    shareTarget.value = 'community';
-    shareFormat.value = 'markdown';
     codeRunnerStdin.value = '';
     codeRunResult.value = null;
+    aiReviewResult.value = '';
+    aiGenerateResult.value = '';
+    aiGenerateRawContent.value = '';
+    aiPrompt.value = '';
+    aiGenerateDialogVisible.value = false;
+    noteHasPublicShare.value = false;
+
+    if (noteId) {
+      try {
+        const res = await apiCheckShare(noteId);
+        noteHasPublicShare.value = !!(res?.data?.shareToken);
+      } catch {
+        noteHasPublicShare.value = false;
+      }
+    }
   },
+  { immediate: true },
 );
 
 watch(
   () => `${activeCodeBlock.value?.fenceStart ?? 'none'}:${activeCodeBlock.value?.fenceEnd ?? 'none'}`,
   () => {
     codeRunResult.value = null;
+    aiReviewResult.value = '';
+    aiGenerateResult.value = '';
   },
 );
 
@@ -440,6 +436,18 @@ function syncSelectionFromElement() {
 function syncSelectionFromEvent(event) {
   selectionStart.value = event.target.selectionStart ?? 0;
   selectionEnd.value = event.target.selectionEnd ?? selectionStart.value;
+
+  // Dismiss AI slash hint when cursor moves away from /ai line
+  if (showAiSlashHint.value) {
+    const ta = event.target;
+    const pos = ta.selectionStart;
+    const val = ta.value;
+    const lnStart = val.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
+    const lineText = val.slice(lnStart, pos);
+    if (lineText !== '/ai' && lineText !== '/ai ') {
+      showAiSlashHint.value = false;
+    }
+  }
 }
 
 function emitContent(nextContent, nextSelection = null, focusTextarea = true) {
@@ -457,9 +465,159 @@ function emitContent(nextContent, nextSelection = null, focusTextarea = true) {
   }
 }
 
+async function handleTagIdsUpdate(newTagIds) {
+  if (!props.note?.id || props.isTrashView) {
+    return;
+  }
+
+  const nextTagIds = Array.isArray(newTagIds)
+    ? newTagIds.map((tagId) => String(tagId))
+    : [];
+  const previousTagIds = Array.isArray(props.note?.tagIds)
+    ? props.note.tagIds.map((tagId) => String(tagId))
+    : [];
+
+  if (JSON.stringify(nextTagIds) === JSON.stringify(previousTagIds)) {
+    return;
+  }
+
+  if (noteStore.currentNote?.id === props.note.id) {
+    noteStore.currentNote = {
+      ...noteStore.currentNote,
+      tagIds: nextTagIds,
+    };
+  }
+
+  const noteIndex = noteStore.notes.findIndex((item) => item.id === props.note.id);
+
+  if (noteIndex !== -1) {
+    noteStore.notes[noteIndex] = {
+      ...noteStore.notes[noteIndex],
+      tagIds: nextTagIds,
+    };
+  }
+
+  try {
+    await noteStore.saveCurrentNote({ tagIds: nextTagIds });
+  } catch (error) {
+    if (noteStore.currentNote?.id === props.note.id) {
+      noteStore.currentNote = {
+        ...noteStore.currentNote,
+        tagIds: previousTagIds,
+      };
+    }
+
+    if (noteIndex !== -1) {
+      noteStore.notes[noteIndex] = {
+        ...noteStore.notes[noteIndex],
+        tagIds: previousTagIds,
+      };
+    }
+
+    toast.add({
+      severity: 'error',
+      summary: t('common.error'),
+      detail: error?.message || t('notes.saveFailed'),
+      life: 3000,
+    });
+  }
+}
+
+function getCaretCoordinates(ta, position) {
+  const mirror = document.createElement('div');
+  const style = getComputedStyle(ta);
+  const props = [
+    'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing',
+    'wordSpacing', 'textIndent', 'whiteSpace', 'wordWrap', 'overflowWrap',
+    'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'boxSizing',
+  ];
+  mirror.style.position = 'absolute';
+  mirror.style.visibility = 'hidden';
+  mirror.style.overflow = 'hidden';
+  mirror.style.width = `${ta.offsetWidth}px`;
+  for (const p of props) mirror.style[p] = style[p];
+
+  const text = ta.value.substring(0, position);
+  mirror.textContent = text;
+
+  const span = document.createElement('span');
+  span.textContent = ta.value.substring(position) || '.';
+  mirror.appendChild(span);
+  document.body.appendChild(mirror);
+
+  const top = span.offsetTop - ta.scrollTop;
+  const left = span.offsetLeft;
+  document.body.removeChild(mirror);
+  return { top, left };
+}
+
+function updateAiGeneratingPosition() {
+  const ta = markdownTextareaRef.value;
+  if (!ta) return;
+  const coords = getCaretCoordinates(ta, aiGeneratingCharPos.value);
+  const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+  aiGeneratingPos.value = { top: coords.top + lineHeight + 4, left: coords.left };
+}
+
+function handleTextareaScroll() {
+  if (aiSlashGenerating.value) {
+    updateAiGeneratingPosition();
+  }
+  if (showAiSlashHint.value) {
+    const ta = markdownTextareaRef.value;
+    if (!ta) return;
+    const coords = getCaretCoordinates(ta, aiHintCharPos.value);
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+    aiHintPos.value = { top: coords.top + lineHeight + 4, left: coords.left };
+  }
+
+  // Sync scroll to preview
+  if (scrollSyncSource === 'preview') return;
+  scrollSyncSource = 'editor';
+  const ta = markdownTextareaRef.value;
+  const pv = markdownPreviewRef.value;
+  if (ta && pv) {
+    const maxScroll = ta.scrollHeight - ta.clientHeight;
+    const ratio = maxScroll > 0 ? ta.scrollTop / maxScroll : 0;
+    pv.scrollTop = ratio * (pv.scrollHeight - pv.clientHeight);
+  }
+  requestAnimationFrame(() => { scrollSyncSource = null; });
+}
+
+function handlePreviewScroll() {
+  if (scrollSyncSource === 'editor') return;
+  scrollSyncSource = 'preview';
+  const ta = markdownTextareaRef.value;
+  const pv = markdownPreviewRef.value;
+  if (ta && pv) {
+    const maxScroll = pv.scrollHeight - pv.clientHeight;
+    const ratio = maxScroll > 0 ? pv.scrollTop / maxScroll : 0;
+    ta.scrollTop = ratio * (ta.scrollHeight - ta.clientHeight);
+  }
+  requestAnimationFrame(() => { scrollSyncSource = null; });
+}
+
 function handleMarkdownInput(event) {
   syncSelectionFromEvent(event);
   emit('update:content', event.target.value);
+
+  const ta = event.target;
+  const pos = ta.selectionStart;
+  const val = ta.value;
+  const lnStart = val.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
+  const lineText = val.slice(lnStart, pos);
+
+  const isAiSlash = lineText === '/ai' || lineText === '/ai ';
+  showAiSlashHint.value = isAiSlash;
+
+  if (isAiSlash) {
+    aiHintCharPos.value = pos;
+    const coords = getCaretCoordinates(ta, pos);
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+    aiHintPos.value = { top: coords.top + lineHeight + 4, left: coords.left };
+  }
 }
 
 function getSelectedLineRange(content, start, end) {
@@ -736,6 +894,13 @@ function extractCodeBlockBody(content, block) {
   return content.slice(block.bodyStart, block.bodyEnd).replace(/\r?\n$/, '');
 }
 
+function sanitizeFenceLanguage(language) {
+  return String(language ?? '')
+    .replace(/[`]/g, '')
+    .replace(/\r?\n/g, '')
+    .trim();
+}
+
 function handleCodeBlockUpdate(nextCode) {
   if (!activeCodeBlock.value || props.isTrashView) {
     return;
@@ -743,13 +908,49 @@ function handleCodeBlockUpdate(nextCode) {
 
   const block = activeCodeBlock.value;
   const normalizedCode = nextCode.replace(/\r\n/g, '\n');
-  const nextBody = normalizedCode
-    ? `${normalizedCode}${normalizedCode.endsWith('\n') ? '' : '\n'}`
-    : '';
+  const nextBody = normalizedCode ? `${normalizedCode}\n` : '';
   const nextContent = `${markdownContent.value.slice(0, block.bodyStart)}${nextBody}${markdownContent.value.slice(block.bodyEnd)}`;
   const nextCursor = Math.min(block.bodyStart + nextBody.length, nextContent.length);
 
+  codeRunResult.value = null;
   emitContent(nextContent, { start: nextCursor, end: nextCursor }, false);
+}
+
+function handleCodeBlockLanguageUpdate(nextLanguage) {
+  if (!activeCodeBlock.value || props.isTrashView) {
+    return;
+  }
+
+  const block = activeCodeBlock.value;
+  const normalizedLanguage = sanitizeFenceLanguage(nextLanguage);
+  const openingFence = markdownContent.value.slice(block.fenceStart, block.bodyStart);
+  const lineBreak = openingFence.endsWith('\r\n') ? '\r\n' : '\n';
+  const nextOpeningFence = `\`\`\`${normalizedLanguage}${lineBreak}`;
+
+  if (openingFence === nextOpeningFence) {
+    return;
+  }
+
+  const nextContent = `${markdownContent.value.slice(0, block.fenceStart)}${nextOpeningFence}${markdownContent.value.slice(block.bodyStart)}`;
+  const delta = nextOpeningFence.length - openingFence.length;
+  const nextFenceTextEnd = block.fenceStart + nextOpeningFence.length - lineBreak.length;
+  const shiftSelectionPosition = (position) => {
+    if (position <= block.fenceStart) {
+      return position;
+    }
+
+    if (position < block.bodyStart) {
+      return Math.min(block.fenceStart + (position - block.fenceStart), nextFenceTextEnd);
+    }
+
+    return Math.min(position + delta, nextContent.length);
+  };
+
+  codeRunResult.value = null;
+  emitContent(nextContent, {
+    start: shiftSelectionPosition(selectionStart.value),
+    end: shiftSelectionPosition(selectionEnd.value),
+  }, false);
 }
 
 function normalizeRunnerLanguage(language) {
@@ -885,38 +1086,178 @@ async function handleRunActiveCode() {
   }
 }
 
-function openShareDialog() {
-  if (!props.note || props.isTrashView) {
+async function handleAiReview() {
+  if (!activeCodeBlock.value || !codeRunResult.value?.stderr) {
     return;
   }
 
-  shareTarget.value = 'community';
-  shareFormat.value = 'markdown';
-  shareDialogVisible.value = true;
+  reviewingCode.value = true;
+
+  try {
+    const res = await apiReviewCode({
+      code: activeCodeBlock.value.code || '',
+      errorMessage: codeRunResult.value.stderr,
+      language: activeCodeBlock.value.language || activeCodeBlock.value.editorLanguage || '',
+    });
+
+    aiReviewResult.value = renderMarkdown(res.data?.content || '');
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: t('common.error'),
+      detail: error?.message || 'AI review failed',
+      life: 3000,
+    });
+  } finally {
+    reviewingCode.value = false;
+  }
 }
 
-function validateShareDraft() {
-  if (shareTarget.value === 'community' && !shareSourceContent.value.trim()) {
+function openAiGenerateDialog() {
+  if (props.isTrashView) {
+    return;
+  }
+
+  aiGenerateResult.value = '';
+  aiGenerateRawContent.value = '';
+  aiGenerateDialogVisible.value = true;
+}
+
+async function handleAiGenerate() {
+  if (!aiPrompt.value.trim()) {
+    return;
+  }
+
+  generatingCode.value = true;
+
+  try {
+    const language = activeCodeBlock.value?.language
+      || activeCodeBlock.value?.editorLanguage
+      || String(props.note?.primaryLanguage || '').trim()
+      || '';
+
+    const res = await apiGenerateCode({
+      description: aiPrompt.value.trim(),
+      language,
+    });
+
+    const raw = res.data?.content || '';
+    aiGenerateRawContent.value = raw;
+    aiGenerateResult.value = renderMarkdown(raw);
+  } catch (error) {
     toast.add({
       severity: 'error',
       summary: t('common.error'),
-      detail: t('community.contentRequired'),
+      detail: error?.message || 'AI generation failed',
       life: 3000,
     });
-    return false;
+  } finally {
+    generatingCode.value = false;
+  }
+}
+
+function handleInsertAiResult() {
+  if (!aiGenerateRawContent.value) {
+    return;
   }
 
-  if (effectiveShareFormat.value === 'link' && !shareLink.value) {
+  syncSelectionFromElement();
+  replaceSelection({ text: aiGenerateRawContent.value });
+  aiGenerateDialogVisible.value = false;
+
+  toast.add({
+    severity: 'success',
+    summary: t('common.success'),
+    detail: t('notes.aiInsertSuccess'),
+    life: 2500,
+  });
+}
+
+async function handleTextareaKeydown(event) {
+  if (event.key !== 'Enter' || props.isTrashView) return;
+
+  const ta = event.target;
+  const pos = ta.selectionStart;
+  const content = markdownContent.value;
+
+  const lineStart = content.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
+  let lineEnd = content.indexOf('\n', pos);
+  if (lineEnd === -1) lineEnd = content.length;
+
+  const lineText = content.slice(lineStart, lineEnd);
+  const match = lineText.match(/^\/ai\s+(.+)/);
+  if (!match) return;
+
+  const prompt = match[1].trim();
+  if (!prompt) return;
+
+  event.preventDefault();
+  showAiSlashHint.value = false;
+  const language = activeCodeBlock.value?.language
+    || activeCodeBlock.value?.editorLanguage
+    || String(props.note?.primaryLanguage || '').trim()
+    || '';
+
+  // Remove the /ai ... line
+  const insertPos = lineStart;
+  replaceSelection({
+    start: lineStart,
+    end: lineEnd,
+    text: '',
+    nextStart: insertPos,
+    nextEnd: insertPos,
+  });
+
+  // Show loading animation, calculate position after DOM updates
+  aiGeneratingCharPos.value = insertPos;
+  aiSlashGenerating.value = true;
+  await nextTick();
+  updateAiGeneratingPosition();
+
+  try {
+    const res = await apiGenerateCode({ description: prompt, language });
+    const raw = res.data?.content || '';
+
+    // Hide loading animation
+    aiSlashGenerating.value = false;
+
+    // Typewriter effect: insert characters incrementally
+    if (raw) {
+      const charsPerTick = 4;
+      const tickInterval = 18;
+      let charIndex = 0;
+
+      await new Promise((resolve) => {
+        const timer = setInterval(() => {
+          const end = Math.min(charIndex + charsPerTick, raw.length);
+          const chunk = raw.slice(charIndex, end);
+          charIndex = end;
+
+          const currentPos = insertPos + charIndex - chunk.length;
+          replaceSelection({
+            start: currentPos,
+            end: currentPos,
+            text: chunk,
+            nextStart: currentPos + chunk.length,
+            nextEnd: currentPos + chunk.length,
+          });
+
+          if (charIndex >= raw.length) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, tickInterval);
+      });
+    }
+  } catch (error) {
+    aiSlashGenerating.value = false;
     toast.add({
       severity: 'error',
       summary: t('common.error'),
-      detail: t('notes.shareLinkUnavailable'),
+      detail: error?.message || 'AI generation failed',
       life: 3000,
     });
-    return false;
   }
-
-  return true;
 }
 
 async function copyTextToClipboard(value) {
@@ -967,30 +1308,54 @@ async function buildShareImageAsset() {
 }
 
 function showShareSuccess(detail) {
-  toast.add({
-    severity: 'success',
-    summary: t('common.success'),
-    detail,
-    life: 2600,
-  });
+  toast.add({ severity: 'success', summary: t('common.success'), detail, life: 2600 });
 }
 
 function showShareError(error, fallbackMessage) {
-  toast.add({
-    severity: 'error',
-    summary: t('common.error'),
-    detail: error?.message || fallbackMessage,
-    life: 3200,
-  });
+  toast.add({ severity: 'error', summary: t('common.error'), detail: error?.message || fallbackMessage, life: 3200 });
 }
 
-async function handleCommunityShare() {
-  if (!props.note || !validateShareDraft()) {
+async function handleShareLink() {
+  if (!props.note?.id) return;
+  try {
+    const res = await apiShareNote(props.note.id);
+    const token = res.data?.shareToken;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    await copyTextToClipboard(`${origin}/share/${token}`);
+    noteHasPublicShare.value = true;
+    showShareSuccess(t('notes.shareCopySuccess'));
+  } catch (error) {
+    showShareError(error, t('notes.shareCopyFailed'));
+  }
+}
+
+async function handleShareMarkdown() {
+  if (!props.note) return;
+  try {
+    downloadTextFile(shareSourceContent.value, `${shareFileStem.value}.md`, 'text/markdown;charset=utf-8');
+    showShareSuccess(t('notes.shareDownloadSuccess'));
+  } catch (error) {
+    showShareError(error, t('notes.shareDownloadFailed'));
+  }
+}
+
+async function handleShareImage() {
+  if (!props.note) return;
+  try {
+    const { blob } = await buildShareImageAsset();
+    downloadBlob(blob, `${shareFileStem.value}.png`);
+    showShareSuccess(t('notes.shareDownloadSuccess'));
+  } catch (error) {
+    showShareError(error, t('notes.shareDownloadFailed'));
+  }
+}
+
+async function handleShareCommunity() {
+  if (!props.note) return;
+  if (!shareSourceContent.value.trim()) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: t('community.contentRequired'), life: 3000 });
     return;
   }
-
-  shareSubmitting.value = true;
-
   try {
     const res = await communityStore.createPost({
       title: resolvedShareTitle.value,
@@ -999,10 +1364,7 @@ async function handleCommunityShare() {
       tags: shareSourceTags.value,
       originNoteId: props.note?.id || undefined,
     });
-
-    shareDialogVisible.value = false;
     showShareSuccess(t('community.publishSuccess'));
-
     if (res?.data?.id) {
       await router.push(`/community/${res.data.id}`);
     } else {
@@ -1010,37 +1372,27 @@ async function handleCommunityShare() {
     }
   } catch (error) {
     showShareError(error, t('community.publishFailed'));
-  } finally {
-    shareSubmitting.value = false;
   }
 }
 
-async function handleExternalShare() {
-  if (!props.note || !validateShareDraft()) {
-    return;
-  }
-
-  shareSubmitting.value = true;
-
+async function handleCancelShare() {
+  if (!props.note?.id) return;
   try {
-    if (effectiveShareFormat.value === 'link') {
-      await copyTextToClipboard(shareLink.value);
-      showShareSuccess(t('notes.shareCopySuccess'));
-      return;
-    }
-
-    if (effectiveShareFormat.value === 'markdown') {
-      downloadTextFile(shareSourceContent.value, `${shareFileStem.value}.md`, 'text/markdown;charset=utf-8');
-    } else {
-      const { blob } = await buildShareImageAsset();
-      downloadBlob(blob, `${shareFileStem.value}.png`);
-    }
-
-    showShareSuccess(t('notes.shareDownloadSuccess'));
-  } catch (error) {
-    showShareError(error, t(effectiveShareFormat.value === 'link' ? 'notes.shareCopyFailed' : 'notes.shareDownloadFailed'));
-  } finally {
-    shareSubmitting.value = false;
+    await apiCancelShare(props.note.id);
+    noteHasPublicShare.value = false;
+    toast.add({
+      severity: 'success',
+      summary: t('common.success'),
+      detail: t('notes.shareCancelSuccess'),
+      life: 3000,
+    });
+  } catch (err) {
+    toast.add({
+      severity: 'error',
+      summary: t('common.error'),
+      detail: err?.message || t('common.error'),
+      life: 3000,
+    });
   }
 }
 
@@ -1107,6 +1459,7 @@ async function handleExternalShare() {
   flex-direction: column;
   border: 0;
   background: var(--editor-pane-surface, color-mix(in srgb, var(--surface-card) 30%, transparent));
+  color: var(--text-color);
   overflow: hidden;
   box-shadow: none;
 }
@@ -1146,7 +1499,7 @@ async function handleExternalShare() {
   height: 0.75rem;
   border-radius: 0.375rem;
   display: inline-block;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--app-border);
 }
 
 .pane-dot-close {
@@ -1178,9 +1531,116 @@ async function handleExternalShare() {
 }
 
 .markdown-editor-shell {
+  position: relative;
   flex: 1;
   min-height: 0;
   padding: 0.95rem 1rem 0.5rem;
+  color: var(--text-color);
+}
+
+.ai-slash-hint {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  background: color-mix(in srgb, var(--app-panel-raised) 98%, transparent);
+  border: 1px solid var(--app-border);
+  border-radius: 0.5rem;
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+  box-shadow: var(--app-shadow-soft);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.ai-slash-hint .pi {
+  color: var(--primary-color);
+  font-size: 0.9rem;
+}
+
+.ai-slash-hint kbd {
+  padding: 0.1rem 0.4rem;
+  background: color-mix(in srgb, var(--app-panel-inset) 96%, transparent);
+  border: 1px solid var(--app-border);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-family: inherit;
+  color: var(--text-color-secondary);
+}
+
+.ai-hint-fade-enter-active,
+.ai-hint-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.ai-hint-fade-enter-from,
+.ai-hint-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.ai-generating-indicator {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  background: color-mix(in srgb, var(--app-panel-raised) 98%, transparent);
+  border: 1px solid var(--app-border);
+  border-radius: 0.5rem;
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+  box-shadow: var(--app-shadow-soft);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.ai-generating-indicator .pi {
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  animation: ai-sparkle-pulse 1.5s ease-in-out infinite;
+}
+
+.ai-generating-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.ai-dot {
+  display: inline-block;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: var(--primary-color);
+  animation: ai-dot-bounce 1.2s ease-in-out infinite;
+}
+
+.ai-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.ai-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes ai-dot-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-0.35rem);
+    opacity: 1;
+  }
+}
+
+@keyframes ai-sparkle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .markdown-editor-shell-readonly {
@@ -1192,10 +1652,14 @@ async function handleExternalShare() {
   height: 100%;
   min-height: 18rem;
   resize: none;
+  appearance: none;
+  -webkit-appearance: none;
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--text-color);
+  color: var(--text-color) !important;
+  -webkit-text-fill-color: currentColor;
+  caret-color: var(--primary-color);
   font: inherit;
   font-family: var(--font-sans);
   line-height: 1.8;
@@ -1204,11 +1668,6 @@ async function handleExternalShare() {
 
 .markdown-textarea::placeholder {
   color: color-mix(in srgb, var(--text-color-secondary) 86%, transparent);
-}
-
-.share-note-actions,
-.share-note-meta-grid {
-  display: flex;
 }
 
 .toolbar-label {
@@ -1225,7 +1684,20 @@ async function handleExternalShare() {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 1.25rem;
+  color: var(--text-color);
   line-height: 1.75;
+}
+
+.markdown-preview :deep(p),
+.markdown-preview :deep(li),
+.markdown-preview :deep(ol),
+.markdown-preview :deep(ul),
+.markdown-preview :deep(strong),
+.markdown-preview :deep(em),
+.markdown-preview :deep(span),
+.markdown-preview :deep(td),
+.markdown-preview :deep(th) {
+  color: inherit;
 }
 
 .markdown-preview :deep(a) {
@@ -1299,22 +1771,6 @@ async function handleExternalShare() {
   margin: 2rem 0;
 }
 
-.editor-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  border-top: 1px solid var(--panel-section-border, rgba(255, 255, 255, 0.08));
-  background: color-mix(in srgb, var(--panel-section-strong, var(--surface-card)) 94%, transparent);
-}
-
-.editor-footer-copy {
-  color: var(--text-color-secondary);
-  font-size: 0.82rem;
-  font-family: var(--font-mono);
-}
-
 .editor-empty {
   min-height: 18rem;
   display: flex;
@@ -1368,114 +1824,6 @@ async function handleExternalShare() {
   display: none;
 }
 
-.share-note-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.share-note-control-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
-.share-note-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.share-note-current {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 1rem 1.05rem;
-  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 88%, transparent);
-  background: color-mix(in srgb, var(--panel-section-surface, var(--surface-ground)) 96%, transparent);
-}
-
-.share-note-current-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--primary-color) 10%, var(--surface-card));
-  color: var(--primary-color);
-  flex-shrink: 0;
-}
-
-.share-note-current-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.18rem;
-}
-
-.share-note-current-label,
-.share-note-current-meta {
-  color: var(--text-color-secondary);
-  font-size: 0.76rem;
-  font-family: var(--font-mono);
-  letter-spacing: 0.05em;
-}
-
-.share-note-current-title {
-  color: var(--text-color);
-  font-size: 1rem;
-  line-height: 1.45;
-  font-weight: 700;
-}
-
-.share-note-toggle {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 0.45rem;
-}
-
-.share-note-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 88%, transparent);
-  background: color-mix(in srgb, var(--panel-section-surface, var(--surface-ground)) 96%, transparent);
-  color: var(--text-color-secondary);
-  min-height: 2.8rem;
-  padding: 0.65rem 0.85rem;
-  font: inherit;
-  cursor: pointer;
-  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
-}
-
-.share-note-toggle-icon {
-  font-size: 0.95rem;
-}
-
-.share-note-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 0.9rem;
-  border: 1px dashed color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 82%, transparent);
-  background: color-mix(in srgb, var(--panel-section-surface, var(--surface-ground)) 94%, transparent);
-  color: var(--text-color-secondary);
-  font-size: 0.82rem;
-}
-
-.share-note-toggle-btn-active {
-  border-color: color-mix(in srgb, var(--primary-color) 55%, var(--surface-border));
-  background: color-mix(in srgb, var(--primary-color) 12%, var(--panel-section-surface, var(--surface-ground)));
-  color: var(--primary-color);
-}
-
-.share-note-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.55rem;
-}
-
 @media (max-width: 1180px) {
   .editor-workbench {
     flex-direction: column;
@@ -1497,8 +1845,109 @@ async function handleExternalShare() {
     align-items: flex-start;
   }
 
-  .editor-footer {
-    align-items: stretch;
-  }
+}
+
+.ai-generate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ai-generate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ai-generate-textarea {
+  min-height: 5rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 86%, transparent);
+  background: color-mix(in srgb, var(--panel-section-strong, var(--surface-card)) 96%, transparent);
+  resize: vertical;
+  font: inherit;
+  line-height: 1.6;
+  color: var(--text-color);
+  -webkit-text-fill-color: currentColor;
+  caret-color: var(--primary-color);
+  border-radius: 0.5rem;
+}
+
+:global(html.app-dark) .markdown-textarea,
+:global(html.app-dark) .ai-generate-textarea,
+:global(html.app-dark) .markdown-editor-shell,
+:global(html.app-dark) .editor-pane,
+:global(html.app-dark) .preview-pane,
+:global(html.app-dark) .markdown-preview {
+  color: #e6f0fa !important;
+  -webkit-text-fill-color: #e6f0fa !important;
+}
+
+:global(html.app-dark) .markdown-editor-shell .markdown-textarea {
+  color: #e6f0fa !important;
+  -webkit-text-fill-color: #e6f0fa !important;
+  caret-color: #5eead4 !important;
+  text-shadow: 0 0 0 #e6f0fa;
+}
+
+.ai-generate-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ai-generate-result-head {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+}
+
+.ai-generate-result-body {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 86%, transparent);
+  background: color-mix(in srgb, var(--panel-section-strong, var(--surface-card)) 96%, transparent);
+  border-radius: 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--text-color);
+  overflow: auto;
+  max-height: 20rem;
+}
+
+.ai-generate-result-body :deep(pre) {
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--panel-section-surface, var(--surface-ground)) 96%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-generate-result-body :deep(code) {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.ai-generate-result-body :deep(p) {
+  margin: 0.35rem 0;
+}
+
+.ai-generate-result-body :deep(ol),
+.ai-generate-result-body :deep(ul) {
+  padding-left: 1.4rem;
+  margin: 0.35rem 0;
+}
+
+.ai-generate-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
 }
 </style>

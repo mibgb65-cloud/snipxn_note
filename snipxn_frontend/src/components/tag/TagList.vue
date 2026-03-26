@@ -1,28 +1,55 @@
 <template>
   <div class="tag-list">
-    <template v-if="tags.length">
-      <button
-        type="button"
-        class="tag-button"
-        :class="{ 'tag-button-active': !activeTag }"
-        @click="$emit('select', '')"
+    <div class="tag-items">
+      <div
+        class="tag-item"
+        :class="{ 'tag-item-active': !activeTag }"
       >
-        <Tag :value="t('sidebar.allTags')" />
-      </button>
+        <button
+          type="button"
+          class="tag-trigger"
+          @click="$emit('select', '')"
+        >
+          <span class="tag-icon-shell tag-icon-shell-neutral">
+            <i class="pi pi-tags" aria-hidden="true" />
+          </span>
+          <span class="tag-name">{{ t('sidebar.allTags') }}</span>
+        </button>
+      </div>
 
-      <button
+      <div
         v-for="tag in tags"
-        :key="tag"
-        type="button"
-        class="tag-button"
-        :class="{ 'tag-button-active': activeTag === tag }"
-        @click="$emit('select', tag)"
+        :key="tag.id"
+        class="tag-item tag-item-with-actions"
+        :class="{ 'tag-item-active': String(activeTag) === String(tag.id) }"
+        :style="getTagStyle(tag.color)"
       >
-        <Tag :value="tag" />
-      </button>
-    </template>
+        <button
+          type="button"
+          class="tag-trigger"
+          @click="$emit('select', String(tag.id))"
+        >
+          <span class="tag-icon-shell">
+            <span class="tag-dot" aria-hidden="true" />
+          </span>
+          <span class="tag-name">{{ tag.name }}</span>
+        </button>
 
-    <div v-else class="tag-empty">
+        <div class="tag-actions">
+          <button
+            type="button"
+            class="tag-action-btn"
+            :aria-label="`${t('common.delete')} ${tag.name}`"
+            :title="t('common.delete')"
+            @click.stop="$emit('delete', tag.id)"
+          >
+            <i class="pi pi-times" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="!tags.length" class="tag-empty">
       <span class="tag-empty-icon" aria-hidden="true">
         <i class="pi pi-tags" />
       </span>
@@ -31,12 +58,20 @@
         <p class="tag-empty-hint m-0">{{ t('sidebar.noTagsHint') }}</p>
       </div>
     </div>
+
+    <button
+      type="button"
+      class="tag-create-button"
+      @click="$emit('create')"
+    >
+      <i class="pi pi-plus" aria-hidden="true" />
+      <span>{{ t('notes.newTag') }}</span>
+    </button>
   </div>
 </template>
 
 <script setup>
 import { useI18n } from 'vue-i18n';
-import Tag from 'primevue/tag';
 
 defineProps({
   tags: {
@@ -49,84 +84,226 @@ defineProps({
   },
 });
 
-defineEmits(['select']);
+defineEmits(['select', 'delete', 'create']);
 
 const { t } = useI18n();
+
+function getTagStyle(color) {
+  return {
+    '--tag-color': color || 'var(--primary-color)',
+  };
+}
 </script>
 
 <style scoped>
 .tag-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-content: flex-start;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
 }
 
-.tag-button {
-  border: 0;
-  padding: 0;
+.tag-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Tag item row ── */
+.tag-item {
+  --tag-color: var(--primary-color);
+  position: relative;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 75%, transparent);
   background: transparent;
-  cursor: pointer;
-  transition: transform 180ms ease, filter 180ms ease;
+  transition: background-color 180ms ease, border-color 180ms ease;
 }
 
-.tag-button:hover,
-.tag-button-active {
-  transform: none;
-  filter: saturate(1.05);
+.tag-item:hover,
+.tag-item-active {
+  background: color-mix(in srgb, var(--tag-color) 8%, transparent);
+  border-left-color: var(--tag-color);
 }
 
-.tag-button :deep(.p-tag) {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--surface-ground) 22%, var(--surface-card));
-  border: 1px solid color-mix(in srgb, var(--surface-border) 76%, transparent);
-}
-
-.tag-button-active :deep(.p-tag) {
-  background: color-mix(in srgb, var(--primary-color) 18%, var(--surface-card));
-  color: var(--primary-color);
-  border-color: color-mix(in srgb, var(--primary-color) 24%, var(--surface-border));
-}
-
-.tag-empty {
+/* ── Trigger button (full row) ── */
+.tag-trigger {
+  position: relative;
   width: 100%;
-  min-height: 7.5rem;
-  padding: 0.9rem;
-  border: 1px dashed color-mix(in srgb, var(--primary-color) 18%, var(--surface-border));
-  background: color-mix(in srgb, var(--surface-ground) 24%, transparent);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0.7rem 0.85rem;
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.7rem;
+  cursor: pointer;
+  text-align: left;
 }
 
-.tag-empty-icon {
-  width: 2.35rem;
-  height: 2.35rem;
+.tag-item-with-actions .tag-trigger {
+  padding-right: 2.8rem;
+}
+
+/* ── Icon shell (houses dot or icon) ── */
+.tag-icon-shell {
+  width: 1.85rem;
+  height: 1.85rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--surface-border) 84%, transparent);
-  background: color-mix(in srgb, var(--primary-color) 8%, var(--surface-card));
-  color: var(--primary-color);
   flex-shrink: 0;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--tag-color) 12%, var(--panel-section-strong, var(--surface-card)));
+  color: var(--tag-color);
+  transition: background-color 180ms ease;
+}
+
+.tag-icon-shell-neutral {
+  --tag-color: var(--primary-color);
+  font-size: 0.82rem;
+}
+
+.tag-item-active .tag-icon-shell {
+  background: color-mix(in srgb, var(--tag-color) 18%, var(--panel-section-strong, var(--surface-card)));
+}
+
+/* ── Color dot ── */
+.tag-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--tag-color);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--tag-color) 18%, transparent);
+}
+
+/* ── Tag name ── */
+.tag-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.tag-item-active .tag-name {
+  color: color-mix(in srgb, var(--tag-color) 72%, var(--text-color));
+}
+
+/* ── Hover actions ── */
+.tag-actions {
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 140ms ease, visibility 140ms ease;
+}
+
+.tag-item:hover .tag-actions,
+.tag-item:focus-within .tag-actions {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.tag-action-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 80%, transparent);
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--panel-section-strong, var(--surface-card)) 94%, transparent);
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.tag-action-btn:hover {
+  border-color: color-mix(in srgb, #dc2626 34%, var(--panel-section-border, var(--surface-border)));
+  background: color-mix(in srgb, #dc2626 8%, var(--panel-section-strong, var(--surface-card)));
+  color: #dc2626;
+}
+
+/* ── Empty state ── */
+.tag-empty {
+  width: 100%;
+  padding: 0.85rem;
+  border: 1px dashed color-mix(in srgb, var(--primary-color) 18%, var(--app-border, var(--surface-border)));
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-ground)) 24%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tag-empty-icon {
+  width: 2.1rem;
+  height: 2.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 84%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--panel-section-strong, var(--surface-card)));
+  color: var(--primary-color);
+  font-size: 0.88rem;
 }
 
 .tag-empty-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.15rem;
   min-width: 0;
 }
 
 .tag-empty-title {
-  font-size: 0.9rem;
+  font-size: 0.86rem;
+  font-weight: 600;
   color: var(--text-color);
 }
 
 .tag-empty-hint {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-color-secondary);
-  line-height: 1.55;
+  line-height: 1.5;
+}
+
+/* ── Create button ── */
+.tag-create-button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px dashed color-mix(in srgb, var(--primary-color) 28%, var(--app-border, var(--surface-border)));
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--primary-color) 5%, transparent);
+  color: var(--text-color-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.tag-create-button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary-color) 44%, var(--app-border, var(--surface-border)));
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  color: var(--primary-color);
 }
 </style>

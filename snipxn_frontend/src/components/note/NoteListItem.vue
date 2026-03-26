@@ -5,21 +5,20 @@
     :class="{ 'note-card-active': selected }"
     @click="$emit('select', note.id)"
   >
-    <div class="note-card-top">
-      <div class="note-language-shell">
+    <div class="note-card-heading">
+      <div class="note-title-shell">
         <span class="note-file-icon">
           <i class="pi pi-file" />
         </span>
-        <Tag :value="note.primaryLanguage || 'Markdown'" severity="secondary" />
+        <h2 class="note-title" :title="note.title || t('notes.untitled')">{{ note.title || t('notes.untitled') }}</h2>
       </div>
-      <div class="note-card-trailing">
+      <div class="note-card-heading-meta">
         <span v-if="note.isStarred" class="note-star-shell">
           <i class="pi pi-star-fill note-star" />
         </span>
+        <Tag class="note-language-tag" :value="note.primaryLanguage || 'Markdown'" severity="secondary" />
       </div>
     </div>
-
-    <h2 class="note-title">{{ note.title || t('notes.untitled') }}</h2>
     <p class="note-summary">
       {{ note.summary || t('notes.emptySummary') }}
     </p>
@@ -162,28 +161,17 @@ const previewTags = computed(() => (props.note?.tagIds || []).slice(0, 3));
   opacity: 1;
 }
 
-.note-card-top,
 .note-card-bottom,
-.note-card-trailing {
+.note-card-heading,
+.note-card-heading-meta,
+.note-title-shell {
   display: flex;
   align-items: center;
-}
-
-.note-card-top {
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.note-language-shell {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 0;
 }
 
 .note-file-icon {
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 1.7rem;
+  height: 1.7rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -193,7 +181,20 @@ const previewTags = computed(() => (props.note?.tagIds || []).slice(0, 3));
   flex-shrink: 0;
 }
 
-.note-card-trailing {
+.note-card-heading {
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.note-title-shell {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.65rem;
+}
+
+.note-card-heading-meta {
+  flex-shrink: 0;
   gap: 0.55rem;
 }
 
@@ -208,15 +209,24 @@ const previewTags = computed(() => (props.note?.tagIds || []).slice(0, 3));
 }
 
 .note-title {
-  margin: 0.9rem 0 0;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   font-size: 1.04rem;
   line-height: 1.4;
   letter-spacing: -0.03em;
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-language-tag {
+  flex-shrink: 0;
 }
 
 .note-summary {
-  margin: 0.6rem 0 0;
+  margin: 0.68rem 0 0;
   color: var(--text-color-secondary);
   line-height: 1.65;
   min-height: 3.2em;
@@ -240,14 +250,14 @@ const previewTags = computed(() => (props.note?.tagIds || []).slice(0, 3));
   grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
   align-items: center;
   gap: 0.9rem;
-  row-gap: 0.16rem;
+  row-gap: 0.04rem;
 }
 
 .note-meta-item {
   display: inline-flex;
   align-items: center;
-  min-height: 1.62rem;
-  padding: 0.12rem 0.55rem;
+  min-height: 1.46rem;
+  padding: 0.08rem 0.52rem;
   border: 1px solid color-mix(in srgb, var(--surface-border) 72%, transparent);
   background: color-mix(in srgb, var(--surface-ground) 55%, transparent);
   color: var(--text-color-secondary);
@@ -272,7 +282,7 @@ const previewTags = computed(() => (props.note?.tagIds || []).slice(0, 3));
   color: var(--text-color-secondary);
   font-size: 0.72rem;
   font-family: var(--font-mono);
-  line-height: 1.25;
+  line-height: 1.08;
   letter-spacing: 0.03em;
   text-align: right;
 }

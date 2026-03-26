@@ -1,3 +1,4 @@
+import axios from 'axios';
 import api from './axios';
 
 export function listNotes(params = {}) {
@@ -34,6 +35,26 @@ export function restoreNote(noteId) {
 
 export function deleteNotePermanently(noteId) {
   return api.delete(`/notes/${noteId}/permanent`);
+}
+
+export function checkShare(noteId) {
+  return api.get(`/notes/${noteId}/share`);
+}
+
+export function shareNote(noteId) {
+  return api.post(`/notes/${noteId}/share`);
+}
+
+export function cancelShare(noteId) {
+  return api.delete(`/notes/${noteId}/share`);
+}
+
+export function getPublicNote(shareToken) {
+  return axios.get(`/api/v1/public/notes/${shareToken}`).then(res => {
+    const result = res.data;
+    if (result.code === 200 || result.code === 0) return result;
+    return Promise.reject(new Error(result.message || 'Request failed'));
+  });
 }
 
 export function importNotes(files, folderId) {

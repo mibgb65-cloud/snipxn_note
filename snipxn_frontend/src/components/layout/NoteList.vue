@@ -12,7 +12,7 @@
           <span class="note-list-count">{{ total }}</span>
         </div>
         <Button v-if="canCreate" icon="pi pi-upload" :label="t('notes.importNotes')" severity="secondary" outlined @click="triggerImport" />
-        <Button v-if="canCreate" icon="pi pi-plus" :label="t('notes.newNote')" @click="$emit('create')" />
+        <Button v-if="canCreate" icon="pi pi-plus" :label="t('notes.newNoteAction')" @click="$emit('create')" />
       </div>
       <input ref="importInputRef" type="file" accept=".md" multiple hidden @change="handleImportFiles" />
     </header>
@@ -29,7 +29,7 @@
         :class="{ 'note-list-row-active': note.id === selectedNoteId }"
       >
         <NoteListItem
-          v-memo="[note.id, selectedNoteId, note.updatedAt, note.createdAt, note.characterCount, note.isStarred, note.title, note.summary, note.tagIds]"
+          v-memo="[note.id, selectedNoteId, note.updatedAt, note.createdAt, note.characterCount, note.isStarred, note.title, note.summary, note.tagIds, note.primaryLanguage]"
           :note="note"
           :selected="note.id === selectedNoteId"
           @select="$emit('select', $event)"
@@ -41,7 +41,7 @@
       <i class="pi pi-book note-list-empty-icon" />
       <h3 class="mb-2">{{ t('notes.noNotes') }}</h3>
       <p class="m-0">{{ canCreate ? t('notes.noNotesDescription') : t('notes.noNotesReadonlyDescription') }}</p>
-      <Button v-if="canCreate" class="mt-4" icon="pi pi-plus" :label="t('notes.newNote')" @click="$emit('create')" />
+      <Button v-if="canCreate" class="mt-4" icon="pi pi-plus" :label="t('notes.newNoteAction')" @click="$emit('create')" />
     </div>
 
     <div v-if="loading && notes.length" class="note-list-overlay" aria-hidden="true">

@@ -3,9 +3,11 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch, shallowRef } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch, shallowRef } from 'vue';
 import '@/editor/monaco-setup';
 import * as monaco from 'monaco-editor';
+import { useFont } from '../../composables/useFont';
+import { getCodeFontById } from '../../theme/fonts';
 
 const LANGUAGE_MAP = {
   c: 'c',
@@ -74,6 +76,14 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'paste-image', 'drop-image']);
 
+const { codeFontId } = useFont();
+const resolvedCodeFontFamily = computed(() => {
+  const font = getCodeFontById(codeFontId.value);
+  return font && font.fontFamily
+    ? font.fontFamily
+    : "'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace";
+});
+
 const containerRef = ref(null);
 const editorInstance = shallowRef(null);
 let resizeObserver = null;
@@ -95,7 +105,7 @@ onMounted(() => {
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     fontSize: 14,
-    fontFamily: 'var(--font-mono), "Cascadia Code", "Fira Code", Consolas, monospace',
+    fontFamily: resolvedCodeFontFamily.value,
     lineNumbers: 'on',
     renderLineHighlight: 'line',
     tabSize: 2,
@@ -181,6 +191,11 @@ watch(
     editorInstance.value?.updateOptions({ readOnly: val });
   },
 );
+
+// Sync code font
+watch(resolvedCodeFontFamily, (fontFamily) => {
+  editorInstance.value?.updateOptions({ fontFamily });
+});
 
 function handlePaste(event) {
   const imageItem = Array.from(event.clipboardData?.items || []).find((item) =>

@@ -4,7 +4,7 @@
       <header class="workspace-topbar animate-fade-in-up delay-100">
         <div class="workspace-brand-block">
           <div class="workspace-brand-icon">
-            <img :src="logoUrl" :alt="t('app.logoAlt')" width="40" height="40">
+            <img class="workspace-brand-logo" :src="logoUrl" :alt="t('app.logoAlt')" width="40" height="40">
           </div>
           <div class="workspace-brand-copy">
             <h1 class="workspace-title">{{ t('workspace.title') }}</h1>
@@ -95,13 +95,8 @@
               @click="handleOpenCommunity"
             />
             <Button
-              icon="pi pi-plus"
-              :label="t('notes.newNote')"
-              class="accent-cta new-note-btn"
-              @click="handleCreateNote"
-            />
-            <Button
               icon="pi pi-cog"
+              :label="t('sidebar.settings')"
               severity="secondary"
               outlined
               :aria-label="t('sidebar.settings')"
@@ -119,7 +114,8 @@
             :folders="folderStore.folders"
             :active-folder-id="folderStore.activeFolderId"
             :active-view="noteStore.activeView"
-            :tags="noteStore.availableTags"
+            :home-active="showWorkspaceHome"
+            :tags="noteStore.tags"
             :active-tag="noteStore.activeTag"
             :has-selected-note="Boolean(noteStore.currentNote || noteStore.selectedNoteId)"
             :user="displayUser"
@@ -131,138 +127,82 @@
             @select-folder="handleSelectFolder"
             @select-view="handleSelectView"
             @select-tag="noteStore.setActiveTag"
-            @create-folder="openCreateFolderDialog"
-            @edit-folder="openEditFolderDialog"
+            @create-folder="handleCreateFolder"
+            @update-folder="handleUpdateFolder"
             @delete-folder="handleDeleteFolder"
-            @create-tag="handleOpenTagDialog"
+            @create-tag="handleCreateTag"
+            @delete-tag="handleDeleteTag"
             @open-settings="handleOpenSettings"
             @logout="handleLogout"
           />
         </div>
 
-        <div class="workspace-main">
-          <Splitter
-            :layout="contentSplitterLayout"
-            :stateKey="contentSplitterStateKey"
-            stateStorage="session"
-            class="workspace-panels"
-            :pt="{ root: { style: 'background: transparent; border: none;' } }"
-          >
-            <SplitterPanel :size="listPanelSize" :minSize="listPanelMinSize" class="workspace-list">
-              <NoteList
-                :title="noteListTitle"
-                :notes="displayedNotes"
-                :loading="bootstrapping || noteStore.loadingList"
-                :selected-note-id="noteStore.selectedNoteId"
-                :total="noteStore.total"
-                :page="noteStore.page"
-                :size="noteStore.size"
-                :can-create="!noteStore.isTrashView"
-                @select="handleSelectNote"
-                @create="handleCreateNote"
-                @change-page="handleChangePage"
-                @import="handleImportNotes"
-              />
-            </SplitterPanel>
+        <div class="workspace-main" :class="{ 'workspace-main-home': showWorkspaceHome }">
+          <Transition name="workspace-stage" mode="out-in">
+            <WorkspaceHome
+              v-if="showWorkspaceHome"
+              key="workspace-home"
+              :user="displayUser"
+              :recent-notes="recentWorkspaceNotes"
+              :folders="folderStore.folders"
+              :metrics="workspaceMetrics"
+              :storage-profile="userStore.profile"
+              :storage-percent="userStore.storageUsagePercent"
+              :active-folder-name="folderStore.activeFolder?.name || t('folders.defaultFolder')"
+              @create-note="handleCreateNote"
+              @create-folder="handleCreateFolder({ name: t('folders.defaultFolderName'), icon: 'pi pi-folder' })"
+              @open-community="handleOpenCommunity"
+              @open-settings="handleOpenSettings"
+              @open-note="handleSelectNote"
+            />
+            <Splitter
+              v-else
+              key="workspace-panels"
+              :layout="contentSplitterLayout"
+              :stateKey="contentSplitterStateKey"
+              stateStorage="session"
+              class="workspace-panels"
+              :pt="{ root: { style: 'background: transparent; border: none;' } }"
+            >
+              <SplitterPanel :size="listPanelSize" :minSize="listPanelMinSize" class="workspace-list">
+                <NoteList
+                  :title="noteListTitle"
+                  :notes="displayedNotes"
+                  :loading="bootstrapping || noteStore.loadingList"
+                  :selected-note-id="noteStore.selectedNoteId"
+                  :total="noteStore.total"
+                  :page="noteStore.page"
+                  :size="noteStore.size"
+                  :can-create="!noteStore.isTrashView"
+                  @select="handleSelectNote"
+                  @create="handleCreateNote"
+                  @change-page="handleChangePage"
+                  @import="handleImportNotes"
+                />
+              </SplitterPanel>
 
-            <SplitterPanel :size="editorPanelSize" :minSize="editorPanelMinSize" class="workspace-editor">
-              <WorkspaceHome
-                v-if="showWorkspaceHome"
-                :user="displayUser"
-                :recent-notes="recentWorkspaceNotes"
-                :folders="folderStore.folders"
-                :metrics="workspaceMetrics"
-                :storage-profile="userStore.profile"
-                :storage-percent="userStore.storageUsagePercent"
-                :active-folder-name="folderStore.activeFolder?.name || t('folders.defaultFolder')"
-                @create-note="handleCreateNote"
-                @create-folder="openCreateFolderDialog"
-                @open-community="handleOpenCommunity"
-                @open-settings="handleOpenSettings"
-                @open-note="handleSelectNote"
-              />
-              <NoteEditor
-                v-else
-                :note="noteStore.currentNote"
-                :loading="bootstrapping || noteStore.loadingDetail"
-                :saving="noteStore.saving"
-                :is-trash-view="noteStore.isTrashView"
-                @create-note="handleCreateNote"
-                @update:title="(value) => syncCurrentNote({ title: value })"
-                @update:language="(value) => syncCurrentNote({ primaryLanguage: value })"
-                @update:content="(value) => syncCurrentNote({ content: value })"
-                @save="handleSaveNote"
-                @toggle-star="handleToggleStar"
-                @delete="handleDeleteNote"
-                @restore="handleRestoreNote"
-                @purge="handleDeletePermanently"
-              />
-            </SplitterPanel>
-          </Splitter>
+              <SplitterPanel :size="editorPanelSize" :minSize="editorPanelMinSize" class="workspace-editor">
+                <NoteEditor
+                  :note="noteStore.currentNote"
+                  :loading="bootstrapping || noteStore.loadingDetail"
+                  :saving="noteStore.saving"
+                  :is-trash-view="noteStore.isTrashView"
+                  @create-note="handleCreateNote"
+                  @update:title="(value) => syncCurrentNote({ title: value })"
+                  @update:language="(value) => syncCurrentNote({ primaryLanguage: value })"
+                  @update:content="(value) => syncCurrentNote({ content: value })"
+                  @toggle-star="handleToggleStar"
+                  @delete="handleDeleteNote"
+                  @restore="handleRestoreNote"
+                  @purge="handleDeletePermanently"
+                />
+              </SplitterPanel>
+            </Splitter>
+          </Transition>
         </div>
       </div>
     </div>
 
-    <FolderDialog v-model="folderDialogVisible" :folder="editingFolder" @submit="handleSubmitFolder" />
-    <Dialog
-      v-model:visible="tagDialogVisible"
-      modal
-      :draggable="false"
-      :header="t('notes.newTag')"
-      :style="{ width: 'min(28rem, calc(100vw - 2rem))' }"
-    >
-      <form class="workspace-tag-form" @submit.prevent="handleCreateTag">
-        <div class="workspace-tag-field">
-          <label class="workspace-tag-label" for="workspace-new-tag">{{ t('notes.newTag') }}</label>
-          <InputText
-            id="workspace-new-tag"
-            v-model="newTagName"
-            class="w-full"
-            :placeholder="t('notes.newTagPlaceholder')"
-            autofocus
-          />
-        </div>
-
-        <div class="workspace-tag-actions">
-          <Button type="button" severity="secondary" text :label="t('common.cancel')" @click="tagDialogVisible = false" />
-          <Button type="submit" icon="pi pi-plus" :label="t('common.create')" />
-        </div>
-      </form>
-    </Dialog>
-    <Dialog
-      v-model:visible="confirmDialogVisible"
-      modal
-      :draggable="false"
-      :header="t('common.delete')"
-      :style="{ width: 'min(30rem, calc(100vw - 2rem))' }"
-    >
-      <div class="workspace-confirm-dialog">
-        <div class="workspace-confirm-icon">
-          <i class="pi pi-trash" aria-hidden="true" />
-        </div>
-        <div class="workspace-confirm-copy">
-          <p class="workspace-confirm-message">{{ t('folders.deleteConfirm') }}</p>
-        </div>
-      </div>
-
-      <div class="workspace-confirm-actions">
-        <Button
-          type="button"
-          severity="secondary"
-          text
-          :label="t('common.cancel')"
-          :disabled="confirmSubmitting"
-          @click="closeConfirmDialog"
-        />
-        <Button
-          type="button"
-          severity="danger"
-          :label="t('common.delete')"
-          :loading="confirmSubmitting"
-          @click="handleConfirmDialogAction"
-        />
-      </div>
-    </Dialog>
   </div>
 </template>
 
@@ -280,11 +220,9 @@ import Sidebar from '../components/layout/Sidebar.vue';
 import NoteList from '../components/layout/NoteList.vue';
 import NoteEditor from '../components/layout/NoteEditor.vue';
 import WorkspaceHome from '../components/layout/WorkspaceHome.vue';
-import FolderDialog from '../components/folder/FolderDialog.vue';
 import ThemeToggle from '../components/common/ThemeToggle.vue';
 import LangToggle from '../components/common/LangToggle.vue';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
@@ -302,17 +240,11 @@ const userStore = useUserStore();
 const VERTICAL_PANELS_BREAKPOINT = 1280;
 const STACKED_WORKSPACE_BREAKPOINT = 980;
 const bootstrapping = ref(true);
-const folderDialogVisible = ref(false);
-const editingFolder = ref(null);
-const tagDialogVisible = ref(false);
-const newTagName = ref('');
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1280);
-const confirmDialogVisible = ref(false);
-const confirmDialogTarget = ref(null);
-const confirmSubmitting = ref(false);
 const workspaceSearchRef = ref(null);
 const workspaceSearchFocused = ref(false);
 const workspaceSearchActiveIndex = ref(-1);
+const workspaceHomeVisible = ref(true);
 
 const displayUser = computed(() => userStore.profile || authStore.user || null);
 const isStackedWorkspace = computed(() => windowWidth.value <= STACKED_WORKSPACE_BREAKPOINT);
@@ -325,9 +257,7 @@ const editorPanelSize = computed(() => 100 - listPanelSize.value);
 const editorPanelMinSize = computed(() => (contentSplitterLayout.value === 'vertical' ? 38 : 34));
 const showWorkspaceHome = computed(() => (
   !bootstrapping.value
-  && !noteStore.loadingDetail
-  && !noteStore.currentNote
-  && !noteStore.selectedNoteId
+  && workspaceHomeVisible.value
   && noteStore.activeView === 'folder'
   && !noteStore.isTrashView
 ));
@@ -345,39 +275,22 @@ const noteListTitle = computed(() => {
 const workspaceMetrics = computed(() => ([
   { id: 'notes', label: t('notes.title'), value: noteStore.total },
   { id: 'folders', label: t('sidebar.folders'), value: folderStore.folders.length },
-  { id: 'tags', label: t('sidebar.tags'), value: noteStore.availableTags.length },
+  { id: 'tags', label: t('sidebar.tags'), value: noteStore.tags.length },
 ]));
 const recentWorkspaceNotes = computed(() => (
   [...noteStore.notes]
     .sort((left, right) => new Date(right.updatedAt || right.createdAt || 0).getTime() - new Date(left.updatedAt || left.createdAt || 0).getTime())
     .slice(0, 5)
 ));
-const displayedNotes = computed(() => {
-  const activeTag = normalizeTags([noteStore.activeTag])[0] || '';
-
-  if (!activeTag) {
-    return noteStore.notes;
-  }
-
-  return noteStore.notes.filter((note) => (note.tagIds || []).map((tag) => String(tag || '').trim()).includes(activeTag));
-});
+const displayedNotes = computed(() => noteStore.filteredNotes);
 const workspaceSearchResults = computed(() => {
   const query = String(noteStore.searchQuery || '').trim().toLowerCase();
-  const activeTag = normalizeTags([noteStore.activeTag])[0] || '';
 
   if (!query) {
     return [];
   }
 
-  return noteStore.notes
-    .filter((note) => {
-      const matchesTag = !activeTag || (note.tagIds || []).map((tag) => String(tag || '').trim()).includes(activeTag);
-      const title = String(note.title || '').toLowerCase();
-      const summary = String(note.summary || note.content || '').toLowerCase();
-      const language = String(note.primaryLanguage || '').toLowerCase();
-
-      return matchesTag && [title, summary, language].some((value) => value.includes(query));
-    })
+  return noteStore.filteredNotes
     .map((note) => {
       const title = String(note.title || '').toLowerCase();
       const summary = String(note.summary || note.content || '').toLowerCase();
@@ -412,14 +325,6 @@ const showWorkspaceSearchDropdown = computed(() => workspaceSearchFocused.value 
 
 function summarizeContent(content = '') {
   return String(content).replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*]\([^)]+\)/g, ' ').replace(/\[[^\]]+]\([^)]+\)/g, ' ').replace(/[#>*`_\-\[\]()]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
-}
-
-function normalizeTags(tags = []) {
-  return Array.from(new Set(
-    tags
-      .map((tag) => String(tag || '').trim())
-      .filter(Boolean),
-  ));
 }
 
 function handleWorkspaceSearchInput(value) {
@@ -483,12 +388,28 @@ function updateListItem(noteId, patch) {
   noteStore.notes[index] = { ...noteStore.notes[index], ...patch };
 }
 
+let autoSaveTimer = null;
+
+async function flushAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = null;
+  if (!noteStore.currentNote || noteStore.saving || noteStore.isTrashView) return;
+  try {
+    await noteStore.saveCurrentNote({ quiet: true });
+  } catch (_) { /* silent */ }
+}
+
 function syncCurrentNote(patch) {
   if (!noteStore.currentNote) return;
   const nextNote = { ...noteStore.currentNote, ...patch };
   if (Object.prototype.hasOwnProperty.call(patch, 'content')) nextNote.summary = summarizeContent(nextNote.content);
   noteStore.currentNote = nextNote;
   updateListItem(nextNote.id, { ...patch, summary: nextNote.summary });
+
+  if (!noteStore.isTrashView) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(flushAutoSave, 2000);
+  }
 }
 
 async function refreshNotes(page = noteStore.page) {
@@ -504,11 +425,15 @@ function showError(error, fallbackKey) {
   toast.add({ severity: 'error', summary: t('common.error'), detail: error?.message || t(fallbackKey), life: 3500 });
 }
 
+function getResolvedActiveFolderId() {
+  return folderStore.activeFolder?.id || folderStore.folders[0]?.id || null;
+}
+
 function resolveSharedWorkspaceQuery() {
   const noteId = String(route.query.noteId || '').trim();
   const requestedFolderId = String(route.query.folderId || '').trim();
   const folderExists = requestedFolderId && folderStore.folders.some((folder) => String(folder.id) === requestedFolderId);
-  const folderId = folderExists ? requestedFolderId : (folderStore.activeFolderId || folderStore.folders[0]?.id || null);
+  const folderId = folderExists ? requestedFolderId : getResolvedActiveFolderId();
 
   return {
     noteId,
@@ -517,19 +442,55 @@ function resolveSharedWorkspaceQuery() {
   };
 }
 
+async function ensureBootstrapFolder() {
+  if (folderStore.folders.length) {
+    return getResolvedActiveFolderId();
+  }
+
+  await folderStore.createFolder({
+    name: 'Inbox',
+    icon: 'pi pi-inbox',
+  });
+
+  return getResolvedActiveFolderId();
+}
+
 async function bootstrapWorkspace() {
   bootstrapping.value = true;
   try {
-    await Promise.allSettled([folderStore.fetchFolders(), userStore.fetchProfile()]);
-    const sharedSelection = resolveSharedWorkspaceQuery();
+    const [foldersResult, profileResult] = await Promise.allSettled([
+      folderStore.fetchFolders(),
+      userStore.fetchProfile(),
+    ]);
 
-    if (sharedSelection.folderId) {
+    if (foldersResult.status === 'rejected') {
+      throw foldersResult.reason;
+    }
+
+    if (profileResult.status === 'rejected') {
+      console.error(profileResult.reason);
+    }
+
+    await ensureBootstrapFolder();
+
+    const sharedSelection = resolveSharedWorkspaceQuery();
+    const openDirectWorkspaceTarget = Boolean(sharedSelection.noteId || String(route.query.folderId || '').trim());
+    workspaceHomeVisible.value = !openDirectWorkspaceTarget;
+    const bootstrapFolderId = openDirectWorkspaceTarget ? sharedSelection.folderId : null;
+
+    if (bootstrapFolderId) {
       folderStore.setActiveFolder(sharedSelection.folderId);
+    }
+
+    try {
+      await noteStore.fetchTags();
+    } catch (error) {
+      console.error(error);
     }
 
     await noteStore.fetchNotes({
       view: sharedSelection.view,
-      folderId: sharedSelection.folderId,
+      folderId: bootstrapFolderId,
       page: 1,
       size: noteStore.size,
       preserveSelection: false,
@@ -547,10 +508,11 @@ async function bootstrapWorkspace() {
 }
 
 async function handleSelectFolder(folderId) {
-  if (noteStore.activeView === 'folder' && folderStore.activeFolderId === folderId) {
+  if (!showWorkspaceHome.value && noteStore.activeView === 'folder' && folderStore.activeFolderId === folderId) {
     return;
   }
 
+  workspaceHomeVisible.value = false;
   folderStore.setActiveFolder(folderId);
   try {
     await noteStore.setView('folder', folderId);
@@ -560,20 +522,16 @@ async function handleSelectFolder(folderId) {
 }
 
 async function handleSelectHome() {
-  const targetFolderId = folderStore.activeFolderId || folderStore.folders[0]?.id || null;
+  workspaceHomeVisible.value = true;
 
   if (noteStore.activeView === 'folder' && !noteStore.currentNote && !noteStore.selectedNoteId) {
     return;
   }
 
-  if (targetFolderId && folderStore.activeFolderId !== targetFolderId) {
-    folderStore.setActiveFolder(targetFolderId);
-  }
-
   try {
     await noteStore.fetchNotes({
       view: 'folder',
-      folderId: targetFolderId,
+      folderId: null,
       page: 1,
       size: noteStore.size,
       preserveSelection: false,
@@ -589,8 +547,9 @@ async function handleSelectView(view) {
     return;
   }
 
+  workspaceHomeVisible.value = false;
   try {
-    await noteStore.setView(view, view === 'folder' ? folderStore.activeFolderId : null);
+    await noteStore.setView(view, view === 'folder' ? getResolvedActiveFolderId() : null);
   } catch (error) {
     showError(error, 'workspace.loadFailed');
   }
@@ -600,6 +559,9 @@ async function handleSelectNote(noteId) {
   if (noteStore.selectedNoteId === noteId && noteStore.currentNote?.id === noteId) {
     return;
   }
+
+  workspaceHomeVisible.value = false;
+  await flushAutoSave();
 
   try {
     await noteStore.selectNote(noteId);
@@ -616,58 +578,25 @@ async function handleChangePage(page) {
   }
 }
 
-function openCreateFolderDialog() {
-  editingFolder.value = null;
-  folderDialogVisible.value = true;
-}
-
-function openEditFolderDialog(folder) {
-  editingFolder.value = folder;
-  folderDialogVisible.value = true;
-}
-
-function openConfirmDialog(target = null) {
-  confirmDialogTarget.value = target;
-  confirmDialogVisible.value = true;
-}
-
-function closeConfirmDialog(force = false) {
-  if (confirmSubmitting.value && !force) {
-    return;
-  }
-
-  confirmDialogVisible.value = false;
-  confirmDialogTarget.value = null;
-}
-
-function handleOpenTagDialog() {
-  if (noteStore.isTrashView) {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: t('notes.tagCreateDisabledInTrash'), life: 3000 });
-    return;
-  }
-
-  if (!noteStore.currentNote) {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: t('notes.tagCreateRequiresNote'), life: 3000 });
-    return;
-  }
-
-  newTagName.value = '';
-  tagDialogVisible.value = true;
-}
-
-async function handleSubmitFolder(payload) {
+async function handleCreateFolder(payload) {
   try {
-    if (editingFolder.value) {
-      await folderStore.updateFolder(editingFolder.value.id, { ...payload, version: editingFolder.value.version });
-      toast.add({ severity: 'success', summary: t('common.success'), detail: t('folders.updateSuccess'), life: 2500 });
-      await refreshNotes();
-    } else {
-      await folderStore.createFolder(payload);
-      toast.add({ severity: 'success', summary: t('common.success'), detail: t('folders.createSuccess'), life: 2500 });
-      await noteStore.setView('folder', folderStore.activeFolderId);
-    }
-    folderDialogVisible.value = false;
-    editingFolder.value = null;
+    await folderStore.createFolder(payload);
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('folders.createSuccess'), life: 2500 });
+    await noteStore.setView('folder', getResolvedActiveFolderId());
+  } catch (error) {
+    showError(error, 'workspace.loadFailed');
+  }
+}
+
+async function handleUpdateFolder({ folder, payload } = {}) {
+  if (!folder?.id || !payload) {
+    return;
+  }
+
+  try {
+    await folderStore.updateFolder(folder.id, { ...payload, version: folder.version });
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('folders.updateSuccess'), life: 2500 });
+    await refreshNotes();
   } catch (error) {
     showError(error, 'workspace.loadFailed');
   }
@@ -675,19 +604,25 @@ async function handleSubmitFolder(payload) {
 
 async function handleDeleteFolder(folder) {
   if (!folder) return;
-  openConfirmDialog(folder);
+  try {
+    await folderStore.deleteFolder(folder.id);
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('folders.deleteSuccess'), life: 2500 });
+    await noteStore.setView('folder', getResolvedActiveFolderId());
+  } catch (error) {
+    showError(error, 'workspace.loadFailed');
+  }
 }
 
 async function handleCreateNote() {
   if (!folderStore.folders.length) {
-    openCreateFolderDialog();
-    toast.add({ severity: 'error', summary: t('common.error'), detail: t('notes.newNoteMissingFolder'), life: 3000 });
-    return;
+    await handleCreateFolder({ name: t('folders.defaultFolderName'), icon: 'pi pi-folder' });
   }
-  const targetFolderId = folderStore.activeFolderId || folderStore.folders[0]?.id || null;
+  const targetFolderId = getResolvedActiveFolderId();
+  if (!targetFolderId) return;
   try {
+    workspaceHomeVisible.value = false;
     if (noteStore.activeView !== 'folder') await noteStore.setView('folder', targetFolderId);
-    if (!folderStore.activeFolderId && targetFolderId) folderStore.setActiveFolder(targetFolderId);
+    if (!folderStore.activeFolder && targetFolderId) folderStore.setActiveFolder(targetFolderId);
     await noteStore.createNote({ folderId: targetFolderId, title: t('notes.newNoteTitle'), content: '', primaryLanguage: 'Markdown', tagIds: [] });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('notes.newNoteCreated'), life: 2500 });
   } catch (error) {
@@ -696,7 +631,7 @@ async function handleCreateNote() {
 }
 
 async function handleImportNotes(files) {
-  const targetFolderId = folderStore.activeFolderId || folderStore.folders[0]?.id || null;
+  const targetFolderId = getResolvedActiveFolderId();
   try {
     const res = await importNotesApi(files, targetFolderId);
     const imported = res.data?.data || [];
@@ -707,28 +642,30 @@ async function handleImportNotes(files) {
   }
 }
 
-function handleCreateTag() {
-  const tagName = String(newTagName.value || '').trim();
+async function handleCreateTag(payload = {}) {
+  const name = String(payload.name || '').trim();
+  const color = String(payload.color || '').trim() || '#14b8a6';
 
-  if (!tagName || !noteStore.currentNote) {
+  if (!name) return;
+
+  try {
+    await noteStore.addTag(name, color);
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('notes.tagCreateSuccess'), life: 2500 });
+  } catch (error) {
+    showError(error, 'workspace.loadFailed');
+  }
+}
+
+async function handleDeleteTag(tagId) {
+  if (!tagId) {
     return;
   }
 
-  syncCurrentNote({
-    tagIds: normalizeTags([...(noteStore.currentNote.tagIds || []), tagName]),
-  });
-  tagDialogVisible.value = false;
-  newTagName.value = '';
-  toast.add({ severity: 'success', summary: t('common.success'), detail: t('notes.tagAddedPendingSave'), life: 2600 });
-}
-
-async function handleSaveNote() {
-  if (!noteStore.currentNote) return;
   try {
-    await noteStore.saveCurrentNote();
-    toast.add({ severity: 'success', summary: t('common.success'), detail: t('notes.saveSuccess'), life: 2500 });
+    await noteStore.removeTag(tagId);
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('notes.tagDeleteSuccess'), life: 2500 });
   } catch (error) {
-    showError(error, 'notes.saveFailed');
+    showError(error, 'workspace.loadFailed');
   }
 }
 
@@ -770,27 +707,6 @@ async function handleDeletePermanently() {
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('notes.purgeSuccess'), life: 2500 });
   } catch (error) {
     showError(error, 'workspace.loadFailed');
-  }
-}
-
-async function handleConfirmDialogAction() {
-  confirmSubmitting.value = true;
-
-  try {
-    const folder = confirmDialogTarget.value;
-
-    if (!folder?.id) {
-      return;
-    }
-
-    await folderStore.deleteFolder(folder.id);
-    toast.add({ severity: 'success', summary: t('common.success'), detail: t('folders.deleteSuccess'), life: 2500 });
-    await noteStore.setView('folder', folderStore.activeFolderId);
-    closeConfirmDialog(true);
-  } catch (error) {
-    showError(error, 'workspace.loadFailed');
-  } finally {
-    confirmSubmitting.value = false;
   }
 }
 
@@ -838,15 +754,30 @@ watch(
   },
 );
 
+function handleVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    flushAutoSave();
+  }
+}
+
+function handleBeforeUnload() {
+  flushAutoSave();
+}
+
 onMounted(() => {
   lockWorkspaceViewport();
   bootstrapWorkspace();
   window.addEventListener('resize', handleResize);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('beforeunload', handleBeforeUnload);
 });
 
 onBeforeUnmount(() => {
+  flushAutoSave();
   unlockWorkspaceViewport();
   window.removeEventListener('resize', handleResize);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  window.removeEventListener('beforeunload', handleBeforeUnload);
 });
 </script>
 
@@ -887,7 +818,7 @@ onBeforeUnmount(() => {
   gap: 0.65rem;
   padding: 0.5rem 0.85rem;
   border-bottom: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-subtle) 96%, transparent);
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
 }
 
 .workspace-brand-block,
@@ -908,11 +839,19 @@ onBeforeUnmount(() => {
 .workspace-brand-icon {
   width: 2.5rem;
   height: 2.5rem;
-  padding: 0.25rem;
+  display: grid;
+  place-items: center;
   border-radius: 0.375rem;
   border: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-panel-subtle) 95%, transparent);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.workspace-brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .workspace-brand-copy {
@@ -936,7 +875,7 @@ onBeforeUnmount(() => {
   z-index: 2;
   border-radius: 0.375rem;
   border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-subtle) 96%, transparent);
+  background: color-mix(in srgb, var(--app-panel-inset) 96%, transparent);
   color: var(--text-color-secondary);
   transition: border-color 180ms ease, background-color 180ms ease;
 }
@@ -945,7 +884,7 @@ onBeforeUnmount(() => {
 .workspace-command-open {
   z-index: 40;
   border-color: color-mix(in srgb, var(--primary-color) 34%, var(--app-border));
-  background: color-mix(in srgb, var(--app-panel-strong) 98%, transparent);
+  background: color-mix(in srgb, var(--app-panel-raised) 98%, transparent);
 }
 
 .workspace-command-field,
@@ -989,7 +928,7 @@ onBeforeUnmount(() => {
   padding: 0.15rem 0.4rem;
   border-radius: 0.45rem;
   border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
   color: var(--text-color-secondary);
   font-size: 0.72rem;
   text-align: center;
@@ -1005,8 +944,8 @@ onBeforeUnmount(() => {
   gap: 0;
   padding: 0.35rem 0;
   border: 1px solid color-mix(in srgb, var(--primary-color) 16%, var(--app-border));
-  background: color-mix(in srgb, var(--app-panel-strong) 99%, transparent);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+  background: color-mix(in srgb, var(--app-panel-raised) 99%, transparent);
+  box-shadow: var(--app-shadow-soft);
 }
 
 .workspace-command-result {
@@ -1066,7 +1005,7 @@ onBeforeUnmount(() => {
   min-height: 1.7rem;
   padding: 0 0.45rem;
   border: 1px solid color-mix(in srgb, var(--app-border) 92%, transparent);
-  background: color-mix(in srgb, var(--app-panel-subtle) 94%, transparent);
+  background: color-mix(in srgb, var(--app-panel-inset) 94%, transparent);
 }
 
 .workspace-command-empty {
@@ -1087,9 +1026,10 @@ onBeforeUnmount(() => {
 
 .workspace-summary-card {
   min-width: 4.5rem;
-  padding: 0.35rem 0.6rem;
-  border-left: 1px solid var(--app-border);
-  background: transparent;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--app-panel-inset) 88%, transparent);
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -1127,10 +1067,6 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 
-.new-note-btn {
-  min-width: max-content;
-}
-
 .workspace-body {
   flex: 1;
   min-height: 0;
@@ -1138,6 +1074,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: stretch;
   gap: 0;
+  background: color-mix(in srgb, var(--app-panel-inset) 34%, transparent);
 }
 
 .workspace-body-stacked {
@@ -1150,6 +1087,7 @@ onBeforeUnmount(() => {
   max-width: 320px;
   min-height: 0;
   border-right: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-inset) 96%, transparent);
   transition: flex-basis 180ms ease, min-width 180ms ease, max-width 180ms ease;
 }
 
@@ -1168,6 +1106,33 @@ onBeforeUnmount(() => {
 
 .workspace-main {
   display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-main-home {
+  overflow: auto;
+}
+
+.workspace-stage-enter-active,
+.workspace-stage-leave-active {
+  transition:
+    opacity 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: opacity, transform, filter;
+}
+
+.workspace-stage-enter-from {
+  opacity: 0;
+  transform: translateY(14px) scale(0.994);
+  filter: blur(4px);
+}
+
+.workspace-stage-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.997);
+  filter: blur(3px);
 }
 
 .workspace-list,
@@ -1234,73 +1199,6 @@ onBeforeUnmount(() => {
   height: 100%;
 }
 
-.workspace-tag-form,
-.workspace-tag-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.workspace-tag-form {
-  gap: 1rem;
-}
-
-.workspace-tag-field {
-  gap: 0.45rem;
-}
-
-.workspace-tag-label {
-  font-size: 0.78rem;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-color-secondary);
-}
-
-.workspace-tag-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.55rem;
-}
-
-.workspace-confirm-dialog {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9rem;
-}
-
-.workspace-confirm-icon {
-  width: 2.75rem;
-  height: 2.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--danger-color, #dc2626) 20%, var(--app-border));
-  background: color-mix(in srgb, var(--danger-color, #dc2626) 10%, var(--app-panel-subtle));
-  color: var(--danger-color, #dc2626);
-  flex-shrink: 0;
-}
-
-.workspace-confirm-copy {
-  min-width: 0;
-  padding-top: 0.12rem;
-}
-
-.workspace-confirm-message {
-  margin: 0;
-  color: var(--text-color);
-  line-height: 1.65;
-}
-
-.workspace-confirm-actions {
-  margin-top: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.55rem;
-}
-
 @media (max-width: 1380px) {
   .workspace-topbar {
     grid-template-columns: minmax(0, 1fr);
@@ -1359,10 +1257,6 @@ onBeforeUnmount(() => {
 
   .workspace-topbar-actions :deep(.p-button-label) {
     display: none;
-  }
-
-  .new-note-btn :deep(.p-button-label) {
-    display: inline;
   }
 
   .workspace-community-btn,

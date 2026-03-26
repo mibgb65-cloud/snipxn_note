@@ -1,14 +1,12 @@
 import { defineStore } from 'pinia';
 import * as noteApi from '../api/note';
+import * as tagApi from '../api/tag';
 import { getDeviceId } from '../composables/useDeviceId';
-
-function normalizeTag(tag) {
-  return String(tag).trim();
-}
 
 export const useNoteStore = defineStore('note', {
   state: () => ({
     notes: [],
+    tags: [],
     currentNote: null,
     selectedNoteId: null,
     loadingList: false,
@@ -26,27 +24,16 @@ export const useNoteStore = defineStore('note', {
   getters: {
     filteredNotes: (state) => {
       const query = state.searchQuery.trim().toLowerCase();
-      const tag = normalizeTag(state.activeTag);
 
       return state.notes.filter((note) => {
         const matchesQuery = !query || [note.title, note.summary, note.primaryLanguage]
           .some((value) => String(value || '').toLowerCase().includes(query));
-        const matchesTag = !tag || (note.tagIds || []).map(normalizeTag).includes(tag);
+        const matchesTag = !state.activeTag || (note.tagIds || []).includes(state.activeTag);
 
         return matchesQuery && matchesTag;
       });
     },
-    availableTags: (state) => {
-      const tags = new Set();
-
-      state.notes.forEach((note) => {
-        (note.tagIds || []).forEach((tag) => tags.add(normalizeTag(tag)));
-      });
-
-      (state.currentNote?.tagIds || []).forEach((tag) => tags.add(normalizeTag(tag)));
-
-      return Array.from(tags).filter(Boolean);
-    },
+    availableTags: (state) => state.tags,
     isTrashView: (state) => state.activeView === 'trash',
   },
   actions: {
@@ -68,9 +55,66 @@ export const useNoteStore = defineStore('note', {
         version: overrides.version ?? note.version,
       };
     },
+    async fetchTags() {
+      const res = await tagApi.listTags();
+      this.tags = res.data || [];
+
+      if (this.activeTag && !this.tags.some((tag) => String(tag.id) === String(this.activeTag))) {
+        this.activeTag = '';
+      }
+
+      return res;
+    },
+    async addTag(name, color) {
+      const res = await tagApi.createTag({ name, color });
+
+      if (res.data) {
+        this.tags.push(res.data);
+      }
+
+      return res;
+    },
+    async removeTag(tagId) {
+      const res = await tagApi.deleteTag(tagId);
+      this.tags = this.tags.filter((tag) => String(tag.id) !== String(tagId));
+
+      if (String(this.activeTag) === String(tagId)) {
+        this.activeTag = '';
+      }
+
+      this.notes = this.notes.map((note) => ({
+        ...note,
+        tagIds: (note.tagIds || []).filter((id) => String(id) !== String(tagId)),
+      }));
+
+      if (this.currentNote) {
+        this.currentNote = {
+          ...this.currentNote,
+          tagIds: (this.currentNote.tagIds || []).filter((id) => String(id) !== String(tagId)),
+        };
+      }
+
+      return res;
+    },
+    async editTag(tagId, name, color) {
+      const res = await tagApi.updateTag(tagId, { name, color });
+      const idx = this.tags.findIndex((tag) => tag.id === tagId);
+
+      if (idx !== -1) {
+        this.tags[idx] = {
+          ...this.tags[idx],
+          name,
+          color,
+        };
+      }
+
+      return res;
+    },
     async fetchNotes(options = {}) {
       const view = options.view ?? this.activeView;
-      const folderId = options.folderId ?? this.activeFolderId;
+      const folderId = Object.prototype.hasOwnProperty.call(options, 'folderId')
+        ? options.folderId
+        : this.activeFolderId;
       const page = options.page ?? this.page;
       const size = options.size ?? this.size;
       const autoSelect = options.autoSelect ?? true;
@@ -206,11 +250,25 @@ export const useNoteStore = defineStore('note', {
         return null;
       }
 
+      const quiet = overrides.quiet === true;
       this.saving = true;
 
       try {
         const noteId = this.currentNote.id;
-        await noteApi.updateNote(noteId, this.buildNotePayload(this.currentNote, overrides));
+        const payload = this.buildNotePayload(this.currentNote, overrides);
+        await noteApi.updateNote(noteId, payload);
+
+        if (quiet) {
+          const nextVersion = (this.currentNote.version ?? 0) + 1;
+          const nextUpdatedAt = new Date().toISOString();
+          this.currentNote = { ...this.currentNote, version: nextVersion, updatedAt: nextUpdatedAt };
+          const idx = this.notes.findIndex((n) => n.id === noteId);
+          if (idx !== -1) {
+            this.notes[idx] = { ...this.notes[idx], version: nextVersion, updatedAt: nextUpdatedAt };
+          }
+          return this.currentNote;
+        }
+
         await this.fetchNotes({
           view: this.activeView,
           folderId: overrides.folderId ?? this.activeFolderId,

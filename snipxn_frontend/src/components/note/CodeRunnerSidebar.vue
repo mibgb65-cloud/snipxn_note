@@ -51,9 +51,43 @@
 
       <div class="code-runner-meta">
         <span class="code-runner-chip">
-          {{ activeCodeBlock?.editorLanguage || t('notes.codeRunnerInactive') }}
+          {{ activeCodeBlock?.language || activeCodeBlock?.editorLanguage || t('notes.codeRunnerInactive') }}
         </span>
         <span class="code-runner-chip code-runner-chip-muted">{{ t('notes.codeRunnerScope') }}</span>
+
+        <div class="code-runner-language-compact">
+          <span class="code-runner-language-kicker">{{ t('notes.codeBlockLanguage') }}</span>
+          <Select
+            inputId="code-runner-language"
+            class="code-runner-language-select"
+            :disabled="!activeCodeBlock || readOnly"
+            :model-value="activeCodeBlock?.language || ''"
+            :options="codeLanguageOptions"
+            option-label="label"
+            option-value="value"
+            :placeholder="t('notes.codeBlockLanguageUnset')"
+            size="small"
+            :panel-class="'code-runner-language-panel'"
+            scroll-height="16rem"
+            @update:model-value="$emit('update:language', $event)"
+          >
+            <template #value="slotProps">
+              <span
+                class="code-runner-language-value"
+                :class="{ 'code-runner-language-value-muted': !slotProps.value }"
+              >
+                {{ slotProps.value || t('notes.codeBlockLanguageUnset') }}
+              </span>
+            </template>
+
+            <template #option="slotProps">
+              <div class="code-runner-language-option">
+                <span class="code-runner-language-option-bar" aria-hidden="true" />
+                <span class="code-runner-language-option-label">{{ slotProps.option.label }}</span>
+              </div>
+            </template>
+          </Select>
+        </div>
       </div>
 
       <div class="code-runner-editor-section">
@@ -63,7 +97,6 @@
 
         <div v-if="activeCodeBlock" class="code-runner-editor-shell">
           <MonacoEditor
-            :key="`${activeCodeBlock.fenceStart}-${activeCodeBlock.fenceEnd}`"
             :model-value="activeCodeBlock.code"
             :language="activeCodeBlock.editorLanguage"
             :theme="theme"
@@ -119,14 +152,32 @@
 
           <div class="code-runner-metrics">
             <span v-if="result.time != null">{{ t('notes.runTimeValue', { time: result.time }) }}</span>
-            <span v-if="result.memory != null">{{ t('notes.runMemoryValue', { memory: result.memory }) }}</span>
+            <span v-if="result.memory != null">{{ t('notes.runMemoryValue', { memory: formatMemory(result.memory) }) }}</span>
             <span>{{ result.source === 'sandbox' ? t('notes.runSourceSandbox') : t('notes.runSourceBrowser') }}</span>
+          </div>
+
+          <div v-if="result.stderr" class="code-runner-ai-review-action">
+            <Button
+              icon="pi pi-sparkles"
+              :label="reviewing ? t('notes.aiReviewing') : t('notes.aiReviewCode')"
+              :loading="reviewing"
+              severity="help"
+              size="small"
+              @click="$emit('ai-review')"
+            />
           </div>
         </div>
 
         <div v-else class="code-runner-output-empty">
           {{ t('notes.runIdleDescription') }}
         </div>
+      </div>
+
+      <div v-if="reviewResult" class="code-runner-ai-result">
+        <div class="code-runner-section-head">
+          <span>{{ t('notes.aiReviewResult') }}</span>
+        </div>
+        <div class="code-runner-ai-result-body" v-html="reviewResult" />
       </div>
     </div>
   </aside>
@@ -136,12 +187,31 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
+import Select from 'primevue/select';
 import MonacoEditor from '../editor/MonacoEditor.vue';
 
 const DESKTOP_BREAKPOINT = 1180;
 const DEFAULT_PANEL_WIDTH = 520;
 const MIN_PANEL_WIDTH = 420;
 const MAX_PANEL_WIDTH = 760;
+const COMMON_CODE_LANGUAGES = [
+  'javascript',
+  'typescript',
+  'python',
+  'java',
+  'c',
+  'cpp',
+  'csharp',
+  'go',
+  'rust',
+  'sql',
+  'bash',
+  'json',
+  'yaml',
+  'html',
+  'css',
+  'markdown',
+];
 
 const props = defineProps({
   expanded: {
@@ -172,9 +242,17 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  reviewing: {
+    type: Boolean,
+    default: false,
+  },
+  reviewResult: {
+    type: String,
+    default: '',
+  },
 });
 
-defineEmits(['toggle', 'insert-code', 'update:code', 'update:stdin', 'run']);
+defineEmits(['toggle', 'insert-code', 'update:code', 'update:language', 'update:stdin', 'run', 'ai-review']);
 
 const { t } = useI18n();
 const shellRef = ref(null);
@@ -189,6 +267,13 @@ const resizeState = {
 };
 
 const isDesktopResizable = computed(() => viewportWidth.value > DESKTOP_BREAKPOINT);
+function formatMemory(kb) {
+  if (kb >= 1024) {
+    return `${(kb / 1024).toFixed(2)} MB`;
+  }
+  return `${kb} KB`;
+}
+
 const statusLabel = computed(() => {
   if (props.running) {
     return t('notes.runningCode');
@@ -201,6 +286,17 @@ const statusLabel = computed(() => {
   return props.result.status === 'success'
     ? t('notes.runStatusSuccess')
     : t('notes.runStatusError');
+});
+const codeLanguageOptions = computed(() => {
+  const currentLanguage = String(props.activeCodeBlock?.language || '').trim();
+  const values = currentLanguage && !COMMON_CODE_LANGUAGES.includes(currentLanguage)
+    ? [currentLanguage, ...COMMON_CODE_LANGUAGES]
+    : COMMON_CODE_LANGUAGES;
+
+  return [
+    { value: '', label: t('notes.codeBlockLanguageUnset') },
+    ...values.map((value) => ({ value, label: value })),
+  ];
 });
 const shellStyle = computed(() => {
   if (!props.expanded || !isDesktopResizable.value) {
@@ -437,6 +533,7 @@ onBeforeUnmount(() => {
   pointer-events: none;
   transform: translateX(0.75rem);
   transition: opacity 180ms ease, transform 180ms ease;
+  overflow-y: auto;
 }
 
 .code-runner-shell-expanded .code-runner-panel {
@@ -493,6 +590,7 @@ onBeforeUnmount(() => {
 .code-runner-metrics {
   gap: 0.45rem;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .code-runner-chip {
@@ -520,6 +618,46 @@ onBeforeUnmount(() => {
 
 .code-runner-editor-section {
   flex: 1;
+}
+
+.code-runner-stdin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.code-runner-language-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  padding: 0.28rem;
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 84%, transparent);
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary-color) 8%, var(--panel-section-strong, var(--surface-card))) 0%,
+      color-mix(in srgb, var(--panel-section-surface, var(--surface-ground)) 96%, transparent) 100%
+    );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 22%, transparent);
+}
+
+.code-runner-language-kicker {
+  padding: 0.36rem 0.58rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  color: color-mix(in srgb, var(--primary-color) 78%, var(--text-color));
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.code-runner-language-select {
+  min-width: 10rem;
+  max-width: 12rem;
 }
 
 .code-runner-section-head {
@@ -580,12 +718,6 @@ onBeforeUnmount(() => {
   color: var(--text-color-secondary);
 }
 
-.code-runner-stdin {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
 .code-runner-stdin-input {
   min-height: 5rem;
   padding: 0.8rem 0.9rem;
@@ -595,8 +727,126 @@ onBeforeUnmount(() => {
   color: var(--text-color);
 }
 
+.code-runner-language-value {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.code-runner-language-value-muted {
+  color: var(--text-color-secondary);
+}
+
+.code-runner-language-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.code-runner-language-option-bar {
+  width: 0.3rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color) 74%, transparent);
+  flex: 0 0 auto;
+}
+
+.code-runner-language-option-label {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+:deep(.code-runner-language-select.p-select) {
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 88%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 26%, transparent),
+    0 8px 18px -14px color-mix(in srgb, black 34%, transparent);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+:deep(.code-runner-language-select.p-select:hover) {
+  border-color: color-mix(in srgb, var(--primary-color) 34%, var(--panel-section-border, var(--surface-border)));
+}
+
+:deep(.code-runner-language-select.p-select.p-focus) {
+  border-color: color-mix(in srgb, var(--primary-color) 68%, var(--panel-section-border, var(--surface-border)));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 26%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--primary-color) 14%, transparent),
+    0 10px 22px -16px color-mix(in srgb, var(--primary-color) 45%, transparent);
+}
+
+.code-runner-language-select:deep(.p-select-label) {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0.46rem 0 0.46rem 0.82rem;
+}
+
+.code-runner-language-select:deep(.p-select-dropdown) {
+  width: 2rem;
+  color: color-mix(in srgb, var(--primary-color) 72%, var(--text-color));
+  background: transparent;
+}
+
+.code-runner-language-select:deep(.p-select-label),
+.code-runner-language-select:deep(.p-select-dropdown) {
+  background: transparent;
+}
+
+.code-runner-language-select:deep(.p-select-dropdown-icon) {
+  font-size: 0.8rem;
+}
+
+:deep(.code-runner-language-panel.p-select-overlay) {
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 82%, transparent);
+  border-radius: 1rem;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-card) 97%, transparent) 0%,
+      color-mix(in srgb, var(--panel-section-surface, var(--surface-ground)) 96%, transparent) 100%
+    );
+  box-shadow:
+    0 18px 48px -28px color-mix(in srgb, black 45%, transparent),
+    0 10px 20px -16px color-mix(in srgb, var(--primary-color) 22%, transparent);
+  overflow: hidden;
+}
+
+:deep(.code-runner-language-panel .p-select-list) {
+  padding: 0.4rem;
+}
+
+:deep(.code-runner-language-panel .p-select-option) {
+  margin: 0;
+  border-radius: 0.8rem;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+:deep(.code-runner-language-panel .p-select-option:not(.p-select-option-selected):hover) {
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+  transform: translateX(2px);
+}
+
+:deep(.code-runner-language-panel .p-select-option.p-select-option-selected) {
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+
 .code-runner-output {
-  flex: 0 0 13rem;
+  flex: 0 0 auto;
 }
 
 .code-runner-output-body,
@@ -641,6 +891,64 @@ onBeforeUnmount(() => {
   color: var(--text-color-secondary);
 }
 
+.code-runner-ai-review-action {
+  padding-top: 0.55rem;
+}
+
+.code-runner-ai-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.code-runner-ai-result-body {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--panel-section-border, var(--surface-border)) 86%, transparent);
+  background: color-mix(in srgb, var(--panel-section-strong, var(--surface-card)) 96%, transparent);
+  border-radius: 0.5rem;
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--text-color);
+  overflow: auto;
+  max-height: 24rem;
+}
+
+.code-runner-ai-result-body :deep(pre) {
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--panel-section-surface, var(--surface-ground)) 96%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.code-runner-ai-result-body :deep(code) {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.code-runner-ai-result-body :deep(p) {
+  margin: 0.35rem 0;
+}
+
+.code-runner-ai-result-body :deep(ol),
+.code-runner-ai-result-body :deep(ul) {
+  padding-left: 1.4rem;
+  margin: 0.35rem 0;
+}
+
+.code-runner-ai-result-body :deep(h1),
+.code-runner-ai-result-body :deep(h2),
+.code-runner-ai-result-body :deep(h3) {
+  margin: 0.6rem 0 0.3rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 @media (max-width: 1280px) {
   .code-runner-shell-expanded {
     flex-basis: 28rem;
@@ -677,6 +985,23 @@ onBeforeUnmount(() => {
   .code-runner-rail-label {
     writing-mode: initial;
     text-orientation: initial;
+  }
+
+  .code-runner-meta {
+    align-items: flex-start;
+  }
+
+  .code-runner-language-compact {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    padding: 0.34rem;
+  }
+
+  .code-runner-language-select {
+    min-width: 0;
+    width: min(12.5rem, 56vw);
+    max-width: none;
   }
 
   .code-runner-resizer {

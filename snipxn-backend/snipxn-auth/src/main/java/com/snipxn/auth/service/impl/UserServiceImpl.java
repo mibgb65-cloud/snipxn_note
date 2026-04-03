@@ -46,14 +46,56 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateProfile(String userId, UpdateProfileRequest req) {
-        User user = new User();
-        user.setId(userId);
-        if (StringUtils.hasText(req.getNickname())) user.setNickname(req.getNickname());
-        if (StringUtils.hasText(req.getAvatar())) user.setAvatar(req.getAvatar());
-        if (StringUtils.hasText(req.getBio())) user.setBio(req.getBio());
-        if (req.getGender() != null) user.setGender(req.getGender());
-        if (req.getBirthday() != null) user.setBirthday(req.getBirthday());
-        userMapper.updateById(user);
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<User>()
+                .eq(User::getId, userId);
+        boolean hasUpdates = false;
+
+        if (req.getNickname() != null) {
+            updateWrapper.set(User::getNickname, normalizeOptionalText(req.getNickname()));
+            hasUpdates = true;
+        }
+        if (req.getAvatar() != null) {
+            updateWrapper.set(User::getAvatar, normalizeOptionalText(req.getAvatar()));
+            hasUpdates = true;
+        }
+        if (req.getBio() != null) {
+            updateWrapper.set(User::getBio, normalizeOptionalText(req.getBio()));
+            hasUpdates = true;
+        }
+        if (req.getGender() != null) {
+            updateWrapper.set(User::getGender, req.getGender());
+            hasUpdates = true;
+        }
+        if (req.getBirthday() != null) {
+            updateWrapper.set(User::getBirthday, req.getBirthday());
+            hasUpdates = true;
+        }
+        if (req.getWebsite() != null) {
+            updateWrapper.set(User::getWebsite, normalizeOptionalText(req.getWebsite()));
+            hasUpdates = true;
+        }
+        if (req.getGithub() != null) {
+            updateWrapper.set(User::getGithub, normalizeOptionalText(req.getGithub()));
+            hasUpdates = true;
+        }
+        if (req.getLocation() != null) {
+            updateWrapper.set(User::getLocation, normalizeOptionalText(req.getLocation()));
+            hasUpdates = true;
+        }
+        if (req.getCompany() != null) {
+            updateWrapper.set(User::getCompany, normalizeOptionalText(req.getCompany()));
+            hasUpdates = true;
+        }
+        if (req.getTechStack() != null) {
+            updateWrapper.set(User::getTechStack, normalizeOptionalText(req.getTechStack()));
+            hasUpdates = true;
+        }
+
+        if (!hasUpdates) {
+            return;
+        }
+
+        userMapper.update(null, updateWrapper);
     }
 
     @Override
@@ -142,5 +184,9 @@ public class UserServiceImpl implements UserService {
         for (UserDevice device : others) {
             deviceRevokeService.revoke(userId, device.getDeviceId());
         }
+    }
+
+    private String normalizeOptionalText(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 }

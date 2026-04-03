@@ -296,6 +296,7 @@ public class OAuthServiceImpl implements OAuthService {
                 .eq(UserAuth::getIdentifier, identifier));
 
         User user;
+        boolean isNewUser = false;
 
         if (existingAuth != null) {
             user = userMapper.selectById(existingAuth.getUserId());
@@ -321,12 +322,16 @@ public class OAuthServiceImpl implements OAuthService {
                 userAuthMapper.insert(newAuth);
             } else {
                 user = createNewOAuthUser(identityType, identifier, normalizedEmail, name, avatar);
+                isNewUser = true;
             }
         } else {
             user = createNewOAuthUser(identityType, identifier, null, name, avatar);
+            isNewUser = true;
         }
 
-        eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
+        if (isNewUser) {
+            eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
+        }
 
         TokenResponse token = tokenIssuanceService.issueTokens(user.getId(), deviceId, deviceName, clientIp);
         return new LoginResponse(tokenIssuanceService.toUserInfo(user), token);

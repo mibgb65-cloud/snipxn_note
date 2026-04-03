@@ -408,7 +408,7 @@ public class NoteServiceImpl implements NoteService {
         }
 
         Note note = noteMapper.selectById(share.getNoteId());
-        if (note == null) {
+        if (note == null || Boolean.TRUE.equals(note.getIsDeleted())) {
             throw new BusinessException(ErrorCode.SHARE_NOT_FOUND);
         }
 
@@ -423,7 +423,7 @@ public class NoteServiceImpl implements NoteService {
 
     private Note getOwnedActiveNote(String userId, String noteId) {
         Note note = noteMapper.selectById(noteId);
-        if (note == null || !userId.equals(note.getUserId())) {
+        if (note == null || !userId.equals(note.getUserId()) || Boolean.TRUE.equals(note.getIsDeleted())) {
             throw new BusinessException(ErrorCode.NOTE_NOT_FOUND);
         }
         return note;
@@ -535,12 +535,7 @@ public class NoteServiceImpl implements NoteService {
         if (deltaBytes == 0) {
             return;
         }
-        User user = userMapper.selectById(userId);
-        long used = user.getStorageUsed() == null ? 0L : user.getStorageUsed();
-        long newUsed = Math.max(0, used + deltaBytes);
-        userMapper.update(null, new LambdaUpdateWrapper<User>()
-                .eq(User::getId, userId)
-                .set(User::getStorageUsed, newUsed));
+        userMapper.addStorageUsed(userId, deltaBytes);
     }
 
     private NoteDetailResponse toDetailResponse(Note note) {

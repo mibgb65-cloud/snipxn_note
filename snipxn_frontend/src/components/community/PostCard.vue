@@ -20,23 +20,19 @@
           <span class="post-card-time">{{ relativeTime }}</span>
         </div>
       </div>
-
-      <span class="post-card-arrow" aria-hidden="true">
-        <i class="pi pi-angle-right" />
-      </span>
     </div>
 
     <div class="post-card-body">
       <h3 class="post-card-title">{{ post.title || t('community.noPosts') }}</h3>
 
+      <p v-if="textExcerpt" class="post-card-excerpt" :class="{ 'post-card-excerpt-secondary': codePreview }">
+        {{ textExcerpt }}
+      </p>
+
       <div v-if="codePreview" class="post-card-code-shell">
         <span class="post-card-code-language">{{ codeLanguage }}</span>
         <pre class="post-card-code"><code>{{ codePreview }}</code></pre>
       </div>
-
-      <p v-if="textExcerpt" class="post-card-excerpt" :class="{ 'post-card-excerpt-secondary': codePreview }">
-        {{ textExcerpt }}
-      </p>
     </div>
 
     <div v-if="post.language || visibleTags.length || post.originNoteId" class="post-card-tags">
@@ -48,10 +44,34 @@
     <UserHoverCard ref="userHoverCardRef" />
 
     <div class="post-card-stats">
-      <span class="post-card-stat"><i class="pi pi-heart" /> {{ post.likeCount || 0 }}</span>
-      <span class="post-card-stat"><i class="pi pi-bookmark" /> {{ post.collectCount || 0 }}</span>
-      <span class="post-card-stat"><i class="pi pi-eye" /> {{ post.viewCount || 0 }}</span>
-      <span class="post-card-stat"><i class="pi pi-share-alt" /> {{ post.shareCount || 0 }}</span>
+      <span class="post-card-stat">
+        <i class="pi pi-heart" />
+        <span class="post-card-stat-copy">
+          <span class="post-card-stat-value">{{ post.likeCount || 0 }}</span>
+          <span class="post-card-stat-label">{{ t('community.likes') }}</span>
+        </span>
+      </span>
+      <span class="post-card-stat">
+        <i class="pi pi-bookmark" />
+        <span class="post-card-stat-copy">
+          <span class="post-card-stat-value">{{ post.collectCount || 0 }}</span>
+          <span class="post-card-stat-label">{{ t('community.collects') }}</span>
+        </span>
+      </span>
+      <span class="post-card-stat">
+        <i class="pi pi-eye" />
+        <span class="post-card-stat-copy">
+          <span class="post-card-stat-value">{{ post.viewCount || 0 }}</span>
+          <span class="post-card-stat-label">{{ t('community.views') }}</span>
+        </span>
+      </span>
+      <span class="post-card-stat">
+        <i class="pi pi-share-alt" />
+        <span class="post-card-stat-copy">
+          <span class="post-card-stat-value">{{ post.shareCount || 0 }}</span>
+          <span class="post-card-stat-label">{{ t('community.share') }}</span>
+        </span>
+      </span>
     </div>
   </div>
 </template>
@@ -176,6 +196,11 @@ function formatRelativeTime(value, currentLocale) {
 }
 
 .post-card {
+  --post-card-ink-strong: var(--community-ink-strong, var(--text-color));
+  --post-card-ink-title: var(--community-ink-title, var(--text-color));
+  --post-card-ink-body: var(--community-ink-body, color-mix(in srgb, var(--text-color-secondary) 82%, var(--text-color) 18%));
+  --post-card-ink-soft: var(--community-ink-soft, color-mix(in srgb, var(--text-color-secondary) 88%, var(--text-color) 12%));
+  --post-card-ink-faint: var(--community-ink-faint, color-mix(in srgb, var(--text-color-secondary) 92%, transparent));
   flex-direction: column;
   gap: 1rem;
   padding: 1.25rem 1.3rem;
@@ -202,7 +227,7 @@ function formatRelativeTime(value, currentLocale) {
 
 .post-card-top {
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 1rem;
 }
 
@@ -219,7 +244,7 @@ function formatRelativeTime(value, currentLocale) {
 }
 
 .post-card-author-copy {
-  gap: 0.12rem;
+  gap: 0.18rem;
 }
 
 .post-card-author-link {
@@ -239,53 +264,64 @@ function formatRelativeTime(value, currentLocale) {
 }
 
 .post-card-author {
-  font-size: 0.94rem;
-  font-weight: 700;
-  color: var(--text-color);
+  font-size: 0.88rem;
+  font-weight: 720;
+  color: var(--post-card-ink-strong);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   transition: color 160ms ease;
 }
 
 .post-card-time,
-.post-card-arrow,
-.post-card-excerpt,
-.post-card-stat {
-  color: var(--text-color-secondary);
+.post-card-excerpt {
+  color: var(--post-card-ink-body);
 }
 
 .post-card-time {
-  font-size: 0.78rem;
-}
-
-.post-card-arrow {
-  font-size: 0.95rem;
-  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--post-card-ink-faint);
 }
 
 .post-card-body {
-  gap: 0.85rem;
+  gap: 0.76rem;
 }
 
 .post-card-title {
   margin: 0;
-  font-size: 1.12rem;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-  color: var(--text-color);
+  font-family: var(--font-display, var(--font-sans));
+  font-size: clamp(1.08rem, 1rem + 0.28vw, 1.22rem);
+  font-weight: 780;
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+  color: var(--post-card-ink-title);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .post-card-excerpt {
   margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.75;
+  font-size: 0.91rem;
+  line-height: 1.66;
+  color: var(--post-card-ink-body);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
 .post-card-excerpt-secondary {
-  margin-top: -0.15rem;
+  -webkit-line-clamp: 3;
 }
 
 .post-card-code-shell {
   position: relative;
-  padding: 1rem 1rem 0.95rem;
+  padding: 0.95rem 0.95rem 0.9rem;
   border: 1px solid var(--app-code-border);
   border-radius: 0.95rem;
   background: var(--app-code-bg);
@@ -295,11 +331,12 @@ function formatRelativeTime(value, currentLocale) {
 
 .post-card-code-language {
   position: absolute;
-  top: 0.75rem;
-  right: 0.85rem;
-  color: var(--app-code-muted);
-  font-size: 0.68rem;
-  font-weight: 700;
+  top: 0.72rem;
+  right: 0.82rem;
+  color: color-mix(in srgb, var(--app-code-muted) 82%, white 18%);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -308,8 +345,8 @@ function formatRelativeTime(value, currentLocale) {
   margin: 0;
   padding: 0;
   color: var(--app-code-text);
-  font-size: 0.84rem;
-  line-height: 1.65;
+  font-size: 0.8rem;
+  line-height: 1.6;
   font-family: var(--font-mono);
   white-space: pre-wrap;
   word-break: break-word;
@@ -323,14 +360,15 @@ function formatRelativeTime(value, currentLocale) {
 .post-card-chip {
   display: inline-flex;
   align-items: center;
-  padding: 0.34rem 0.68rem;
+  padding: 0.32rem 0.62rem;
   border: 1px solid var(--app-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--app-panel-subtle) 96%, transparent);
-  color: var(--text-color-secondary);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  color: var(--post-card-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -341,18 +379,52 @@ function formatRelativeTime(value, currentLocale) {
 }
 
 .post-card-stats {
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding-top: 0.95rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding-top: 0.88rem;
   border-top: 1px solid var(--app-border);
 }
 
 .post-card-stat {
+  min-width: 0;
   display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.84rem;
+  align-items: flex-start;
+  gap: 0.48rem;
+  padding: 0.56rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 94%, transparent);
+  border-radius: 0.92rem;
+  background: color-mix(in srgb, var(--app-panel-subtle) 94%, transparent);
+}
+
+.post-card-stat i {
+  margin-top: 0.12rem;
+  color: color-mix(in srgb, var(--primary-color) 72%, var(--post-card-ink-soft));
+}
+
+.post-card-stat-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+}
+
+.post-card-stat-value {
+  color: var(--post-card-ink-strong);
+  font-size: 0.9rem;
+  font-weight: 760;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.post-card-stat-label {
+  color: var(--post-card-ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.61rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .post-card :deep(.p-avatar) {
@@ -368,12 +440,8 @@ function formatRelativeTime(value, currentLocale) {
     padding: 1.05rem;
   }
 
-  .post-card-top {
-    align-items: flex-start;
-  }
-
   .post-card-stats {
-    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

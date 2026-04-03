@@ -76,7 +76,13 @@ Content-Type: application/json
 {
   "nickname": "测试用户",
   "bio": "这是我的简介",
-  "gender": 1
+  "gender": 1,
+  "birthday": "2000-01-01",
+  "website": "https://example.com",
+  "github": "snipxn-dev",
+  "location": "Shanghai",
+  "company": "Snipxn Lab",
+  "techStack": "Java,Spring Boot,Vue,PostgreSQL"
 }
 
 

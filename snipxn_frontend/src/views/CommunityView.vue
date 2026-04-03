@@ -308,7 +308,6 @@
             <template v-else>
               <div class="community-feed-header">
                 <div>
-                  <div class="community-section-kicker">{{ activeScopeTitle }}</div>
                   <h2 class="community-feed-title">{{ activeScopeTitle }}</h2>
                   <p class="community-feed-body">{{ activeScopeDescription }}</p>
                 </div>
@@ -902,11 +901,7 @@ function buildVisiblePostRows(posts = [], layout = 'mixed') {
     return [];
   }
 
-  const pattern = layout === 'single'
-    ? [1]
-    : layout === 'double'
-      ? [2]
-      : [2, 3];
+  const pattern = layout === 'single' ? [1] : [2];
   const rawRows = [];
   let postIndex = 0;
   let patternIndex = 0;
@@ -917,16 +912,6 @@ function buildVisiblePostRows(posts = [], layout = 'mixed') {
     rawRows.push([...posts.slice(postIndex, postIndex + targetSize)]);
     postIndex += targetSize;
     patternIndex += 1;
-  }
-
-  // Avoid ending a mixed feed with a lonely single card when the previous row can donate one.
-  if (layout === 'mixed' && rawRows.length > 1) {
-    const lastRow = rawRows[rawRows.length - 1];
-    const previousRow = rawRows[rawRows.length - 2];
-
-    if (lastRow.length === 1 && previousRow.length === 3) {
-      lastRow.unshift(previousRow.pop());
-    }
   }
 
   return rawRows.map((rowPosts, rowIndex) => ({
@@ -1452,6 +1437,12 @@ watch(
 }
 
 .community-shell {
+  --community-ink-strong: color-mix(in srgb, var(--text-color) 94%, #020617 6%);
+  --community-ink-title: color-mix(in srgb, var(--text-color) 88%, #020617 12%);
+  --community-ink-body: color-mix(in srgb, var(--text-color) 68%, var(--text-color-secondary) 32%);
+  --community-ink-soft: color-mix(in srgb, var(--text-color-secondary) 82%, var(--text-color) 18%);
+  --community-ink-faint: color-mix(in srgb, var(--text-color-secondary) 92%, var(--app-panel-raised) 8%);
+  --community-ink-accent: color-mix(in srgb, var(--primary-color) 74%, var(--community-ink-soft));
   height: 100dvh;
   min-height: 100dvh;
   max-height: 100dvh;
@@ -1539,14 +1530,16 @@ watch(
 .community-feed-badge,
 .community-sidebar-caption {
   font-family: var(--font-mono);
-  font-size: 0.76rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
 }
 
 .community-eyebrow,
 .community-section-kicker {
-  color: var(--primary-color);
+  color: var(--community-ink-accent);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   font-weight: 700;
 }
 
@@ -1555,12 +1548,14 @@ watch(
 .community-sidebar-title {
   margin: 0;
   letter-spacing: -0.04em;
+  color: var(--community-ink-strong);
 }
 
 .community-title {
   font-family: var(--font-display);
-  font-size: 1.2rem;
-  line-height: 1;
+  font-size: clamp(1.32rem, 1.18rem + 0.36vw, 1.56rem);
+  font-weight: 780;
+  line-height: 1.02;
 }
 
 .community-command {
@@ -1665,15 +1660,17 @@ watch(
 }
 
 .community-command-result-title {
-  font-weight: 700;
-  color: var(--text-color);
-  line-height: 1.3;
+  font-size: 0.92rem;
+  font-weight: 720;
+  color: var(--community-ink-strong);
+  line-height: 1.28;
+  letter-spacing: -0.01em;
 }
 
 .community-command-result-summary {
-  color: var(--text-color-secondary);
-  font-size: 0.82rem;
-  line-height: 1.45;
+  color: var(--community-ink-soft);
+  font-size: 0.79rem;
+  line-height: 1.5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1683,8 +1680,11 @@ watch(
   flex-shrink: 0;
   align-items: center;
   gap: 0.4rem;
-  color: var(--text-color-secondary);
-  font-size: 0.76rem;
+  color: var(--community-ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
   white-space: nowrap;
 }
 
@@ -1700,7 +1700,7 @@ watch(
 
 .community-command-empty {
   padding: 0.9rem 0.85rem;
-  color: var(--text-color-secondary);
+  color: var(--community-ink-soft);
   font-size: 0.84rem;
 }
 
@@ -1710,8 +1710,9 @@ watch(
 .community-empty-body,
 .community-empty-copy {
   margin: 0.2rem 0 0;
-  color: var(--text-color-secondary);
-  line-height: 1.65;
+  color: var(--community-ink-body);
+  font-size: 0.91rem;
+  line-height: 1.7;
 }
 
 .community-topbar-side {
@@ -1732,22 +1733,26 @@ watch(
   background: color-mix(in srgb, var(--app-panel-inset) 88%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.2rem;
 }
 
 .community-summary-value,
 .community-sidebar-metric-value {
   font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-color);
+  font-weight: 780;
+  color: var(--community-ink-strong);
   line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .community-summary-label,
 .community-sidebar-metric-label,
-.community-feed-badge,
 .community-sidebar-caption {
-  color: var(--text-color-secondary);
+  color: var(--community-ink-faint);
+}
+
+.community-feed-badge {
+  color: var(--community-ink-soft);
 }
 
 .community-topbar-actions {
@@ -1820,7 +1825,9 @@ watch(
 }
 
 .community-sidebar-title {
-  font-size: 1rem;
+  font-size: 0.98rem;
+  font-weight: 720;
+  line-height: 1.2;
 }
 
 .community-scope-button {
@@ -1865,10 +1872,11 @@ watch(
 }
 
 .community-scope-label {
-  font-weight: 600;
+  font-weight: 680;
   color: inherit;
-  font-size: 0.875rem;
+  font-size: 0.88rem;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .community-sidebar-footer,
@@ -1916,13 +1924,15 @@ watch(
 }
 
 .community-sidebar-user-name {
-  font-weight: 700;
-  color: var(--text-color);
+  font-size: 0.96rem;
+  font-weight: 760;
+  color: var(--community-ink-strong);
+  letter-spacing: -0.01em;
 }
 
 .community-sidebar-user-email {
-  color: var(--text-color-secondary);
-  font-size: 0.85rem;
+  color: var(--community-ink-soft);
+  font-size: 0.8rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2025,19 +2035,27 @@ watch(
 
 .community-inline-detail-author-name,
 .community-inline-detail-title {
-  color: var(--text-color);
+  color: var(--community-ink-strong);
+}
+
+.community-inline-detail-author-name {
+  font-size: 0.96rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 
 .community-inline-detail-author-meta {
-  color: var(--text-color-secondary);
-  font-size: 0.82rem;
+  color: var(--community-ink-soft);
+  font-size: 0.78rem;
 }
 
 .community-inline-detail-title {
   margin: 0;
-  font-size: 2rem;
-  line-height: 1.15;
-  letter-spacing: -0.04em;
+  font-family: var(--font-display, var(--font-sans));
+  font-size: clamp(1.84rem, 1.56rem + 0.86vw, 2.08rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.05em;
 }
 
 .community-inline-detail-article-shell {
@@ -2103,8 +2121,11 @@ watch(
 }
 
 .community-feed-title {
-  margin-top: 0.25rem;
-  font-size: 1.3rem;
+  font-family: var(--font-display, var(--font-sans));
+  margin-top: 0;
+  font-size: clamp(1.3rem, 1.18rem + 0.4vw, 1.5rem);
+  font-weight: 780;
+  line-height: 1.08;
 }
 
 .community-feed-meta {
@@ -2118,6 +2139,7 @@ watch(
   padding: 0.35rem 0.6rem;
   border: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-panel-inset) 95%, transparent);
+  font-weight: 650;
 }
 
 .community-post-list {
@@ -2165,7 +2187,7 @@ watch(
 
 .community-loading-text,
 .community-empty-copy {
-  color: var(--text-color-secondary);
+  color: var(--community-ink-soft);
 }
 
 .community-empty-icon {
@@ -2181,8 +2203,11 @@ watch(
 
 .community-empty-title {
   margin: 0;
+  font-family: var(--font-display, var(--font-sans));
   font-size: 1.2rem;
-  letter-spacing: -0.03em;
+  font-weight: 780;
+  letter-spacing: -0.04em;
+  color: var(--community-ink-strong);
 }
 
 .community-paginator {
@@ -2244,19 +2269,26 @@ watch(
 
 .community-person-name,
 .community-ranking-title {
-  color: var(--text-color);
-  line-height: 1.45;
+  color: var(--community-ink-strong);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 .community-person-name {
-  font-size: 0.92rem;
+  font-size: 0.93rem;
+  font-weight: 720;
 }
 
 .community-person-meta,
 .community-ranking-meta,
 .community-ranking-stats {
-  color: var(--text-color-secondary);
-  font-size: 0.8rem;
+  color: var(--community-ink-soft);
+  font-size: 0.76rem;
+}
+
+.community-ranking-title {
+  font-size: 0.92rem;
+  font-weight: 720;
 }
 
 .community-person-follow {

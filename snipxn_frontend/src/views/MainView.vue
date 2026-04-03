@@ -72,7 +72,7 @@
         </div>
 
         <div class="workspace-topbar-side">
-          <div class="workspace-summary">
+          <div v-if="!showWorkspaceHome" class="workspace-summary">
             <article v-for="item in workspaceMetrics" :key="item.id" class="workspace-summary-card">
               <span class="workspace-summary-value">{{ item.value }}</span>
               <span class="workspace-summary-label">{{ item.label }}</span>

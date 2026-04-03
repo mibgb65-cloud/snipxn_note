@@ -22,6 +22,7 @@ import com.snipxn.community.mapper.PostShareMapper;
 import com.snipxn.community.mq.message.ViewCountMessage;
 import com.snipxn.community.service.PostService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
@@ -149,7 +151,11 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public void recordView(String postId) {
-        rabbitTemplate.convertAndSend(COMMUNITY_EXCHANGE, VIEW_COUNT_ROUTING_KEY, new ViewCountMessage(postId));
+        try {
+            rabbitTemplate.convertAndSend(COMMUNITY_EXCHANGE, VIEW_COUNT_ROUTING_KEY, new ViewCountMessage(postId));
+        } catch (Exception e) {
+            log.warn("Failed to send view count message for post {}: {}", postId, e.getMessage());
+        }
     }
 
     @Override

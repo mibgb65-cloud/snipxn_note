@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Curator | Community Feed</title>
+<!-- Google Fonts: Space Grotesk & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-container": "#d5e3fc",
+                        "on-primary-container": "#4a5167",
+                        "surface-container-highest": "#d9e4ea",
+                        "tertiary": "#0062a5",
+                        "error": "#9f403d",
+                        "on-tertiary-fixed-variant": "#002e51",
+                        "on-surface-variant": "#566166",
+                        "background": "#f7f9fb",
+                        "surface-tint": "#565e74",
+                        "error-container": "#fe8983",
+                        "on-error": "#fff7f6",
+                        "surface-dim": "#cfdce3",
+                        "on-surface": "#2a3439",
+                        "surface-variant": "#d9e4ea",
+                        "secondary-fixed": "#d5e3fc",
+                        "primary-fixed-dim": "#ccd4ee",
+                        "surface-container-low": "#f0f4f7",
+                        "surface-container-high": "#e1e9ee",
+                        "primary-dim": "#4a5268",
+                        "on-secondary-container": "#455367",
+                        "inverse-primary": "#dae2fd",
+                        "on-primary-fixed-variant": "#535b71",
+                        "surface-container": "#e8eff3",
+                        "on-error-container": "#752121",
+                        "primary-fixed": "#dae2fd",
+                        "inverse-on-surface": "#9a9d9f",
+                        "tertiary-fixed": "#4ea5fa",
+                        "tertiary-fixed-dim": "#3d97eb",
+                        "on-secondary": "#f8f8ff",
+                        "tertiary-container": "#4ea5fa",
+                        "on-tertiary-container": "#002442",
+                        "on-tertiary": "#f7f9ff",
+                        "on-primary-fixed": "#373f54",
+                        "error-dim": "#4e0309",
+                        "surface": "#f7f9fb",
+                        "secondary": "#526074",
+                        "inverse-surface": "#0b0f10",
+                        "on-background": "#2a3439",
+                        "on-primary": "#f7f7ff",
+                        "on-tertiary-fixed": "#000000",
+                        "on-secondary-fixed": "#324053",
+                        "on-secondary-fixed-variant": "#4e5c71",
+                        "outline": "#717c82",
+                        "tertiary-dim": "#005691",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-dim": "#465468",
+                        "primary-container": "#dae2fd",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#565e74",
+                        "secondary-fixed-dim": "#c7d5ed",
+                        "outline-variant": "#a9b4b9"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            color: #2a3439;
+        }
+        .font-space-grotesk { font-family: 'Space Grotesk', sans-serif; }
+        .editor-bg { background-color: #f7f9fb; }
+        .sidebar-bg { background-color: #f0f4f7; }
+        .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+        .glass-effect {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SIDE NAV BAR (Left) -->
+<aside class="h-screen w-64 fixed left-0 top-0 flex flex-col bg-slate-100 dark:bg-slate-900 p-4 z-50">
+<div class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 font-space-grotesk">
+            The Curator
+            <span class="block text-xs font-medium text-slate-500">Developer Workspace</span>
+</div>
+<button class="mb-8 w-full py-2.5 px-4 bg-primary text-on-primary rounded-md font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+            New Note
+        </button>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors rounded-md text-sm font-medium" href="#">
+<span class="material-symbols-outlined">home</span>
+                Home
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors rounded-md text-sm font-medium" href="#">
+<span class="material-symbols-outlined">description</span>
+                Notes
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white rounded-md text-sm font-medium" href="#">
+<span class="material-symbols-outlined">groups</span>
+                Community
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors rounded-md text-sm font-medium" href="#">
+<span class="material-symbols-outlined">star</span>
+                Favorites
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors rounded-md text-sm font-medium" href="#">
+<span class="material-symbols-outlined">delete</span>
+                Trash
+            </a>
+</nav>
+<div class="mt-auto border-t border-slate-200 dark:border-slate-800 pt-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 transition-colors rounded-md text-sm font-medium" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 transition-colors rounded-md text-sm font-medium cursor-pointer">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="User avatar for developer profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDL0egupENFUcmTGpIo_N-gV4VvdsE5IKVJNBdJDUaO98kImjNiVvGabeRrCMfRI0D-ufnL_Q3TPbsBCIyovBCARt9HTlYMsvpVuWBjjTGiQ1A_kqe2qN4KBzTaIm_r5k6lMjeLqFiygg9LyiRgi8abWiqVemwub3ES6cjBBAGc6ufTLmcKvx6IFqLi66pWUB15whj_hQoEMLKlpQk_s6QT80lbfP8kEJ5jSjB-VIQeYca1tvCyDLXHW7QIOz7G4O8npF74cE70TaVM"/>
+                Account
+            </div>
+</div>
+</aside>
+<!-- TOP NAV BAR -->
+<header class="fixed top-0 right-0 left-64 h-14 bg-white dark:bg-slate-950 flex items-center justify-between px-6 z-40">
+<div class="flex-1 max-w-2xl">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-md py-1.5 pl-10 pr-4 text-sm focus:ring-1 focus:ring-slate-200 dark:focus:ring-slate-800 font-body placeholder:text-slate-400" placeholder="Search by title, tag, or author..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4 text-slate-600 dark:text-slate-300">
+<button class="p-1.5 hover:bg-surface-container rounded-md transition-colors flex items-center gap-2 text-xs font-mono bg-surface-container-low px-2">
+<span class="material-symbols-outlined text-lg">keyboard_command_key</span>
+                K
+            </button>
+<button class="p-1.5 hover:bg-surface-container rounded-md transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+</div>
+</header>
+<!-- MAIN CONTENT AREA -->
+<main class="ml-64 mt-14 p-8 flex gap-8">
+<!-- Feed Column -->
+<section class="flex-1 max-w-4xl space-y-8">
+<header class="mb-10">
+<h1 class="text-4xl font-bold font-space-grotesk tracking-tight text-on-surface">Community Feed</h1>
+<p class="text-on-surface-variant mt-2 max-w-lg">Explore and fork the most useful notes, snippets, and architectural patterns shared by our global developer community.</p>
+</header>
+<!-- Feed Grid -->
+<div class="grid grid-cols-1 gap-6">
+<!-- Note Card 1 -->
+<article class="bg-surface-container-lowest p-6 rounded-xl group hover:bg-white transition-all duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full border border-surface-container" data-alt="Developer avatar Sarah Chen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQqdBIuhaZjn99TWSw8jZUomX_1df3meiqu1_64BkyDcWks8QPDQAH3WkvK5caIG-OcL7wocMBjVFaTXlNAsepAwpmtBgVz5N8Ob_B2Ozz36rY5HfIoilA3T33Rnvrh2sJVIwssR_pnFZO8Xw721IxvEeoQMnE88XQox8xTH0mye6r7pitRKF96MeG8HULdfhAIVnTbrYKKCD9FC7PWC1AnQnkT6Jku5gHHzlUMpNYWzR68ejNLr15zZHMPRBy5o8B5KIFR20_4Pkh"/>
+<div>
+<h3 class="text-lg font-bold font-space-grotesk text-slate-900">Bubble Sort Implementation</h3>
+<p class="text-xs text-on-surface-variant">by <span class="text-tertiary cursor-pointer hover:underline">sarah_codes</span> • 2h ago</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<div class="mb-4 bg-slate-900 rounded-lg p-4 font-mono text-sm text-slate-300 overflow-hidden relative">
+<div class="absolute top-3 right-4 text-[10px] text-slate-500 uppercase tracking-widest">javascript</div>
+<pre><code>function bubbleSort(arr) {
+  let len = arr.length;
+  for (let i = 0; i &lt; len; i++) {
+    for (let j = 0; j &lt; len - i - 1; j++) {
+      if (arr[j] &gt; arr[j + 1]) {
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+      }
+    }
+  }
+  return arr;
+}</code></pre>
+</div>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#algorithms</span>
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#javascript</span>
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#computerscience</span>
+</div>
+<div class="flex items-center gap-6 pt-4 border-t border-surface-container">
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+                            124
+                        </button>
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">fork_right</span>
+                            42
+                        </button>
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+                            18
+                        </button>
+</div>
+</article>
+<!-- Note Card 2 -->
+<article class="bg-surface-container-lowest p-6 rounded-xl group hover:bg-white transition-all duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full border border-surface-container" data-alt="Developer avatar Alex Rivera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrVgnAonCVTMvvyPtXhY1uuvdRFE8XeFkLtdNx3Pv061wZVPOGrmDcBg3hOJ9h4PyAJkoYONEboDf8o1GmBo5GOubylNlXwV_NOEIWdaw2VEBQ_yLtpk9F6CYuU_jRMVshodB9sizHT7MZ6VC3RounGBQuCa8uBGaYvHyQFkA3bii9mQ5AdrUSY_yTlqXW11BSJkcRJvL53RC0pNyW4R8CDX9MBjNjPTNc6b5v_HEztf7Aqsehg6yAG_r34skLGoVnliFQ3bAqZRuL"/>
+<div>
+<h3 class="text-lg font-bold font-space-grotesk text-slate-900">React Design Patterns for Scalability</h3>
+<p class="text-xs text-on-surface-variant">by <span class="text-tertiary cursor-pointer hover:underline">arivera_dev</span> • 5h ago</p>
+</div>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm mb-6 leading-relaxed">
+                        A comprehensive guide on implementing the Compound Component pattern and Higher-Order Components to keep your React projects manageable as they grow. Includes examples of custom hooks for global state management without Redux.
+                    </p>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#react</span>
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#design-patterns</span>
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#architecture</span>
+</div>
+<div class="flex items-center gap-6 pt-4 border-t border-surface-container">
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+                            892
+                        </button>
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">fork_right</span>
+                            156
+                        </button>
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+                            53
+                        </button>
+</div>
+</article>
+<!-- Note Card 3 -->
+<article class="bg-surface-container-lowest p-6 rounded-xl group hover:bg-white transition-all duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full border border-surface-container" data-alt="Developer avatar Jamie Lee" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtlfxGhiN3ZyeTVbQPL1vvvAfyGsUKrmDOerKFQBc-nkiAy6bTyV55QmEYHeeuzdwaudH_vsSmXoS2TAXLPSb_u0Omjnm1Wk32MnSnbjGkGDNqKELmAfiMB7QwBEjcSKy6JBCu-dmcLo2BFowEfI6ZjFLtiZC2sdqdrId1WLINvcEa0tWUpkZT4eQAL9UW9VxQh0K5q9Yf-6AkvNKxwLyrfWy1nGOzLh4KaQgatHma5miW-4Vk0UOX-nEVb82nDohNP0r052e9pMZi"/>
+<div>
+<h3 class="text-lg font-bold font-space-grotesk text-slate-900">Efficient CSS Grid Layouts</h3>
+<p class="text-xs text-on-surface-variant">by <span class="text-tertiary cursor-pointer hover:underline">jamie_ux</span> • 1d ago</p>
+</div>
+</div>
+</div>
+<div class="mb-4 bg-slate-900 rounded-lg p-4 font-mono text-sm text-slate-300 overflow-hidden relative">
+<div class="absolute top-3 right-4 text-[10px] text-slate-500 uppercase tracking-widest">css</div>
+<pre><code>.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-auto-rows: 160px;
+  grid-auto-flow: dense;
+  gap: 1.5rem;
+}</code></pre>
+</div>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#css</span>
+<span class="px-2 py-1 bg-secondary-fixed-dim text-on-secondary-fixed text-[10px] font-bold uppercase rounded tracking-wider">#frontend</span>
+</div>
+<div class="flex items-center gap-6 pt-4 border-t border-surface-container">
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+                            567
+                        </button>
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">fork_right</span>
+                            88
+                        </button>
+<button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+                            24
+                        </button>
+</div>
+</article>
+</div>
+</section>
+<!-- RIGHT SIDEBAR -->
+<aside class="w-80 hidden lg:block space-y-8">
+<!-- Trending Tags -->
+<section class="bg-surface-container-low p-6 rounded-xl">
+<h4 class="text-sm font-bold font-space-grotesk uppercase tracking-wider mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg">trending_up</span>
+                    Trending Tags
+                </h4>
+<div class="space-y-4">
+<div class="flex items-center justify-between group cursor-pointer">
+<span class="text-sm font-medium text-slate-600 group-hover:text-tertiary">#typescript</span>
+<span class="text-xs bg-surface-container-high px-2 py-0.5 rounded text-slate-500">2.4k</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<span class="text-sm font-medium text-slate-600 group-hover:text-tertiary">#rustlang</span>
+<span class="text-xs bg-surface-container-high px-2 py-0.5 rounded text-slate-500">1.8k</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<span class="text-sm font-medium text-slate-600 group-hover:text-tertiary">#ai-prompting</span>
+<span class="text-xs bg-surface-container-high px-2 py-0.5 rounded text-slate-500">1.2k</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<span class="text-sm font-medium text-slate-600 group-hover:text-tertiary">#tailwind-tips</span>
+<span class="text-xs bg-surface-container-high px-2 py-0.5 rounded text-slate-500">950</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<span class="text-sm font-medium text-slate-600 group-hover:text-tertiary">#docker</span>
+<span class="text-xs bg-surface-container-high px-2 py-0.5 rounded text-slate-500">820</span>
+</div>
+</div>
+<button class="mt-6 w-full py-2 text-xs font-bold text-tertiary uppercase tracking-widest hover:bg-surface-container-high rounded transition-colors">
+                    View All Tags
+                </button>
+</section>
+<!-- Top Contributors -->
+<section class="bg-surface-container-low p-6 rounded-xl">
+<h4 class="text-sm font-bold font-space-grotesk uppercase tracking-wider mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg">workspace_premium</span>
+                    Top Contributors
+                </h4>
+<div class="space-y-5">
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-lg object-cover" data-alt="Contributor avatar Mark Thompson" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmbPLYGrD8YMBgkBYO-xvnVGSBVfssFP4OM5aR1zMXe2emIe5nOdqUwKwPBBd_wHRrQxF4gBtbmsYKH0VTlLVgr9IfGWXzNLuhNhmSVEgsnu2XO6WGshqMi572CHKCe8isfplN9mQPJxIpJtRkfNRVO_ccLIeo2lrXIZpT1E9PRlz42oXF7oDOlj5DvZd-ytxWOCQTQ6yDNSeh2YAy0tjhkpTztcN0D3y2OsrvwXWetgE2-c16WCwkHy_uSXLwkk41ymcKegp99hU3"/>
+<div class="flex-1">
+<p class="text-sm font-bold text-slate-800">Mark Thompson</p>
+<p class="text-[10px] text-slate-500 font-mono uppercase">Fullstack Engineer</p>
+</div>
+<span class="material-symbols-outlined text-tertiary-fixed text-lg">verified</span>
+</div>
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-lg object-cover" data-alt="Contributor avatar Elena Vosh" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXHHCcAslISBkTS9jl_yaGWYqZ2NrLJZDndOGd_fzevfNsZxGXkIjYmML3PAfa0P25_HpikrqneXDiZ3GsPye_lWPCEKYRN6uGZ6o7fA2rbkqbGa0sjee9_Y0CDHYjV_DYD6I5v4ri1kgpmUI2NbFJEs4hoP4R6zqmw1dionBHag47MCe3tVJjz4KIDBzvNYewlhIz4pdWHHLPLK2iGFVB1xBW0K2Z9vIz8JlGWVQMt41B9J5fp_7QwvcpKMF0XftUofYBrG6Yjqvf"/>
+<div class="flex-1">
+<p class="text-sm font-bold text-slate-800">Elena Vosh</p>
+<p class="text-[10px] text-slate-500 font-mono uppercase">System Architect</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<img class="w-10 h-10 rounded-lg object-cover" data-alt="Contributor avatar Liam Zhao" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtx3FexIp_ucGPwa3tUtsP26ad_UER6XwQs6MPyx6THe77W2zM8F6hUVpglXNlzvv2O3EPtywZjrUclmLr9vtUIL03yF4cse1x-ZCak0jjCGN-dNI77iBQ2SpChL_q3db7LOdezwMniMaz4Z2TGn0VpG-A94TfQa_XjR7a0DCenJBoAYKFLPfjpLSa9SKXWcm4TzWQms-m3DVLKjY-iEMfwygsgPkH1R9lBT4gfMi2pXJlFcmAE_-41AUMliSwbW7zipg1PECFnURI"/>
+<div class="flex-1">
+<p class="text-sm font-bold text-slate-800">Liam Zhao</p>
+<p class="text-[10px] text-slate-500 font-mono uppercase">React Guru</p>
+</div>
+<span class="material-symbols-outlined text-tertiary-fixed text-lg">verified</span>
+</div>
+</div>
+</section>
+<!-- Community Banner -->
+<div class="bg-primary rounded-xl p-6 text-on-primary relative overflow-hidden group">
+<div class="relative z-10">
+<h5 class="text-lg font-bold font-space-grotesk mb-2">Share your wisdom</h5>
+<p class="text-xs opacity-80 mb-4 leading-relaxed">Your unique approach to problem solving could help thousands. Publish your first note to the community today.</p>
+<button class="bg-white text-primary px-4 py-2 rounded text-xs font-bold uppercase tracking-widest hover:bg-slate-100 transition-colors">
+                        Publish Note
+                    </button>
+</div>
+<!-- Abstract visual element -->
+<div class="absolute -bottom-6 -right-6 w-32 h-32 bg-primary-dim rounded-full opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+</div>
+</aside>
+</main>
+</body></html>

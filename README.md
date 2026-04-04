@@ -1,5 +1,7 @@
 <div align="center">
 
+English | [简体中文](README.zh-CN.md)
+
 # ✨ Snipxn ✨
 
 ### 🚀 A Modern Full-Stack Code Note & Developer Community Platform 🚀

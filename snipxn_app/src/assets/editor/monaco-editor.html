@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Snipxn Monaco Editor</title>
+    <style>
+      html,
+      body,
+      #app,
+      #editor {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        background: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      #app {
+        position: relative;
+      }
+
+      #loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+        background: transparent;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="loading">正在加载 Monaco Editor...</div>
+      <div id="editor"></div>
+    </div>
+
+    <script>
+      (function () {
+        var CDN_BASE = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min';
+        var editor = null;
+        var isApplyingRemoteContent = false;
+        var changeTimer = null;
+        var pendingState = {
+          content: '',
+          language: 'markdown',
+          readOnly: false,
+          theme: 'light',
+          fontSize: 14,
+        };
+
+        function postMessage(message) {
+          if (
+            window.ReactNativeWebView &&
+            typeof window.ReactNativeWebView.postMessage === 'function'
+          ) {
+            window.ReactNativeWebView.postMessage(JSON.stringify(message));
+          }
+        }
+
+        function toMonacoTheme(theme) {
+          return theme === 'dark' ? 'vs-dark' : 'vs';
+        }
+
+        function hideLoading() {
+          var loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.display = 'none';
+          }
+        }
+
+        function applyPendingState() {
+          if (!editor || !window.monaco) {
+            return;
+          }
+
+          editor.updateOptions({
+            readOnly: Boolean(pendingState.readOnly),
+            fontSize: Number(pendingState.fontSize) || 14,
+          });
+          window.monaco.editor.setTheme(toMonacoTheme(pendingState.theme));
+
+          var model = editor.getModel();
+          if (model) {
+            window.monaco.editor.setModelLanguage(
+              model,
+              pendingState.language || 'markdown',
+            );
+          }
+
+          var nextContent = typeof pendingState.content === 'string' ? pendingState.content : '';
+          if (editor.getValue() !== nextContent) {
+            isApplyingRemoteContent = true;
+            editor.setValue(nextContent);
+            isApplyingRemoteContent = false;
+          }
+        }
+
+        function applyMessage(message) {
+          if (!message || typeof message !== 'object') {
+            return;
+          }
+
+          if (message.type === 'SET_CONTENT') {
+            var payload = message.payload || {};
+            pendingState.content = typeof payload.content === 'string' ? payload.content : '';
+            if (typeof payload.language === 'string' && payload.language.trim().length > 0) {
+              pendingState.language = payload.language;
+            }
+            applyPendingState();
+            return;
+          }
+
+          if (message.type === 'SET_THEME') {
+            pendingState.theme = message.payload === 'dark' ? 'dark' : 'light';
+            applyPendingState();
+            return;
+          }
+
+          if (message.type === 'SET_READONLY') {
+            pendingState.readOnly = Boolean(message.payload);
+            applyPendingState();
+            return;
+          }
+
+          if (message.type === 'SET_LANGUAGE') {
+            if (typeof message.payload === 'string' && message.payload.trim().length > 0) {
+              pendingState.language = message.payload;
+              applyPendingState();
+            }
+            return;
+          }
+
+          if (message.type === 'SCROLL_TO_LINE') {
+            var line = Number(message.payload);
+            if (editor && Number.isFinite(line) && line >= 1) {
+              editor.revealLineInCenter(line);
+            }
+          }
+        }
+
+        function handleMessageEvent(event) {
+          if (!event || typeof event.data !== 'string') {
+            return;
+          }
+
+          try {
+            applyMessage(JSON.parse(event.data));
+          } catch (error) {
+            postMessage({
+              type: 'EDITOR_ERROR',
+              payload: { message: error instanceof Error ? error.message : 'Invalid message' },
+            });
+          }
+        }
+
+        window.addEventListener('message', handleMessageEvent);
+        document.addEventListener('message', handleMessageEvent);
+
+        if (window.__SNIPXN_EDITOR_BOOT__) {
+          pendingState = Object.assign({}, pendingState, window.__SNIPXN_EDITOR_BOOT__);
+        }
+
+        window.MonacoEnvironment = {
+          getWorkerUrl: function () {
+            var workerScript = [
+              "self.MonacoEnvironment = { baseUrl: '" + CDN_BASE + "/' };",
+              "importScripts('" + CDN_BASE + "/vs/base/worker/workerMain.js');",
+            ].join('');
+            return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(workerScript);
+          },
+        };
+
+        var loader = document.createElement('script');
+        loader.src = CDN_BASE + '/vs/loader.js';
+        loader.onload = function () {
+          window.require.config({ paths: { vs: CDN_BASE + '/vs' } });
+          window.require(['vs/editor/editor.main'], function () {
+            editor = window.monaco.editor.create(document.getElementById('editor'), {
+              value: pendingState.content,
+              language: pendingState.language || 'markdown',
+              theme: toMonacoTheme(pendingState.theme),
+              readOnly: Boolean(pendingState.readOnly),
+              fontSize: Number(pendingState.fontSize) || 14,
+              automaticLayout: true,
+              minimap: { enabled: false },
+              lineNumbers: 'on',
+              lineDecorationsWidth: 12,
+              lineNumbersMinChars: 3,
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+              smoothScrolling: true,
+              tabSize: 2,
+              insertSpaces: true,
+            });
+
+            editor.onDidChangeModelContent(function () {
+              if (isApplyingRemoteContent) {
+                return;
+              }
+
+              if (changeTimer) {
+                window.clearTimeout(changeTimer);
+              }
+
+              changeTimer = window.setTimeout(function () {
+                postMessage({
+                  type: 'CONTENT_CHANGED',
+                  payload: { content: editor.getValue() },
+                });
+              }, 500);
+            });
+
+            hideLoading();
+            applyPendingState();
+            postMessage({ type: 'EDITOR_READY' });
+          });
+        };
+        loader.onerror = function () {
+          postMessage({
+            type: 'EDITOR_ERROR',
+            payload: { message: 'Failed to load Monaco Editor assets.' },
+          });
+        };
+        document.head.appendChild(loader);
+      })();
+    </script>
+  </body>
+</html>

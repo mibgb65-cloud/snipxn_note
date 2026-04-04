@@ -63,6 +63,7 @@ public class SecurityConfig {
                     "/actuator/health"
                 ).permitAll()
                 .requestMatchers("/api/v1/files/*").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/app/version/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/public/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/follow/user/*/profile").permitAll()

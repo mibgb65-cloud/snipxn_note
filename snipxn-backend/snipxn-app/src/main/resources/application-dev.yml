@@ -1,29 +1,29 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/snipxn?stringtype=unspecified
-    username: postgres
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:snipxn}?stringtype=unspecified
+    username: ${DB_USER:postgres}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   data:
     redis:
-      host: localhost
-      port: 6379
-      password:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       timeout: 3000ms
 
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: /
 
   mail:
     host: smtp.resend.com
     port: 465
     username: resend
-    password: ${MAIL_API_KEY:${MAIL_API_KEY}}
+    password: ${MAIL_API_KEY}
     properties:
       mail:
         smtp:
@@ -38,22 +38,22 @@ mybatis-plus:
 
 snipxn:
   jwt:
-    secret: ${JWT_SECRET:${JWT_SECRET}}
+    secret: ${JWT_SECRET}
   mail:
-    from: noreply@zanolab.com
+    from: ${MAIL_FROM:noreply@zanolab.com}
   sandbox:
-    judge0-url: ${JUDGE0_URL:http://192.168.241.130:2358}
+    judge0-url: ${JUDGE0_URL:}
     judge0-api-key: ${JUDGE0_API_KEY:}
   oauth:
     github:
-      client-id: ${GITHUB_CLIENT_ID:${GITHUB_CLIENT_ID}}
-      client-secret: ${GITHUB_CLIENT_SECRET:${GITHUB_CLIENT_SECRET}}
+      client-id: ${GITHUB_CLIENT_ID:}
+      client-secret: ${GITHUB_CLIENT_SECRET:}
     google:
-      client-id: ${GOOGLE_CLIENT_ID:${GOOGLE_CLIENT_ID}}
-      client-secret: ${GOOGLE_CLIENT_SECRET:${GOOGLE_CLIENT_SECRET}}
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
   ai:
     deepseek-url: ${DEEPSEEK_URL:https://api.deepseek.com}
-    api-key: ${DEEPSEEK_API_KEY:${DEEPSEEK_API_KEY}}
+    api-key: ${DEEPSEEK_API_KEY:}
 
 logging:
   level:

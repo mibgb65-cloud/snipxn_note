@@ -41,7 +41,7 @@ snipxn:
   jwt:
     secret: ${JWT_SECRET}
   mail:
-    from: ${MAIL_FROM:noreply@zanolab.com}
+    from: ${MAIL_FROM:noreply@snipxn.com}
 
 logging:
   level:

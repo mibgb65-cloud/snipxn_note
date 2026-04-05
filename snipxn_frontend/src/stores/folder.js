@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia';
 import * as folderApi from '../api/folder';
 
+function isSameId(left, right) {
+  return String(left ?? '') === String(right ?? '');
+}
+
 function pickDefaultFolder(folders) {
   return folders.find((folder) => folder.isDefault) || folders[0] || null;
 }
@@ -12,7 +16,7 @@ export const useFolderStore = defineStore('folder', {
     activeFolderId: null,
   }),
   getters: {
-    activeFolder: (state) => state.folders.find((folder) => folder.id === state.activeFolderId) || null,
+    activeFolder: (state) => state.folders.find((folder) => isSameId(folder.id, state.activeFolderId)) || null,
     folderOptions: (state) => state.folders.map((folder) => ({
       label: folder.name,
       value: folder.id,
@@ -29,7 +33,7 @@ export const useFolderStore = defineStore('folder', {
         const res = await folderApi.getFolders();
         this.folders = res.data || [];
 
-        if (!this.folders.some((folder) => folder.id === this.activeFolderId)) {
+        if (!this.folders.some((folder) => isSameId(folder.id, this.activeFolderId))) {
           this.activeFolderId = pickDefaultFolder(this.folders)?.id || null;
         }
 

@@ -2,6 +2,31 @@ import { defineStore } from 'pinia';
 import * as noteApi from '../api/note';
 import * as tagApi from '../api/tag';
 import { getDeviceId } from '../composables/useDeviceId';
+import { useFolderStore } from './folder';
+
+function isSameId(left, right) {
+  return String(left ?? '') === String(right ?? '');
+}
+
+function isMissingFolderError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('文件夹不存在') || message.includes('folder not found');
+}
+
+async function recoverValidFolderSelection(noteStore, invalidFolderId = null) {
+  const folderStore = useFolderStore();
+  await folderStore.fetchFolders();
+
+  const fallbackFolder = folderStore.folders.find((folder) => folder.isDefault && !isSameId(folder.id, invalidFolderId))
+    || folderStore.folders.find((folder) => !isSameId(folder.id, invalidFolderId))
+    || folderStore.folders[0]
+    || null;
+
+  const fallbackFolderId = fallbackFolder?.id || null;
+  folderStore.setActiveFolder(fallbackFolderId);
+  noteStore.activeFolderId = fallbackFolderId;
+  return fallbackFolderId;
+}
 
 export const useNoteStore = defineStore('note', {
   state: () => ({
@@ -169,6 +194,22 @@ export const useNoteStore = defineStore('note', {
         await this.selectNote(preferredNoteId);
 
         return res;
+      } catch (error) {
+        if (view === 'folder' && folderId && !options._recoveredMissingFolder && isMissingFolderError(error)) {
+          const fallbackFolderId = await recoverValidFolderSelection(this, folderId);
+
+          if (fallbackFolderId && !isSameId(fallbackFolderId, folderId)) {
+            return this.fetchNotes({
+              ...options,
+              view: 'folder',
+              folderId: fallbackFolderId,
+              preserveSelection: false,
+              _recoveredMissingFolder: true,
+            });
+          }
+        }
+
+        throw error;
       } finally {
         this.loadingList = false;
       }
@@ -219,8 +260,9 @@ export const useNoteStore = defineStore('note', {
       this.saving = true;
 
       try {
+        const targetFolderId = payload.folderId ?? this.activeFolderId;
         const res = await noteApi.createNote({
-          folderId: payload.folderId ?? this.activeFolderId,
+          folderId: targetFolderId,
           title: payload.title ?? '',
           content: payload.content ?? '',
           primaryLanguage: payload.primaryLanguage ?? 'Markdown',
@@ -230,7 +272,7 @@ export const useNoteStore = defineStore('note', {
 
         await this.fetchNotes({
           view: this.activeView === 'trash' ? 'folder' : this.activeView,
-          folderId: payload.folderId ?? this.activeFolderId,
+          folderId: targetFolderId,
           page: 1,
           size: this.size,
           preserveSelection: false,
@@ -241,6 +283,22 @@ export const useNoteStore = defineStore('note', {
         }
 
         return res;
+      } catch (error) {
+        const invalidFolderId = payload.folderId ?? this.activeFolderId;
+
+        if (invalidFolderId && !payload._recoveredMissingFolder && isMissingFolderError(error)) {
+          const fallbackFolderId = await recoverValidFolderSelection(this, invalidFolderId);
+
+          if (fallbackFolderId && !isSameId(fallbackFolderId, invalidFolderId)) {
+            return this.createNote({
+              ...payload,
+              folderId: fallbackFolderId,
+              _recoveredMissingFolder: true,
+            });
+          }
+        }
+
+        throw error;
       } finally {
         this.saving = false;
       }

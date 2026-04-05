@@ -1,7 +1,6 @@
 package com.snipxn.note.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -11,7 +10,6 @@ import java.util.List;
 @Schema(name = "CreateNoteRequest", description = "创建笔记请求")
 public class CreateNoteRequest {
 
-    @NotBlank
     @Schema(description = "所属文件夹 ID", example = "folder-123")
     private String folderId;
 

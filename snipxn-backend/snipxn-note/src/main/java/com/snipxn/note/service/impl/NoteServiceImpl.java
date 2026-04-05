@@ -106,7 +106,7 @@ public class NoteServiceImpl implements NoteService {
     @Override
     @Transactional
     public NoteDetailResponse createNote(String userId, CreateNoteRequest req) {
-        ensureFolderOwned(userId, req.getFolderId());
+        String targetFolderId = resolveTargetFolderId(userId, req.getFolderId());
         List<String> tagIds = validateOwnedTagIds(userId, req.getTagIds());
 
         String content = req.getContent() == null ? "" : req.getContent();
@@ -115,7 +115,7 @@ public class NoteServiceImpl implements NoteService {
 
         Note note = new Note();
         note.setUserId(userId);
-        note.setFolderId(req.getFolderId());
+        note.setFolderId(targetFolderId);
         note.setTitle(StringUtils.hasText(req.getTitle()) ? req.getTitle() : "无标题笔记");
         note.setContent(content);
         note.setSummary(MarkdownUtils.buildSummary(content));
@@ -434,6 +434,22 @@ public class NoteServiceImpl implements NoteService {
         if (folder == null || !userId.equals(folder.getUserId())) {
             throw new BusinessException(ErrorCode.FOLDER_NOT_FOUND);
         }
+    }
+
+    private String resolveTargetFolderId(String userId, String folderId) {
+        if (StringUtils.hasText(folderId)) {
+            ensureFolderOwned(userId, folderId);
+            return folderId;
+        }
+
+        Folder defaultFolder = folderMapper.selectOne(new LambdaQueryWrapper<Folder>()
+                .eq(Folder::getUserId, userId)
+                .eq(Folder::getIsDefault, true)
+                .last("LIMIT 1"));
+        if (defaultFolder == null) {
+            throw new BusinessException(ErrorCode.FOLDER_NOT_FOUND, "默认文件夹不存在");
+        }
+        return defaultFolder.getId();
     }
 
     private List<String> validateOwnedTagIds(String userId, List<String> tagIds) {

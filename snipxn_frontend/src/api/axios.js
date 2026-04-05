@@ -7,7 +7,7 @@ function clearStoredAuth() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('authUser');
-  resetActiveStores(['auth']);
+  resetActiveStores();
 }
 
 async function redirectToLogin() {

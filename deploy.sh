@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # ========================================
 #  Snipxn 一键部署脚本 (AlmaLinux 9)
@@ -13,6 +13,7 @@ NC='\033[0m'
 
 REPO_URL="https://github.com/mibgb65-cloud/snipxn_note.git"
 INSTALL_DIR="/opt/snipxn"
+ENV_BACKUP_FILE=""
 
 print_banner() {
     echo -e "${CYAN}"
@@ -28,6 +29,109 @@ log_warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()    { echo -e "\n${CYAN}====== $1 ======${NC}\n"; }
 
+cleanup() {
+    if [ -n "${ENV_BACKUP_FILE}" ] && [ -f "${ENV_BACKUP_FILE}" ]; then
+        rm -f "${ENV_BACKUP_FILE}"
+    fi
+}
+
+prompt_user() {
+    local prompt="$1"
+    local default_value="${2:-}"
+    local choice=""
+
+    if [ -r /dev/tty ]; then
+        if ! read -r -p "$prompt" choice </dev/tty; then
+            choice="$default_value"
+        fi
+    else
+        choice="$default_value"
+        log_warn "检测到非交互执行，使用默认选项: ${choice:-<empty>}" >&2
+    fi
+
+    echo "$choice"
+}
+
+open_editor() {
+    local file_path="$1"
+    local editor="${EDITOR:-vi}"
+
+    if [ -r /dev/tty ]; then
+        "$editor" "$file_path" </dev/tty >/dev/tty 2>/dev/tty
+    else
+        log_warn "当前没有可用终端，无法打开编辑器，请手动编辑: $file_path"
+    fi
+}
+
+wait_for_service_state() {
+    local service_name="$1"
+    local expected_state="$2"
+    local timeout_seconds="${3:-180}"
+    local start_time
+    local container_id=""
+    local current_state=""
+
+    start_time="$(date +%s)"
+    while true; do
+        container_id="$(docker compose ps -q "$service_name" 2>/dev/null || true)"
+
+        if [ -n "$container_id" ]; then
+            current_state="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
+            if [ "$current_state" = "$expected_state" ]; then
+                log_info "服务 ${service_name} 状态正常: ${current_state}"
+                return 0
+            fi
+        fi
+
+        if [ $(( $(date +%s) - start_time )) -ge "$timeout_seconds" ]; then
+            log_error "等待服务 ${service_name} 超时，当前状态: ${current_state:-unknown}"
+            docker compose ps
+            docker compose logs --tail=100 "$service_name" || true
+            return 1
+        fi
+
+        sleep 5
+    done
+}
+
+verify_http_endpoint() {
+    local name="$1"
+    local url="$2"
+    local timeout_seconds="${3:-60}"
+    local start_time
+
+    start_time="$(date +%s)"
+    while true; do
+        if curl -fsS "$url" >/dev/null 2>&1; then
+            log_info "${name} 可访问: ${url}"
+            return 0
+        fi
+
+        if [ $(( $(date +%s) - start_time )) -ge "$timeout_seconds" ]; then
+            log_error "${name} 校验失败: ${url}"
+            return 1
+        fi
+
+        sleep 3
+    done
+}
+
+get_env_value() {
+    local key="$1"
+    awk -F= -v key="$key" '
+        $0 ~ "^[[:space:]]*" key "=" {
+            value = substr($0, index($0, "=") + 1)
+            sub(/[[:space:]]+#.*$/, "", value)
+            sub(/^[[:space:]]+/, "", value)
+            sub(/[[:space:]]+$/, "", value)
+            print value
+            exit
+        }
+    ' .env
+}
+
+trap cleanup EXIT
+
 # ---- 检查 root 权限 ----
 check_root() {
     if [ "$EUID" -ne 0 ]; then
@@ -39,7 +143,7 @@ check_root() {
 # ---- 系统更新 ----
 system_update() {
     log_step "系统更新"
-    read -p "是否更新系统软件包？(y/N): " choice
+    choice="$(prompt_user "是否更新系统软件包？(y/N): " "n")"
     case "$choice" in
         y|Y)
             log_info "正在更新系统..."
@@ -55,7 +159,7 @@ system_update() {
 # ---- 安装基础工具 ----
 install_basics() {
     log_step "安装基础工具"
-    dnf install -y git curl wget vim tar
+    dnf install -y git curl wget vim tar dnf-plugins-core
     log_info "基础工具安装完成"
 }
 
@@ -65,7 +169,7 @@ install_docker() {
 
     if command -v docker &> /dev/null; then
         log_info "Docker 已安装: $(docker --version)"
-        read -p "是否重新安装 Docker？(y/N): " choice
+        choice="$(prompt_user "是否重新安装 Docker？(y/N): " "n")"
         case "$choice" in
             y|Y) ;;
             *) return 0 ;;
@@ -108,19 +212,20 @@ clone_project() {
 
     if [ -d "$INSTALL_DIR" ]; then
         log_warn "目录 $INSTALL_DIR 已存在"
-        read -p "是否删除并重新克隆？(y/N): " choice
+        choice="$(prompt_user "是否删除并重新克隆？(y/N): " "n")"
         case "$choice" in
             y|Y)
                 # 保留 .env 文件
                 if [ -f "$INSTALL_DIR/.env" ]; then
-                    cp "$INSTALL_DIR/.env" /tmp/snipxn_env_backup
+                    ENV_BACKUP_FILE="$(mktemp /tmp/snipxn_env_backup.XXXXXX)"
+                    cp "$INSTALL_DIR/.env" "$ENV_BACKUP_FILE"
                     log_info "已备份 .env 文件"
                 fi
                 rm -rf "$INSTALL_DIR"
                 ;;
             *)
-                log_info "使用已有项目，执行 git pull..."
-                cd "$INSTALL_DIR" && git pull
+                log_info "使用已有项目，执行 git pull --ff-only..."
+                cd "$INSTALL_DIR" && git pull --ff-only
                 return 0
                 ;;
         esac
@@ -130,9 +235,10 @@ clone_project() {
     git clone "$REPO_URL" "$INSTALL_DIR"
 
     # 恢复 .env 备份
-    if [ -f /tmp/snipxn_env_backup ]; then
-        cp /tmp/snipxn_env_backup "$INSTALL_DIR/.env"
-        rm -f /tmp/snipxn_env_backup
+    if [ -n "${ENV_BACKUP_FILE}" ] && [ -f "${ENV_BACKUP_FILE}" ]; then
+        cp "${ENV_BACKUP_FILE}" "$INSTALL_DIR/.env"
+        rm -f "${ENV_BACKUP_FILE}"
+        ENV_BACKUP_FILE=""
         log_info "已恢复 .env 文件"
     fi
 
@@ -147,7 +253,7 @@ setup_env() {
 
     if [ -f .env ]; then
         log_info ".env 文件已存在"
-        read -p "是否重新配置？(y/N): " choice
+        choice="$(prompt_user "是否重新配置？(y/N): " "n")"
         case "$choice" in
             y|Y) ;;
             *)
@@ -165,13 +271,13 @@ setup_env() {
     echo -e "${YELLOW}  文件路径: ${INSTALL_DIR}/.env${NC}"
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    read -p "现在编辑 .env 文件？(Y/n): " choice
+    choice="$(prompt_user "现在编辑 .env 文件？(Y/n): " "Y")"
     case "$choice" in
         n|N)
             log_warn "请稍后手动编辑: vi ${INSTALL_DIR}/.env"
             ;;
         *)
-            vi .env
+            open_editor ".env"
             ;;
     esac
 }
@@ -187,11 +293,10 @@ deploy() {
         exit 1
     fi
 
-    # 检查必填项
-    source .env
+    # 检查必填项，不直接 source .env，避免把配置当成 shell 代码执行
     local missing=0
     for var in DB_PASSWORD REDIS_PASSWORD RABBITMQ_PASSWORD JWT_SECRET; do
-        val=$(grep "^${var}=" .env | cut -d'=' -f2-)
+        val="$(get_env_value "$var")"
         if [ -z "$val" ] || [[ "$val" == CHANGE_ME* ]]; then
             log_error "必填变量 ${var} 未配置"
             missing=1
@@ -208,6 +313,17 @@ deploy() {
 
     log_info "启动所有服务..."
     docker compose up -d
+
+    log_info "等待服务通过健康检查..."
+    wait_for_service_state postgres healthy 120
+    wait_for_service_state redis healthy 120
+    wait_for_service_state rabbitmq healthy 180
+    wait_for_service_state backend healthy 300
+    wait_for_service_state frontend healthy 120
+
+    log_info "执行主机侧 HTTP 校验..."
+    verify_http_endpoint "后端健康接口" "http://127.0.0.1:8080/actuator/health" 60
+    verify_http_endpoint "前端首页" "http://127.0.0.1/healthz" 60
 
     echo ""
     log_step "部署完成"

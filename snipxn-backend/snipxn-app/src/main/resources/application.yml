@@ -57,3 +57,12 @@ snipxn:
     api-key: ${DEEPSEEK_API_KEY:}
     model: ${DEEPSEEK_MODEL:deepseek-chat}
     max-tokens: ${DEEPSEEK_MAX_TOKENS:2048}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

@@ -15,7 +15,7 @@ COPY . .
 ARG VITE_GITHUB_CLIENT_ID
 ARG VITE_GOOGLE_CLIENT_ID
 
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN npm run build
 
 # ---- Runtime Stage ----

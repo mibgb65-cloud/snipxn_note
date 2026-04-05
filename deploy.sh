@@ -308,8 +308,11 @@ deploy() {
         exit 1
     fi
 
-    log_info "开始构建镜像（首次构建约需 5-10 分钟）..."
-    docker compose build
+    log_info "开始顺序构建镜像（2核4GB 机器可降低内存峰值）..."
+    log_info "构建后端镜像..."
+    docker compose build backend
+    log_info "构建前端镜像..."
+    docker compose build frontend
 
     log_info "启动所有服务..."
     docker compose up -d

@@ -16,6 +16,8 @@ COPY snipxn-app/pom.xml snipxn-app/
 # Install Maven
 RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 
+ENV MAVEN_OPTS="-Xmx1024m -XX:MaxMetaspaceSize=256m"
+
 # Download dependencies (cached layer)
 RUN mvn dependency:go-offline -B || true
 

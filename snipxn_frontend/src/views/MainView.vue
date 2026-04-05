@@ -226,7 +226,9 @@ import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
-import logoUrl from '../assets/logo.svg';
+import { useLogoUrl } from '../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 
 const route = useRoute();
 const router = useRouter();

@@ -147,7 +147,9 @@ import LangToggle from '../components/common/LangToggle.vue';
 import ThemeToggle from '../components/common/ThemeToggle.vue';
 import SettingsPanel from '../components/settings/SettingsPanel.vue';
 import { buildSettingsSections } from '../components/settings/settingsSections';
-import logoUrl from '../assets/logo.svg';
+import { useLogoUrl } from '../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 import { SUPPORTED_LOCALES } from '../i18n';
 import { useTheme } from '../composables/useTheme';
 import { useAuthStore } from '../stores/auth';

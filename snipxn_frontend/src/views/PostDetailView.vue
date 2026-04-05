@@ -242,7 +242,9 @@ import Skeleton from 'primevue/skeleton';
 import Tag from 'primevue/tag';
 import LangToggle from '../components/common/LangToggle.vue';
 import ThemeToggle from '../components/common/ThemeToggle.vue';
-import logoUrl from '../assets/logo.svg';
+import { useLogoUrl } from '../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 import { useAuthStore } from '../stores/auth';
 import { useCommunityStore } from '../stores/community';
 import { bindMarkdownCodeActions, renderMarkdown } from '../utils/markdown';

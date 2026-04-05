@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="70 30 260 260" width="260" height="260">
+  <defs>
+    <filter id="lc" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="b1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b2"/>
+      <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="lg" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="b1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.6" result="b2"/>
+      <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke="#00CFFF" stroke-width="3.5" fill="none" filter="url(#lc)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M200 65L290 115L290 220L200 270L110 220L110 115Z"/>
+    <path d="M185 57L165 68" stroke-width="3"/>
+    <path d="M215 57L235 68" stroke-width="3"/>
+    <path d="M302 135L302 155" stroke-width="3"/>
+    <path d="M302 180L302 200" stroke-width="3"/>
+    <path d="M215 278L235 267" stroke-width="3"/>
+    <path d="M185 278L165 267" stroke-width="3"/>
+    <path d="M98 135L98 155" stroke-width="3"/>
+    <path d="M98 180L98 200" stroke-width="3"/>
+  </g>
+  <g stroke="#00E676" fill="none" filter="url(#lg)">
+    <path d="M240 105L175 105L145 145L210 170L230 185" stroke-width="19" stroke-linejoin="bevel" stroke-linecap="square"/>
+    <path d="M170 150L155 165L255 205L225 245L160 245" stroke-width="19" stroke-linejoin="bevel" stroke-linecap="square"/>
+    <line x1="130" y1="260" x2="270" y2="85" stroke-width="6.5" stroke-linecap="round" stroke="#66FFB3"/>
+  </g>
+</svg>

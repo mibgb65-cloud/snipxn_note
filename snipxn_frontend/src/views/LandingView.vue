@@ -14,7 +14,7 @@
       <nav class="topbar-nav">
         <a href="#features" class="topbar-nav-link">{{ t('landing.featureEyebrow') }}</a>
         <a href="#workflow" class="topbar-nav-link">{{ t('landing.workflowEyebrow') }}</a>
-        <a href="#capabilities" class="topbar-nav-link">{{ t('landing.stackEyebrow') }}</a>
+        <a href="#download" class="topbar-nav-link">{{ t('landing.downloadEyebrow') }}</a>
       </nav>
 
       <div class="topbar-actions">
@@ -182,23 +182,6 @@
         </div>
       </section>
 
-      <!-- ── Story ── -->
-      <section class="story-section">
-        <div class="section-header animate-fade-in-up">
-          <span class="section-kicker">{{ t('landing.storyEyebrow') }}</span>
-          <h2 class="section-title">{{ t('landing.storyTitle') }}</h2>
-          <p class="section-body">{{ t('landing.storyBody') }}</p>
-        </div>
-
-        <div class="story-grid">
-          <article v-for="story in storyCards" :key="story.id" class="story-card animate-fade-in-up">
-            <div class="story-step">{{ story.index }}</div>
-            <h3 class="card-title">{{ story.title }}</h3>
-            <p class="card-body">{{ story.body }}</p>
-          </article>
-        </div>
-      </section>
-
       <!-- ── Workflow ── -->
       <section id="workflow" class="workflow-section">
         <div class="workflow-layout">
@@ -222,22 +205,52 @@
         </div>
       </section>
 
-      <!-- ── Stack ── -->
-      <section id="capabilities" class="stack-section">
-        <div class="section-header animate-fade-in-up">
-          <span class="section-kicker">{{ t('landing.stackEyebrow') }}</span>
-          <h2 class="section-title">{{ t('landing.stackTitle') }}</h2>
-          <p class="section-body">{{ t('landing.stackBody') }}</p>
-        </div>
+      <!-- ── Download App ── -->
+      <section id="download" class="download-section">
+        <div class="download-layout animate-fade-in-up">
+          <div class="download-copy">
+            <span class="section-kicker">{{ t('landing.downloadEyebrow') }}</span>
+            <h2 class="section-title">{{ t('landing.downloadTitle') }}</h2>
+            <p class="section-body">{{ t('landing.downloadBody') }}</p>
 
-        <div class="stack-grid">
-          <article v-for="(item, i) in stackCards" :key="item.id" class="stack-card animate-fade-in-up" :class="`delay-${(i + 1) * 100}`">
-            <div class="stack-card-icon">
-              <i :class="item.icon" />
+            <div class="download-features">
+              <div class="download-feature">
+                <i class="pi pi-cloud-download" />
+                <span>{{ t('landing.downloadFeature1') }}</span>
+              </div>
+              <div class="download-feature">
+                <i class="pi pi-sync" />
+                <span>{{ t('landing.downloadFeature2') }}</span>
+              </div>
+              <div class="download-feature">
+                <i class="pi pi-file-edit" />
+                <span>{{ t('landing.downloadFeature3') }}</span>
+              </div>
             </div>
-            <h3 class="card-title">{{ item.title }}</h3>
-            <p class="card-body">{{ item.body }}</p>
-          </article>
+
+            <div class="download-actions">
+              <a :href="apkDownloadUrl" download class="download-btn">
+                <i class="pi pi-android" />
+                <div class="download-btn-text">
+                  <span class="download-btn-label">{{ t('landing.downloadAndroid') }}</span>
+                  <span class="download-btn-meta">{{ t('landing.downloadVersion') }} · {{ t('landing.downloadApkSize') }}</span>
+                </div>
+              </a>
+              <span class="download-requirement">{{ t('landing.downloadRequirement') }}</span>
+            </div>
+          </div>
+
+          <div class="download-qr-area animate-fade-in-up delay-200">
+            <div class="download-phone-frame">
+              <div class="download-phone-notch" />
+              <div class="download-phone-screen">
+                <img :src="logoUrl" alt="Snipxn" width="32" height="32" class="download-phone-logo">
+                <span class="download-phone-name">{{ t('app.name') }}</span>
+                <canvas ref="qrCanvas" class="download-qr-code" />
+                <span class="download-qr-label">{{ t('landing.downloadQrHint') }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -277,6 +290,7 @@
         </div>
         <nav class="footer-links">
           <a href="#features">{{ t('landing.featureEyebrow') }}</a>
+          <a href="#download">{{ t('landing.downloadEyebrow') }}</a>
           <a href="#" @click.prevent="openAuth()">{{ t('landing.enterAppCompact') }}</a>
           <a href="/workspace">{{ t('landing.enterWorkspaceCompact') }}</a>
         </nav>
@@ -293,14 +307,17 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import QRCode from 'qrcode';
 import Button from 'primevue/button';
 import ThemeToggle from '../components/common/ThemeToggle.vue';
 import LangToggle from '../components/common/LangToggle.vue';
 import AuthModal from '../components/auth/AuthModal.vue';
-import logoUrl from '../assets/logo.svg';
+import { useLogoUrl } from '../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 
 const route = useRoute();
 const router = useRouter();
@@ -366,23 +383,10 @@ const featureCards = computed(() => ([
   },
 ]));
 
-const storyCards = computed(() => ([
-  { id: 'problem', index: '01', title: t('landing.storyProblemTitle'), body: t('landing.storyProblemBody') },
-  { id: 'flow', index: '02', title: t('landing.storyFlowTitle'), body: t('landing.storyFlowBody') },
-  { id: 'ship', index: '03', title: t('landing.storyShipTitle'), body: t('landing.storyShipBody') },
-]));
-
 const workflowCards = computed(() => ([
   { id: 'capture', index: '01', title: t('landing.workflowCaptureTitle'), body: t('landing.workflowCaptureBody') },
   { id: 'organize', index: '02', title: t('landing.workflowOrganizeTitle'), body: t('landing.workflowOrganizeBody') },
   { id: 'continue', index: '03', title: t('landing.workflowContinueTitle'), body: t('landing.workflowContinueBody') },
-]));
-
-const stackCards = computed(() => ([
-  { id: 'api', icon: 'pi pi-server', title: t('landing.stackItemApiTitle'), body: t('landing.stackItemApiBody') },
-  { id: 'session', icon: 'pi pi-shield', title: t('landing.stackItemSessionTitle'), body: t('landing.stackItemSessionBody') },
-  { id: 'editor', icon: 'pi pi-file-edit', title: t('landing.stackItemEditorTitle'), body: t('landing.stackItemEditorBody') },
-  { id: 'showcase', icon: 'pi pi-desktop', title: t('landing.stackItemShowcaseTitle'), body: t('landing.stackItemShowcaseBody') },
 ]));
 
 const proofPills = computed(() => ([
@@ -402,6 +406,22 @@ function handleEnter() {
 function scrollToFeatures() {
   document.getElementById('features')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ── Download & QR ──
+const apkDownloadUrl = '/downloads/snipxn-v1.0.apk';
+const qrCanvas = ref(null);
+
+onMounted(async () => {
+  await nextTick();
+  if (qrCanvas.value) {
+    const downloadUrl = `${window.location.origin}${apkDownloadUrl}`;
+    QRCode.toCanvas(qrCanvas.value, downloadUrl, {
+      width: 160,
+      margin: 2,
+      color: { dark: '#1e293b', light: '#ffffff' },
+    });
+  }
+});
 </script>
 
 <style scoped>
@@ -543,41 +563,48 @@ function scrollToFeatures() {
 .section-kicker {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--primary-color);
+  opacity: 0.85;
 }
 
 .section-title {
-  margin: 0.5rem 0 0;
+  margin: 0.6rem 0 0;
   font-family: var(--font-display, var(--font-sans));
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
+  font-size: clamp(1.7rem, 3.8vw, 2.5rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--text-color);
 }
 
 .section-body {
-  margin: 0.75rem 0 0;
-  font-size: 1rem;
-  line-height: 1.72;
+  margin: 0.85rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.75;
   color: var(--text-color-secondary);
+  font-weight: 400;
+  opacity: 0.82;
 }
 
 .card-title {
   margin: 0.75rem 0 0;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--text-color);
 }
 
 .card-body {
   margin: 0.4rem 0 0;
-  font-size: 0.9rem;
-  line-height: 1.65;
+  font-size: 0.85rem;
+  line-height: 1.7;
   color: var(--text-color-secondary);
+  font-weight: 400;
+  opacity: 0.75;
 }
 
 /* ═══════════════════════════════════════════════
@@ -659,27 +686,21 @@ function scrollToFeatures() {
 .hero-title {
   margin: 0;
   font-family: var(--font-display, var(--font-sans));
-  font-size: clamp(2.8rem, 6.5vw, 4.8rem);
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
   font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 1;
-  background: linear-gradient(
-    135deg,
-    var(--text-color) 18%,
-    color-mix(in srgb, var(--text-color) 70%, var(--app-support)) 58%,
-    var(--primary-color) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  color: var(--text-color);
 }
 
 .hero-subtitle {
   margin: 0;
-  max-width: 42rem;
-  font-size: 1.1rem;
-  line-height: 1.7;
+  max-width: 38rem;
+  font-size: 1.02rem;
+  line-height: 1.75;
   color: var(--text-color-secondary);
+  font-weight: 400;
+  opacity: 0.8;
 }
 
 .hero-actions {
@@ -715,15 +736,18 @@ function scrollToFeatures() {
 
 .hero-metric-value {
   font-family: var(--font-display, var(--font-sans));
-  font-size: 1.3rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--primary-color);
 }
 
 .hero-metric-label {
-  margin-top: 0.2rem;
-  font-size: 0.78rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
   color: var(--text-color-secondary);
+  font-weight: 450;
+  opacity: 0.7;
 }
 
 /* ── Preview ── */
@@ -917,8 +941,8 @@ function scrollToFeatures() {
 .preview-line-num {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: var(--text-color-secondary);
-  opacity: 0.4;
+  color: var(--app-code-muted, #94a3b8);
+  opacity: 0.5;
   min-width: 1rem;
   text-align: right;
   user-select: none;
@@ -927,14 +951,14 @@ function scrollToFeatures() {
 .preview-code-heading {
   font-family: var(--font-mono);
   font-size: 0.78rem;
-  color: var(--primary-color);
+  color: var(--app-code-text, #dbeafe);
   font-weight: 600;
 }
 
 .preview-code-text {
   font-family: var(--font-mono);
   font-size: 0.78rem;
-  color: var(--text-color-secondary);
+  color: var(--app-code-muted, #94a3b8);
 }
 
 .preview-cursor {
@@ -943,7 +967,7 @@ function scrollToFeatures() {
   left: 2.8rem;
   width: 2px;
   height: 1rem;
-  background: var(--primary-color);
+  background: var(--app-code-text, #dbeafe);
   border-radius: 1px;
   animation: blink 1.1s step-end infinite;
 }
@@ -957,7 +981,7 @@ function scrollToFeatures() {
    Features
    ═══════════════════════════════════════════════ */
 .features-section {
-  padding: 4rem 0;
+  padding: 5.5rem 0;
   border-top: 1px solid var(--app-border);
 }
 
@@ -998,32 +1022,21 @@ function scrollToFeatures() {
 
 .feature-card-title {
   margin: 0.85rem 0 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 0.98rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--text-color);
 }
 
 .feature-card-body {
   margin: 0.45rem 0 0;
-  font-size: 0.9rem;
-  line-height: 1.65;
+  font-size: 0.85rem;
+  line-height: 1.7;
   color: var(--text-color-secondary);
+  font-weight: 400;
+  opacity: 0.75;
 }
 
-/* ═══════════════════════════════════════════════
-   Story
-   ═══════════════════════════════════════════════ */
-.story-section {
-  padding: 4rem 0;
-  border-top: 1px solid var(--app-border);
-}
-
-.story-grid {
-  display: flex;
-  gap: 1rem;
-}
-
-.story-card,
 .workflow-card {
   flex: 1;
   min-width: 0;
@@ -1037,7 +1050,6 @@ function scrollToFeatures() {
     border-color var(--motion-duration-sm, 220ms);
 }
 
-.story-card:hover,
 .workflow-card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
@@ -1058,7 +1070,7 @@ function scrollToFeatures() {
    Workflow
    ═══════════════════════════════════════════════ */
 .workflow-section {
-  padding: 4rem 0;
+  padding: 5.5rem 0;
   border-top: 1px solid var(--app-border);
 }
 
@@ -1077,11 +1089,14 @@ function scrollToFeatures() {
 .workflow-quote {
   margin: 1.5rem 0 0;
   padding: 1rem 1.25rem;
-  border-left: 4px solid var(--app-cta, #f97316);
+  border-left: 3px solid color-mix(in srgb, var(--primary-color) 50%, var(--app-cta, #f97316));
   border-radius: 0 0.75rem 0.75rem 0;
-  background: color-mix(in srgb, var(--app-cta, #f97316) 6%, transparent);
-  font-size: 0.95rem;
-  line-height: 1.7;
+  background: color-mix(in srgb, var(--primary-color) 4%, transparent);
+  font-size: 0.88rem;
+  line-height: 1.75;
+  color: var(--text-color-secondary);
+  font-weight: 400;
+  font-style: italic;
   position: relative;
 }
 
@@ -1099,45 +1114,178 @@ function scrollToFeatures() {
 }
 
 /* ═══════════════════════════════════════════════
-   Stack
+   Download
    ═══════════════════════════════════════════════ */
-.stack-section {
-  padding: 4rem 0;
+.download-section {
+  padding: 5.5rem 0;
   border-top: 1px solid var(--app-border);
 }
 
-.stack-grid {
+.download-layout {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 3rem;
+  align-items: center;
 }
 
-.stack-card {
-  padding: 1.25rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-hover)) 92%, transparent);
-  box-shadow: var(--app-shadow-soft);
-  transition:
-    transform var(--motion-duration-sm, 220ms) var(--motion-ease-standard, ease),
-    border-color var(--motion-duration-sm, 220ms);
+.download-copy {
+  display: flex;
+  flex-direction: column;
 }
 
-.stack-card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
+.download-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
 }
 
-.stack-card-icon {
-  width: 2.5rem;
-  height: 2.5rem;
+.download-feature {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--text-color-secondary);
+}
+
+.download-feature span {
+  font-weight: 450;
+  opacity: 0.78;
+}
+
+.download-feature .pi {
+  width: 2rem;
+  height: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
-  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
   color: var(--primary-color);
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+
+.download-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary-color) 14%, var(--app-panel-raised, var(--surface-card))),
+    color-mix(in srgb, var(--app-support) 8%, var(--app-panel-raised, var(--surface-card)))
+  );
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 600;
+  transition:
+    transform var(--motion-duration-sm, 220ms) var(--motion-ease-standard, ease),
+    box-shadow var(--motion-duration-sm, 220ms),
+    border-color var(--motion-duration-sm, 220ms);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-color);
+  box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--primary-color) 30%, #020617);
+}
+
+.download-btn .pi {
+  font-size: 1.4rem;
+  color: var(--primary-color);
+}
+
+.download-btn-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.download-btn-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.download-btn-meta {
+  font-size: 0.72rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+}
+
+.download-requirement {
+  font-size: 0.78rem;
+  color: var(--text-color-secondary);
+  opacity: 0.7;
+}
+
+.download-qr-area {
+  display: flex;
+  justify-content: center;
+}
+
+.download-phone-frame {
+  position: relative;
+  width: 240px;
+  padding: 1rem;
+  border-radius: 2rem;
+  border: 3px solid color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
+  box-shadow:
+    var(--app-shadow),
+    inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+  overflow: hidden;
+}
+
+.download-phone-notch {
+  width: 80px;
+  height: 6px;
+  margin: 0 auto 1rem;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--app-border) 80%, transparent);
+}
+
+.download-phone-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1rem 0 0.5rem;
+}
+
+.download-phone-logo {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.download-phone-name {
+  font-weight: 800;
   font-size: 1rem;
+  letter-spacing: -0.03em;
+}
+
+.download-qr-code {
+  width: 160px !important;
+  height: 160px !important;
+  border-radius: 0.5rem;
+  border: 1px solid var(--app-border);
+}
+
+.download-qr-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  letter-spacing: 0.04em;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1145,7 +1293,7 @@ function scrollToFeatures() {
    ═══════════════════════════════════════════════ */
 .cta-section {
   position: relative;
-  padding: 4rem 0 2rem;
+  padding: 5.5rem 0 3rem;
   border-top: 1px solid var(--app-border);
 }
 
@@ -1183,17 +1331,20 @@ function scrollToFeatures() {
 .cta-title {
   margin: 0.5rem 0 0;
   font-family: var(--font-display, var(--font-sans));
-  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
+  font-size: clamp(1.5rem, 3.2vw, 2.1rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--text-color);
 }
 
 .cta-body {
   margin: 0.65rem 0 0;
-  font-size: 0.95rem;
-  line-height: 1.65;
+  font-size: 0.9rem;
+  line-height: 1.7;
   color: var(--text-color-secondary);
+  font-weight: 400;
+  opacity: 0.78;
 }
 
 .cta-actions {
@@ -1261,10 +1412,16 @@ function scrollToFeatures() {
 }
 
 .footer-links a {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 450;
   color: var(--text-color-secondary);
   text-decoration: none;
-  transition: color 180ms;
+  opacity: 0.72;
+  transition: color 180ms, opacity 180ms;
+}
+
+.footer-links a:hover {
+  opacity: 1;
 }
 
 .footer-links a:hover {
@@ -1305,8 +1462,13 @@ function scrollToFeatures() {
   }
 
   .workflow-layout,
-  .cta-card {
+  .cta-card,
+  .download-layout {
     grid-template-columns: 1fr;
+  }
+
+  .download-qr-area {
+    justify-content: flex-start;
   }
 
   .workflow-copy {
@@ -1324,14 +1486,6 @@ function scrollToFeatures() {
 
 @media (max-width: 920px) {
   .features-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .story-grid {
-    flex-direction: column;
-  }
-
-  .stack-grid {
     grid-template-columns: 1fr;
   }
 

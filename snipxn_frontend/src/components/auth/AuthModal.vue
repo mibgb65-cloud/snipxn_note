@@ -122,7 +122,9 @@ import { checkEmail } from '../../api/auth';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import logoUrl from '../../assets/logo.svg';
+import { useLogoUrl } from '../../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

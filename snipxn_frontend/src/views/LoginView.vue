@@ -128,7 +128,9 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import ThemeToggle from '../components/common/ThemeToggle.vue';
 import LangToggle from '../components/common/LangToggle.vue';
-import logoUrl from '../assets/logo.svg';
+import { useLogoUrl } from '../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 
 const route = useRoute();
 const router = useRouter();

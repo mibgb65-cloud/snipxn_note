@@ -1,63 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1E1E2E" />
-      <stop offset="100%" stop-color="#11111B" />
-    </linearGradient>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#22D3EE" />
-      <stop offset="100%" stop-color="#3B82F6" />
-    </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3B82F6" />
-      <stop offset="100%" stop-color="#8B5CF6" />
-    </linearGradient>
-    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-      <circle cx="16" cy="16" r="1.5" fill="#313244" opacity="0.6" />
-    </pattern>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.4" />
+    <filter id="neon-cyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="neon-green" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-
-  <rect width="512" height="512" rx="115" fill="url(#bg)" />
-  <rect width="512" height="512" rx="115" fill="url(#grid)" />
-
-  <g filter="url(#shadow)">
-    <path
-      d="M 356 160 L 204 160 A 48 48 0 0 0 204 256 L 270 256"
-      fill="none"
-      stroke="url(#grad1)"
-      stroke-width="56"
-      stroke-linecap="round"
-    />
-    <path
-      d="M 156 352 L 308 352 A 48 48 0 0 0 308 256 L 242 256"
-      fill="none"
-      stroke="url(#grad2)"
-      stroke-width="56"
-      stroke-linecap="round"
-    />
-  </g>
-
-  <g transform="rotate(-25, 256, 256)">
-    <line
-      x1="145"
-      y1="256"
-      x2="440"
-      y2="256"
-      stroke="url(#bg)"
-      stroke-width="14"
-      stroke-dasharray="20 14"
-      stroke-linecap="round"
-    />
-
-    <g stroke="#22D3EE" stroke-width="4" fill="none">
-      <circle cx="100" cy="242" r="10" />
-      <circle cx="100" cy="270" r="10" />
-      <path d="M 108 238 L 140 248 L 110 256" stroke-linejoin="round" />
-      <path d="M 108 274 L 140 264 L 110 256" stroke-linejoin="round" />
-      <circle cx="118" cy="256" r="2.5" fill="#22D3EE" stroke="none" />
+  <rect width="400" height="400" rx="90" ry="90" fill="#0B1120"/>
+  <g transform="translate(-80, -34) scale(1.4)">
+    <g stroke="#4DEEEA" stroke-width="3" fill="none" filter="url(#neon-cyan)" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M200 65L290 115L290 220L200 270L110 220L110 115Z"/>
+      <path d="M185 57L165 68" stroke-width="2.5"/>
+      <path d="M215 57L235 68" stroke-width="2.5"/>
+      <path d="M302 135L302 155" stroke-width="2.5"/>
+      <path d="M302 180L302 200" stroke-width="2.5"/>
+      <path d="M215 278L235 267" stroke-width="2.5"/>
+      <path d="M185 278L165 267" stroke-width="2.5"/>
+      <path d="M98 135L98 155" stroke-width="2.5"/>
+      <path d="M98 180L98 200" stroke-width="2.5"/>
+    </g>
+    <g stroke="#74EEA5" fill="none" filter="url(#neon-green)">
+      <path d="M240 105L175 105L145 145L210 170L230 185" stroke-width="18" stroke-linejoin="bevel" stroke-linecap="square"/>
+      <path d="M170 150L155 165L255 205L225 245L160 245" stroke-width="18" stroke-linejoin="bevel" stroke-linecap="square"/>
+      <line x1="130" y1="260" x2="270" y2="85" stroke-width="6" stroke-linecap="round" stroke="#A7FFC9"/>
     </g>
   </g>
 </svg>

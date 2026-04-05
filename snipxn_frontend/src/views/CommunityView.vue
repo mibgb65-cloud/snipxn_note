@@ -531,7 +531,9 @@ import PostCard from '../components/community/PostCard.vue';
 import UserHoverCard from '../components/community/UserHoverCard.vue';
 import CommentSection from '../components/community/CommentSection.vue';
 import PostShareDialog from '../components/community/PostShareDialog.vue';
-import logoUrl from '../assets/logo.svg';
+import { useLogoUrl } from '../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 import { useAuthStore } from '../stores/auth';
 import { useCommunityStore } from '../stores/community';
 import { useUserStore } from '../stores/user';

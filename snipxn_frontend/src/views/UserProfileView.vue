@@ -334,7 +334,9 @@ import Skeleton from 'primevue/skeleton';
 import LangToggle from '../components/common/LangToggle.vue';
 import ThemeToggle from '../components/common/ThemeToggle.vue';
 import PostCard from '../components/community/PostCard.vue';
-import logoUrl from '../assets/logo.svg';
+import { useLogoUrl } from '../composables/useLogoUrl';
+
+const { logoUrl } = useLogoUrl();
 import { useCommunityStore } from '../stores/community';
 import { useAuthStore } from '../stores/auth';
 import { useUserStore } from '../stores/user';

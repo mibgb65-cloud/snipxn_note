@@ -5,21 +5,24 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     vue(),
-    vueDevTools(),
-  ],
+    command === 'serve' ? vueDevTools() : null,
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
   build: {
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'monaco-editor': ['monaco-editor'],
+        manualChunks(id) {
+          if (id.includes('node_modules/monaco-editor/esm/')) {
+            return 'monaco-editor'
+          }
         },
       },
     },
@@ -32,4 +35,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))

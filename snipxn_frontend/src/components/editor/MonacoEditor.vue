@@ -5,7 +5,7 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref, watch, shallowRef } from 'vue';
 import '@/editor/monaco-setup';
-import * as monaco from 'monaco-editor';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import { useFont } from '../../composables/useFont';
 import { getCodeFontById } from '../../theme/fonts';
 

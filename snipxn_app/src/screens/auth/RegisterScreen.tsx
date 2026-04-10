@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import * as authApi from '../../api/auth';
 import { translateLiteral, useI18n } from '../../i18n';
+import { useDeviceType } from '../../hooks';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores';
 import { useAppTheme } from '../../theme';
@@ -53,6 +54,7 @@ export function RegisterScreen({ navigation }: Props) {
   const register = useAuthStore(state => state.register);
   const login = useAuthStore(state => state.login);
   const { isTablet, typography } = useAppTheme();
+  const { isTabletLandscape } = useDeviceType();
   const { isEnglish, t } = useI18n();
 
   const otpRef = useRef<any>(null);
@@ -234,13 +236,15 @@ export function RegisterScreen({ navigation }: Props) {
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          behavior="padding"
+          keyboardVerticalOffset={Platform.OS === 'android' ? -100 : 0}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
+          keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View className="flex-1 justify-center px-6 py-10">
-            <View className={`w-full ${isTablet ? 'mx-auto max-w-[400px]' : ''}`}>
+            <View className={`w-full ${isTablet ? 'mx-auto' : ''}`} style={isTablet ? { maxWidth: isTabletLandscape ? 540 : 400 } : undefined}>
               <View className="items-center gap-2">
                 <Text className={`${typography.h2} text-center text-foreground`}>{t('注册 Snipxn')}</Text>
                 <Text className={`${typography.body} text-center text-foreground/70`}>

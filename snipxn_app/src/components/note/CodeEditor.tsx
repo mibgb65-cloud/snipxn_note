@@ -135,7 +135,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(function
   const { palette, theme, typography } = useAppTheme();
   const { isTablet } = useDeviceType();
   const { t } = useI18n();
-  const [useFallbackEditor, setUseFallbackEditor] = useState(true);
+  const [useFallbackEditor, setUseFallbackEditor] = useState(!isTablet);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [webViewLoaded, setWebViewLoaded] = useState(false);
 

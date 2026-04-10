@@ -210,15 +210,32 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
       let isCancelled = false;
 
       void (async () => {
-        try {
-          await selectNote(noteId);
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY = 300;
 
-          if (!isCancelled) {
-            setLoadError(null);
-          }
-        } catch (error) {
-          if (!isCancelled) {
-            setLoadError(getErrorMessage(error, t('加载笔记失败，请稍后重试。')));
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          if (isCancelled) return;
+
+          try {
+            await selectNote(noteId);
+
+            if (!isCancelled) {
+              setLoadError(null);
+            }
+            return;
+          } catch (error) {
+            const message = getErrorMessage(error, '');
+            const isNotFound = message.toLowerCase().includes('not found');
+
+            if (isNotFound && attempt < MAX_RETRIES - 1) {
+              await new Promise<void>(resolve => setTimeout(resolve, RETRY_DELAY));
+              continue;
+            }
+
+            if (!isCancelled) {
+              setLoadError(getErrorMessage(error, t('加载笔记失败，请稍后重试。')));
+            }
+            return;
           }
         }
       })();
@@ -614,7 +631,7 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
 
         {(isBlockRunnerOpen || (isAiOpen && showSidebar)) ? (
           <View className="flex-1 min-h-0 flex-row" style={{ minHeight: editorMinHeight }}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 3, minWidth: 200 }}>
               <CodeEditor
                 ref={codeEditorRef}
                 content={editorContent}
@@ -623,7 +640,7 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
                 readOnly={readOnly || isReadMode}
               />
             </View>
-            <View style={{ width: 400 }}>
+            <View style={{ flex: 2, maxWidth: 420, minWidth: 260 }}>
               {isBlockRunnerOpen ? (
                 <CodeBlockRunner
                   content={editorContent}

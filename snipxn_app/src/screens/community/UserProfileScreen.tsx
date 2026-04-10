@@ -1,12 +1,13 @@
 ﻿import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Alert, Avatar, Button, Chip, Spinner } from 'heroui-native';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Linking, RefreshControl, Text, View } from 'react-native';
+import { FlatList, Linking, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { postApi } from '../../api';
 import * as followApi from '../../api/follow';
 import { PostCard } from '../../components';
+import { AppIcon } from '../../components/common/AppIcon';
 import { useDeviceType } from '../../hooks';
 import { useI18n } from '../../i18n';
 import type { CommunityStackParamList } from '../../navigation/types';
@@ -342,7 +343,7 @@ function ProfilePanel({
 export function UserProfileScreen({ route, navigation }: Props) {
   const { userId } = route.params;
   const { isTablet } = useDeviceType();
-  const { typography } = useAppTheme();
+  const { palette, typography } = useAppTheme();
   const { t } = useI18n();
 
   const currentUserId = useAuthStore(state => state.user?.id ?? null);
@@ -711,7 +712,7 @@ export function UserProfileScreen({ route, navigation }: Props) {
   };
 
   const headerContent = (
-    <View className="gap-4 pb-4">
+    <View className="gap-3 pb-3">
       {feedback ? (
         <Alert status={feedback.status}>
           <Alert.Indicator />
@@ -776,22 +777,37 @@ export function UserProfileScreen({ route, navigation }: Props) {
           </View>
         </View>
       ) : (
-        <FlatList
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}
-          data={userPosts}
-          key="user-profile-list"
-          keyExtractor={item => item.id}
-          ListEmptyComponent={renderEmpty}
-          ListFooterComponent={renderListFooter}
-          ListHeaderComponent={headerContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}
-          renderItem={renderPostCard}
-          showsVerticalScrollIndicator={false}
-          onEndReached={() => {
-            void handleLoadMore();
-          }}
-          onEndReachedThreshold={0.4}
-        />
+        <View className="flex-1">
+          <View
+            className="flex-row items-center gap-3 border-b px-4 pb-2.5 pt-1"
+            style={{ borderBottomColor: palette.border, backgroundColor: palette.surface }}>
+            <Pressable
+              className="h-9 w-9 items-center justify-center rounded-full"
+              style={{ backgroundColor: palette.surfaceAlt }}
+              onPress={() => navigation.goBack()}>
+              <AppIcon color={palette.text} name="arrow-left" size={18} />
+            </Pressable>
+            <Text className={`${typography.h3} min-w-0 flex-1`} numberOfLines={1} style={{ color: palette.text }}>
+              {profile?.nickname ?? t('用户主页')}
+            </Text>
+          </View>
+          <FlatList
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 }}
+            data={userPosts}
+            key="user-profile-list"
+            keyExtractor={item => item.id}
+            ListEmptyComponent={renderEmpty}
+            ListFooterComponent={renderListFooter}
+            ListHeaderComponent={headerContent}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}
+            renderItem={renderPostCard}
+            showsVerticalScrollIndicator={false}
+            onEndReached={() => {
+              void handleLoadMore();
+            }}
+            onEndReachedThreshold={0.4}
+          />
+        </View>
         )}
       </SafeAreaView>
     </View>

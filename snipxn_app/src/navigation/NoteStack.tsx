@@ -20,7 +20,7 @@ export function NoteStack() {
       <Stack.Screen
         name="NoteEditor"
         component={NoteEditorScreen}
-        options={{ title: t('笔记编辑器') }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

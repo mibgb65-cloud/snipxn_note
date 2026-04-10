@@ -17,17 +17,20 @@ const TABLET_LANDSCAPE_BREAKPOINT = 960;
 export function useDeviceType(): DeviceType {
   const { width, height } = useWindowDimensions();
 
-  const isTablet = width >= TABLET_BREAKPOINT;
+  // Use the shorter dimension so a phone in landscape is never mis-detected as tablet.
+  // This matches the logic in ThemeContext.tsx.
+  const shortSide = Math.min(width, height);
+  const isTablet = shortSide >= TABLET_BREAKPOINT;
   const isLandscape = width > height;
-  const isTabletLandscape = width >= TABLET_LANDSCAPE_BREAKPOINT;
-  const showSidebar = width >= TABLET_BREAKPOINT;
-  const showMasterDetail = width >= TABLET_LANDSCAPE_BREAKPOINT;
+  const isTabletLandscape = isTablet && isLandscape;
+  const showSidebar = isTablet;
+  const showMasterDetail = isTablet && width >= TABLET_LANDSCAPE_BREAKPOINT;
 
   let columns = 1;
 
-  if (width >= TABLET_LANDSCAPE_BREAKPOINT) {
+  if (showMasterDetail) {
     columns = 3;
-  } else if (width >= TABLET_BREAKPOINT) {
+  } else if (isTablet) {
     columns = 2;
   }
 

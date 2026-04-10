@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Button, Spinner } from 'heroui-native';
 import { useMemo, useState } from 'react';
 import { FlatList, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDeviceType } from '../../hooks';
 import { translateLiteral, useI18n } from '../../i18n';
@@ -10,12 +11,13 @@ import { useShallow } from 'zustand/react/shallow';
 import { applyFilters, useFolderStore, useNoteStore, useSyncStore } from '../../stores';
 import { useAppTheme, withAlpha } from '../../theme';
 import type { Note } from '../../types';
-import { GlassPanel, IconBadge, SectionEyebrow } from '../common/AppChrome';
+import { IconBadge } from '../common/AppChrome';
 import { AppIcon } from '../common/AppIcon';
 
 import { NoteListItem } from './NoteListItem';
 
-const LIST_BOTTOM_PADDING_WITH_CREATE = 84;
+const MOBILE_TAB_BAR_BASE_HEIGHT = 58;
+const MOBILE_TAB_BAR_MIN_BOTTOM_PADDING = 10;
 const LIST_BOTTOM_PADDING = 24;
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -47,6 +49,13 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
   const { showSidebar } = useDeviceType();
   const { palette, typography } = useAppTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
+
+  const tabBarHeight = showSidebar
+    ? 0
+    : MOBILE_TAB_BAR_BASE_HEIGHT + Math.max(insets.bottom, MOBILE_TAB_BAR_MIN_BOTTOM_PADDING);
+  const fabBottom = 24 + tabBarHeight;
+  const listBottomPaddingWithCreate = 84 + tabBarHeight;
 
   const { folders, activeFolderId, fetchFolders } = useFolderStore(useShallow(state => ({
     folders: state.folders,
@@ -147,48 +156,38 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
     }
 
     return (
-      <View className={showSearchHeader ? 'px-4 pb-4 pt-2' : 'px-4 pb-3 pt-3'}>
-        <GlassPanel className="px-4 py-4" variant={showSearchHeader ? 'strong' : 'subtle'}>
-          {showSearchHeader ? (
-            <View className="gap-3">
-              <View className="flex-row items-center justify-between gap-3">
-                <View className="min-w-0 flex-1">
-                  <SectionEyebrow>Note Library</SectionEyebrow>
-                  <Text className={typography.h3} style={{ color: palette.text }}>
-                    {t('笔记列表')}
-                  </Text>
-                </View>
-              </View>
-              <View
-                className="flex-row items-center gap-3 rounded-[8px] border px-4 py-3"
-                style={{
-                  borderColor: withAlpha(palette.primary, 0.12),
-                  backgroundColor: palette.panelInset,
-                }}>
-                <AppIcon color={palette.primary} name="search" size={18} />
-                <TextInput
-                  autoCapitalize="none"
-                  className={`${typography.body} flex-1`}
-                  onChangeText={value => {
-                    setErrorMessage(null);
-                    setSearchQuery(value);
-                  }}
-                  placeholder={t('搜索标题、摘要或内容')}
-                  placeholderTextColor={palette.placeholder}
-                  returnKeyType="search"
-                  style={{ color: palette.text }}
-                  value={searchQuery}
-                />
-              </View>
-            </View>
-          ) : null}
+      <View className={showSearchHeader ? 'px-4 pb-2 pt-1' : 'px-4 pb-3 pt-3'}>
+        {showSearchHeader ? (
+          <View
+            className="flex-row items-center gap-2.5 rounded-full border px-3.5 py-2"
+            style={{
+              borderColor: withAlpha(palette.primary, 0.12),
+              backgroundColor: palette.panelInset,
+            }}>
+            <AppIcon color={palette.primary} name="search" size={16} />
+            <TextInput
+              autoCapitalize="none"
+              className={`${typography.bodySmall} flex-1`}
+              onChangeText={value => {
+                setErrorMessage(null);
+                setSearchQuery(value);
+              }}
+              placeholder={t('搜索标题、摘要或内容')}
+              placeholderTextColor={palette.placeholder}
+              returnKeyType="search"
+              style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
+              value={searchQuery}
+            />
+          </View>
+        ) : null}
 
-          {errorMessage ? (
-            <Text className={`${typography.bodySmall} ${showSearchHeader ? 'mt-3' : ''}`} style={{ color: palette.danger }}>
+        {errorMessage ? (
+          <View className={showSearchHeader ? 'mt-2 px-1' : ''}>
+            <Text className={typography.bodySmall} style={{ color: palette.danger }}>
               {errorMessage}
             </Text>
-          ) : null}
-        </GlassPanel>
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -227,7 +226,7 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
         contentContainerStyle={{
           flexGrow: notes.length === 0 ? 1 : 0,
           paddingBottom: showCreateButton
-            ? LIST_BOTTOM_PADDING_WITH_CREATE
+            ? listBottomPaddingWithCreate
             : LIST_BOTTOM_PADDING,
         }}
         data={notes}
@@ -260,8 +259,9 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
 
       {showCreateButton ? (
         <View
-          className="absolute bottom-6 right-6 rounded-full"
+          className="absolute right-6 rounded-full"
           style={{
+            bottom: fabBottom,
             shadowColor: palette.shadow,
             shadowOpacity: 0.28,
             shadowRadius: 18,

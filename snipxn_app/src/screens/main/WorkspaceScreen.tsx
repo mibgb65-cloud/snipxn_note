@@ -1,6 +1,6 @@
 import { Button, Spinner } from 'heroui-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -159,19 +159,223 @@ function WorkspaceSharedTopBar({
   );
 }
 
+type NoteView = 'folder' | 'all' | 'starred' | 'trash';
+
+interface MobileFilterBarProps {
+  activeView: NoteView;
+  folders: { id: string; name: string; isDefault: boolean; isDeleted: boolean }[];
+  activeFolderId: string | null;
+  onSelectView: (view: NoteView) => void;
+  onSelectFolder: (folderId: string) => void;
+  onCreateFolder: (name: string) => Promise<void>;
+}
+
+function MobileFilterBar({
+  activeView,
+  folders,
+  activeFolderId,
+  onSelectView,
+  onSelectFolder,
+  onCreateFolder,
+}: MobileFilterBarProps) {
+  const { palette, typography } = useAppTheme();
+  const { t } = useI18n();
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const visibleFolders = folders.filter(f => !f.isDeleted);
+
+  const chipStyle = (active: boolean) => ({
+    backgroundColor: active ? withAlpha(palette.primary, 0.18) : withAlpha(palette.textSoft, 0.08),
+    borderColor: active ? palette.primary : 'transparent',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginRight: 8,
+  });
+
+  const chipTextColor = (active: boolean) => (active ? palette.primary : palette.text);
+
+  const handleCreate = async () => {
+    const trimmed = newFolderName.trim();
+    if (!trimmed) return;
+    setCreating(true);
+    try {
+      await onCreateFolder(trimmed);
+      setNewFolderName('');
+      setCreateDialogOpen(false);
+      setFolderDialogOpen(false);
+    } catch {
+      Alert.alert(t('创建失败'), t('无法创建文件夹，请稍后重试。'));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <>
+      <View className="px-4 pb-2">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className="flex-row items-center">
+            <Pressable onPress={() => onSelectView('all')} style={chipStyle(activeView === 'all')}>
+              <Text style={{ color: chipTextColor(activeView === 'all'), fontSize: 13, fontWeight: '600' }}>
+                {t('全部')}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => onSelectView('starred')} style={chipStyle(activeView === 'starred')}>
+              <Text style={{ color: chipTextColor(activeView === 'starred'), fontSize: 13, fontWeight: '600' }}>
+                {t('收藏')}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => onSelectView('trash')} style={chipStyle(activeView === 'trash')}>
+              <Text style={{ color: chipTextColor(activeView === 'trash'), fontSize: 13, fontWeight: '600' }}>
+                {t('回收站')}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => setFolderDialogOpen(true)} style={chipStyle(activeView === 'folder')}>
+              <Text style={{ color: chipTextColor(activeView === 'folder'), fontSize: 13, fontWeight: '600' }}>
+                {activeView === 'folder' && activeFolderId
+                  ? `📁 ${visibleFolders.find(f => f.id === activeFolderId)?.name ?? t('文件夹')}`
+                  : `📁 ${t('文件夹')}`}
+                {' ›'}
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Folder list dialog */}
+      <Modal visible={folderDialogOpen} transparent animationType="fade" onRequestClose={() => setFolderDialogOpen(false)}>
+        <Pressable className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={() => setFolderDialogOpen(false)}>
+          <Pressable
+            className="w-[85%] max-w-[360px] rounded-2xl p-5"
+            style={{ backgroundColor: palette.surface }}
+            onPress={e => e.stopPropagation()}>
+            <Text className={typography.h3} style={{ color: palette.text, marginBottom: 16 }}>
+              {t('选择文件夹')}
+            </Text>
+            {visibleFolders.map(folder => (
+              <Pressable
+                key={folder.id}
+                className="flex-row items-center rounded-xl px-4 py-3 mb-1.5"
+                style={{
+                  backgroundColor: activeFolderId === folder.id && activeView === 'folder'
+                    ? withAlpha(palette.primary, 0.12)
+                    : 'transparent',
+                }}
+                onPress={() => {
+                  onSelectFolder(folder.id);
+                  setFolderDialogOpen(false);
+                }}>
+                <AppIcon color={palette.primary} name="folder" size={18} />
+                <Text
+                  className="ml-3 flex-1"
+                  numberOfLines={1}
+                  style={{ color: palette.text, fontSize: 15 }}>
+                  {folder.name}
+                  {folder.isDefault ? ` (${t('默认')})` : ''}
+                </Text>
+                {activeFolderId === folder.id && activeView === 'folder' ? (
+                  <AppIcon color={palette.primary} name="check-circle" size={18} />
+                ) : null}
+              </Pressable>
+            ))}
+            {visibleFolders.length === 0 ? (
+              <Text className={typography.body} style={{ color: palette.textSoft, textAlign: 'center', paddingVertical: 12 }}>
+                {t('暂无文件夹')}
+              </Text>
+            ) : null}
+            <Pressable
+              className="mt-3 flex-row items-center justify-center rounded-xl py-3"
+              style={{ backgroundColor: withAlpha(palette.primary, 0.1) }}
+              onPress={() => setCreateDialogOpen(true)}>
+              <AppIcon color={palette.primary} name="plus" size={16} />
+              <Text className="ml-2" style={{ color: palette.primary, fontWeight: '600', fontSize: 14 }}>
+                {t('新建文件夹')}
+              </Text>
+            </Pressable>
+            <Pressable
+              className="mt-2 items-center py-2"
+              onPress={() => setFolderDialogOpen(false)}>
+              <Text style={{ color: palette.textSoft, fontSize: 14 }}>{t('取消')}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Create folder dialog */}
+      <Modal visible={createDialogOpen} transparent animationType="fade" onRequestClose={() => setCreateDialogOpen(false)}>
+        <Pressable className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={() => setCreateDialogOpen(false)}>
+          <Pressable
+            className="w-[85%] max-w-[360px] rounded-2xl p-5"
+            style={{ backgroundColor: palette.surface }}
+            onPress={e => e.stopPropagation()}>
+            <Text className={typography.h3} style={{ color: palette.text, marginBottom: 16 }}>
+              {t('新建文件夹')}
+            </Text>
+            <TextInput
+              autoFocus
+              className="rounded-xl border px-4 py-3 mb-4"
+              style={{
+                borderColor: withAlpha(palette.primary, 0.2),
+                backgroundColor: palette.panelInset,
+                color: palette.text,
+                fontSize: 15,
+              }}
+              placeholder={t('文件夹名称')}
+              placeholderTextColor={palette.placeholder}
+              value={newFolderName}
+              onChangeText={setNewFolderName}
+              onSubmitEditing={() => void handleCreate()}
+              returnKeyType="done"
+            />
+            <View className="flex-row gap-3">
+              <Pressable
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: withAlpha(palette.textSoft, 0.1) }}
+                onPress={() => {
+                  setCreateDialogOpen(false);
+                  setNewFolderName('');
+                }}>
+                <Text style={{ color: palette.textSoft, fontWeight: '600' }}>{t('取消')}</Text>
+              </Pressable>
+              <Pressable
+                className="flex-1 items-center rounded-xl py-3"
+                style={{ backgroundColor: palette.primary, opacity: creating || !newFolderName.trim() ? 0.5 : 1 }}
+                disabled={creating || !newFolderName.trim()}
+                onPress={() => void handleCreate()}>
+                {creating ? (
+                  <Spinner color="#fff" size="sm" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '600' }}>{t('创建')}</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 export function WorkspaceScreen() {
   const { showSidebar } = useDeviceType();
   const { palette, typography } = useAppTheme();
   const { t } = useI18n();
   const safeAreaEdges = showSidebar ? (['top', 'left', 'right'] as const) : undefined;
 
-  const { folders, activeFolderId, fetchFolders } = useFolderStore(useShallow(state => ({
+  const { folders, activeFolderId, fetchFolders, createFolder, setActiveFolder } = useFolderStore(useShallow(state => ({
     folders: state.folders,
     activeFolderId: state.activeFolderId,
     fetchFolders: state.fetchFolders,
+    createFolder: state.createFolder,
+    setActiveFolder: state.setActiveFolder,
   })));
 
-  const { notes, activeView, searchQuery, setSearchQuery, activeTagId, selectedNoteId, fetchNotes, fetchTags } = useNoteStore(useShallow(state => ({
+  const { notes, activeView, searchQuery, setSearchQuery, activeTagId, selectedNoteId, fetchNotes, fetchTags, setActiveView } = useNoteStore(useShallow(state => ({
     notes: state.notes,
     activeView: state.activeView,
     searchQuery: state.searchQuery,
@@ -180,6 +384,7 @@ export function WorkspaceScreen() {
     selectedNoteId: state.selectedNoteId,
     fetchNotes: state.fetchNotes,
     fetchTags: state.fetchTags,
+    setActiveView: state.setActiveView,
   })));
 
   const syncNow = useSyncStore(state => state.syncNow);
@@ -318,12 +523,33 @@ export function WorkspaceScreen() {
     </Animated.View>
   );
 
+  const handleSelectView = useCallback((view: NoteView) => {
+    setActiveView(view);
+  }, [setActiveView]);
+
+  const handleSelectFolder = useCallback((folderId: string) => {
+    setActiveFolder(folderId);
+    setActiveView('folder');
+  }, [setActiveFolder, setActiveView]);
+
+  const handleCreateFolder = useCallback(async (name: string) => {
+    await createFolder(name);
+  }, [createFolder]);
+
   if (!showSidebar) {
     return (
       <AppCanvas className="flex-1">
         <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
           <View className="flex-1">
             {renderWorkspaceHeader()}
+            <MobileFilterBar
+              activeView={activeView}
+              folders={folders}
+              activeFolderId={activeFolderId}
+              onSelectView={handleSelectView}
+              onSelectFolder={handleSelectFolder}
+              onCreateFolder={handleCreateFolder}
+            />
             <NoteList />
           </View>
         </SafeAreaView>

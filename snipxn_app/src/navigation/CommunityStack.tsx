@@ -49,12 +49,12 @@ export function CommunityStack() {
       <Stack.Screen
         name="PostDetail"
         component={PostDetailScreenLazy}
-        options={{ title: t('帖子详情') }}
+        options={{ headerShown: false, animation: 'slide_from_right' }}
       />
       <Stack.Screen
         name="UserProfile"
         component={UserProfileScreenLazy}
-        options={{ title: t('用户主页') }}
+        options={{ headerShown: false, animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
   );

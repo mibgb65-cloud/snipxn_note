@@ -16,7 +16,6 @@ import {
   KeyboardAvoidingView,
   Linking,
   Platform,
-  Pressable,
   ScrollView,
   Share,
   Text,
@@ -28,10 +27,17 @@ import {
   type Asset,
   type ImagePickerResponse,
 } from 'react-native-image-picker';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '../../api/axios';
-import { AppIcon } from '../../components/common/AppIcon';
+import { AppIcon, type AppIconName } from '../../components/common/AppIcon';
+import {
+  APP_FADE_IN,
+  APP_LAYOUT_TRANSITION,
+  APP_PANEL_ENTERING,
+  MotionPressable,
+} from '../../components/common/AppMotion';
 import * as fileApi from '../../api/file';
 import * as userApi from '../../api/user';
 import { buildGitHubAuthorizeUrl } from '../../config/oauth';
@@ -374,8 +380,9 @@ function SelectButton({
   const { palette } = useAppTheme();
 
   return (
-    <Pressable
+    <MotionPressable
       className="rounded-2xl border px-4 py-3"
+      pressedScale={0.985}
       style={{
         borderColor: active ? withAlpha(palette.primary, 0.36) : palette.border,
         backgroundColor: active ? palette.primarySoft : palette.surfaceAlt,
@@ -389,7 +396,7 @@ function SelectButton({
           {description}
         </Text>
       ) : null}
-    </Pressable>
+    </MotionPressable>
   );
 }
 
@@ -407,8 +414,9 @@ function MenuItem({
   const { palette } = useAppTheme();
 
   return (
-    <Pressable
+    <MotionPressable
       className="rounded-2xl px-4 py-3"
+      pressedScale={0.985}
       onPress={onPress}
       style={{ backgroundColor: active ? palette.primarySoft : palette.surfaceAlt }}>
       <Text
@@ -416,7 +424,7 @@ function MenuItem({
         style={{ color: destructive ? palette.danger : palette.text }}>
         {label}
       </Text>
-    </Pressable>
+    </MotionPressable>
   );
 }
 
@@ -475,6 +483,7 @@ export function SettingsScreen() {
   })));
 
   const [activeSection, setActiveSection] = useState<SettingsSectionKey>('profile');
+  const [mobileSection, setMobileSection] = useState<SettingsSectionKey | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [initializing, setInitializing] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -510,6 +519,21 @@ export function SettingsScreen() {
   const profileGenderOptions = useMemo(() => getProfileGenderOptions(t), [t]);
   const linkedAccountOptions = useMemo(() => getLinkedAccountOptions(t), [t]);
   const storageLabels = useMemo(() => getStorageLabels(t), [t]);
+
+  const mobileMenuItems: Array<{
+    key: SettingsSectionKey;
+    icon: AppIconName;
+    description: string;
+    danger?: boolean;
+  }> = useMemo(() => [
+    { key: 'profile', icon: 'user', description: t('昵称、头像与社区展示资料') },
+    { key: 'security', icon: 'shield', description: t('密码修改与第三方账号绑定') },
+    { key: 'devices', icon: 'devices', description: t('查看已登录设备') },
+    { key: 'preferences', icon: 'settings', description: t('主题、语言与代码字号') },
+    { key: 'storage', icon: 'database', description: t('配额使用与存储明细') },
+    { key: 'about', icon: 'info', description: t('版本信息、检查更新与反馈') },
+    { key: 'logout', icon: 'log-out', description: '', danger: true },
+  ], [t]);
 
   const currentUser: User | null = profile ?? authUser;
   const avatarUri = resolveAvatarUri(avatar, localAvatarPreviewUri);
@@ -979,7 +1003,10 @@ export function SettingsScreen() {
   const renderProfileSection = () => (
     <SectionShell title={t('个人资料')} description={t('这些资料会同步到社区主页、账号设置和侧边栏展示。')}>
       <View className={`gap-5 ${isTablet ? 'flex-row items-start' : ''}`}>
-        <Pressable className="items-center gap-3" disabled={uploadingAvatar} onPress={() => void handlePickAvatar()}>
+        <MotionPressable
+          className="items-center gap-3"
+          disabled={uploadingAvatar}
+          onPress={() => void handlePickAvatar()}>
           <View className="relative">
             <Avatar alt={t('用户头像')} className="h-24 w-24" color="accent" size="lg">
               {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
@@ -994,7 +1021,7 @@ export function SettingsScreen() {
           <Text className="text-xs text-primary">
             {uploadingAvatar ? t('正在上传头像...') : (isEnglish ? 'Tap to change avatar' : '点击更换头像')}
           </Text>
-        </Pressable>
+        </MotionPressable>
 
         <View className="min-w-0 flex-1 gap-4">
           <View className="rounded-2xl bg-background px-4 py-3">
@@ -1357,8 +1384,8 @@ export function SettingsScreen() {
     </SectionShell>
   );
 
-  const renderTabletSection = () => {
-    switch (activeSection) {
+  const renderSectionContent = (section?: SettingsSectionKey) => {
+    switch (section ?? activeSection) {
       case 'profile':
         return renderProfileSection();
       case 'security':
@@ -1433,66 +1460,164 @@ export function SettingsScreen() {
             <ScrollView className="flex-1" contentContainerStyle={{ padding: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View className="gap-5">
                 {feedback ? (
-                  <Alert status={feedback.status}>
-                    <Alert.Indicator />
-                    <Alert.Content>
-                      <Alert.Title>{feedback.title}</Alert.Title>
-                      <Alert.Description>{feedback.description}</Alert.Description>
-                    </Alert.Content>
-                  </Alert>
+                  <Animated.View entering={APP_FADE_IN} layout={APP_LAYOUT_TRANSITION}>
+                    <Alert status={feedback.status}>
+                      <Alert.Indicator />
+                      <Alert.Content>
+                        <Alert.Title>{feedback.title}</Alert.Title>
+                        <Alert.Description>{feedback.description}</Alert.Description>
+                      </Alert.Content>
+                    </Alert>
+                  </Animated.View>
                 ) : null}
-                {renderTabletSection()}
+                <Animated.View
+                  key={`tablet-section-${activeSection}`}
+                  entering={APP_PANEL_ENTERING}
+                  layout={APP_LAYOUT_TRANSITION}>
+                  {renderSectionContent()}
+                </Animated.View>
               </View>
             </ScrollView>
           </View>
+        ) : mobileSection !== null ? (
+          /* ── Mobile: section detail page ── */
+          <Animated.View
+            key={`mobile-section-${mobileSection}`}
+            entering={APP_PANEL_ENTERING}
+            layout={APP_LAYOUT_TRANSITION}
+            style={{ flex: 1, minHeight: 0 }}>
+            <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View className="gap-5">
+                <View className="flex-row items-center gap-3">
+                  <MotionPressable
+                    className="h-10 w-10 items-center justify-center rounded-full"
+                    style={{ backgroundColor: palette.surfaceAlt }}
+                    onPress={() => { setMobileSection(null); setFeedback(null); }}>
+                    <AppIcon color={palette.text} name="arrow-left" size={20} />
+                  </MotionPressable>
+                  <Text className={typography.h3} style={{ color: palette.text }}>
+                    {sectionTitles[mobileSection]}
+                  </Text>
+                </View>
+
+                {feedback ? (
+                  <Animated.View entering={APP_FADE_IN} layout={APP_LAYOUT_TRANSITION}>
+                    <Alert status={feedback.status}>
+                      <Alert.Indicator />
+                      <Alert.Content>
+                        <Alert.Title>{feedback.title}</Alert.Title>
+                        <Alert.Description>{feedback.description}</Alert.Description>
+                      </Alert.Content>
+                    </Alert>
+                  </Animated.View>
+                ) : null}
+
+                {renderSectionContent(mobileSection)}
+              </View>
+            </ScrollView>
+          </Animated.View>
         ) : (
-          <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <View className="gap-5">
-              <View
-                className="rounded-[12px] border px-5 py-5"
-                style={{
-                  borderColor: withAlpha(palette.primary, 0.18),
-                  backgroundColor: palette.surface,
-                }}>
+          /* ── Mobile: menu list page ── */
+          <Animated.View
+            key="mobile-settings-menu"
+            entering={APP_FADE_IN}
+            layout={APP_LAYOUT_TRANSITION}
+            style={{ flex: 1, minHeight: 0 }}>
+            <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View className="gap-5">
                 <View className="flex-row items-center justify-between gap-3">
-                  <View className="min-w-0 flex-1">
+                  <View className="flex-row items-center gap-3">
                     <View
-                      className="mb-3 h-12 w-12 items-center justify-center rounded-2xl"
+                      className="h-10 w-10 items-center justify-center rounded-2xl"
                       style={{ backgroundColor: palette.primarySoft }}>
-                      <AppIcon color={palette.primary} name="settings" size={20} />
+                      <AppIcon color={palette.primary} name="settings" size={18} />
                     </View>
-                    <Text className={typography.h2} style={{ color: palette.text }}>
+                    <Text className={typography.h3} style={{ color: palette.text }}>
                       {t('设置')}
-                    </Text>
-                    <Text className={`${typography.bodySmall} mt-1`} style={{ color: palette.textSoft }}>
-                      {t('账号、安全、偏好与存储管理')}
                     </Text>
                   </View>
                   <Button isDisabled={refreshing} variant="outline" onPress={() => void refreshData()}>
                     {renderButtonContent(refreshing, t('刷新中...'), t('刷新'))}
                   </Button>
                 </View>
+
+                {/* user profile card */}
+                {currentUser ? (
+                  <View
+                    className="flex-row items-center gap-4 rounded-[12px] border px-4 py-4"
+                    style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+                    <Avatar alt={t('用户头像')} className="h-14 w-14" color="accent" size="md">
+                      {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
+                      <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
+                    </Avatar>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-base font-semibold" style={{ color: palette.text }}>
+                        {nickname || currentUser.email.split('@')[0]}
+                      </Text>
+                      <Text className="mt-1 text-sm" style={{ color: palette.textSoft }}>
+                        {currentUser.email}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+
+                {feedback ? (
+                  <Animated.View entering={APP_FADE_IN} layout={APP_LAYOUT_TRANSITION}>
+                    <Alert status={feedback.status}>
+                      <Alert.Indicator />
+                      <Alert.Content>
+                        <Alert.Title>{feedback.title}</Alert.Title>
+                        <Alert.Description>{feedback.description}</Alert.Description>
+                      </Alert.Content>
+                    </Alert>
+                  </Animated.View>
+                ) : null}
+
+                {/* menu items */}
+                <View
+                  className="rounded-[12px] border overflow-hidden"
+                  style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+                  {mobileMenuItems.map((item, index) => (
+                    <MotionPressable
+                      key={item.key}
+                      className="flex-row items-center px-4 py-4"
+                      style={[
+                        index > 0 ? { borderTopWidth: 1, borderTopColor: palette.border } : undefined,
+                      ]}
+                      onPress={() => {
+                        if (item.key === 'logout') {
+                          void logout();
+                        } else {
+                          setMobileSection(item.key);
+                          setFeedback(null);
+                        }
+                      }}>
+                      <View
+                        className="h-9 w-9 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: item.danger ? withAlpha(palette.danger, 0.12) : palette.surfaceAlt }}>
+                        <AppIcon color={item.danger ? palette.danger : palette.textSoft} name={item.icon} size={18} />
+                      </View>
+                      <View className="ml-3 min-w-0 flex-1">
+                        <Text
+                          className="text-sm font-medium"
+                          style={{ color: item.danger ? palette.danger : palette.text }}>
+                          {sectionTitles[item.key]}
+                        </Text>
+                        {item.description ? (
+                          <Text className="mt-0.5 text-xs" style={{ color: palette.textSoft }}>
+                            {item.description}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {!item.danger ? (
+                        <AppIcon color={palette.textSoft} name="chevron-right" size={18} />
+                      ) : null}
+                    </MotionPressable>
+                  ))}
+                </View>
               </View>
-
-              {feedback ? (
-                <Alert status={feedback.status}>
-                  <Alert.Indicator />
-                  <Alert.Content>
-                    <Alert.Title>{feedback.title}</Alert.Title>
-                    <Alert.Description>{feedback.description}</Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              ) : null}
-
-              {renderProfileSection()}
-              {renderSecuritySection()}
-              {renderDevicesSection()}
-              {renderPreferencesSection()}
-              {renderStorageSection()}
-              {renderAboutSection()}
-              {renderLogoutSection()}
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </Animated.View>
         )}
         </KeyboardAvoidingView>
       </SafeAreaView>

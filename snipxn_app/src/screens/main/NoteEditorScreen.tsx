@@ -1,7 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Button } from 'heroui-native';
 import { useCallback, useEffect, useRef } from 'react';
-import { BackHandler, Text, View } from 'react-native';
+import { BackHandler, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../components/common/AppIcon';
@@ -57,37 +56,33 @@ export function NoteEditorScreen({ route, navigation }: Props) {
 
   return (
     <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <View className="flex-1 px-4 pb-5 pt-4" style={{ backgroundColor: palette.canvas }}>
+      <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={{ flex: 1 }}>
+        <View className="flex-1 px-3 pb-4 pt-3" style={{ backgroundColor: palette.canvas }}>
           <View
-            className="mb-4 rounded-[10px] border px-4 py-4"
+            className="mb-3 rounded-[10px] border px-3 py-2.5"
             style={{
               borderColor: palette.border,
               backgroundColor: palette.surface,
             }}>
-            <View className="flex-row items-center justify-between gap-3">
-              <Button variant="outline" onPress={() => void handleBack()}>
-                {t('返回')}
-              </Button>
-              <View className="min-w-0 flex-1 items-center px-1">
-                <View
-                  className="mb-2 h-11 w-11 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: withAlpha(palette.primary, 0.14) }}>
-                  <AppIcon color={palette.primary} name="notes" size={20} />
-                </View>
-                <Text className={`${typography.h3} text-center`} numberOfLines={1} style={{ color: palette.text }}>
-                  {note?.title ?? t('笔记编辑器')}
-                </Text>
-                <Text
-                  className={`${typography.bodySmall} text-center`}
-                  numberOfLines={1}
-                  style={{ color: palette.textSoft }}>
-                  {note ? `noteId: ${note.id}` : t('正在加载笔记内容...')}
-                </Text>
-              </View>
-              <Button variant="outline" onPress={() => void handleManualSave()}>
-                {t('保存')}
-              </Button>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={() => void handleBack()}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: withAlpha(palette.primary, 0.1) }}>
+                <AppIcon color={palette.primary} name="arrow-left" size={20} />
+              </Pressable>
+              <Text
+                className={`${typography.h3} min-w-0 flex-1`}
+                numberOfLines={1}
+                style={{ color: palette.text }}>
+                {note?.title ?? t('笔记编辑器')}
+              </Text>
+              <Pressable
+                onPress={() => void handleManualSave()}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: withAlpha(palette.primary, 0.1) }}>
+                <AppIcon color={palette.primary} name="save" size={20} />
+              </Pressable>
             </View>
           </View>
 

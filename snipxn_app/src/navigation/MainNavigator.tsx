@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import React, { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -95,6 +96,7 @@ export function MainNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        animation: 'fade',
         sceneStyle: { backgroundColor: palette.canvas },
         tabBarActiveTintColor: palette.primary,
         tabBarInactiveTintColor: palette.textSoft,
@@ -144,11 +146,33 @@ export function MainNavigator() {
           </View>
         ),
       })}>
-      <Tab.Screen name="NotesTab" component={NoteStack} options={{ title: t('笔记') }} />
+      <Tab.Screen
+        name="NotesTab"
+        component={NoteStack}
+        options={({ route }) => {
+          const focusedRoute = getFocusedRouteNameFromRoute(route);
+          const isEditing = focusedRoute === 'NoteEditor';
+          return {
+            title: t('笔记'),
+            ...(isEditing && {
+              tabBarStyle: { display: 'none' as const },
+            }),
+          };
+        }}
+      />
       <Tab.Screen
         name="CommunityTab"
         component={CommunityStack}
-        options={{ title: t('社区') }}
+        options={({ route }) => {
+          const focusedRoute = getFocusedRouteNameFromRoute(route);
+          const isNested = focusedRoute === 'PostDetail' || focusedRoute === 'UserProfile';
+          return {
+            title: t('社区'),
+            ...(isNested && {
+              tabBarStyle: { display: 'none' as const },
+            }),
+          };
+        }}
       />
       <Tab.Screen
         name="SettingsTab"

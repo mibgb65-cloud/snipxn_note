@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   Share,
   Text,
@@ -117,6 +118,7 @@ function PostArticle({
   onToggleCollect: () => void;
   onShare: () => void;
 }) {
+  const { isTablet: isTabletLayout } = useDeviceType();
   const { palette, theme, typography } = useAppTheme();
   const { isEnglish, t } = useI18n();
   const avatarUri = resolveCommunityAssetUrl(post.authorAvatar);
@@ -299,8 +301,8 @@ function PostArticle({
 export function PostDetailScreen({ route, navigation }: Props) {
   const { postId } = route.params;
   const { isTablet } = useDeviceType();
-  const { typography } = useAppTheme();
-  const { t } = useI18n();
+  const { palette, theme, typography } = useAppTheme();
+  const { isEnglish, t } = useI18n();
   const safeAreaEdges = isTablet ? (['top', 'left', 'right'] as const) : undefined;
 
   const currentUserId = useAuthStore(state => state.user?.id ?? null);
@@ -497,6 +499,143 @@ export function PostDetailScreen({ route, navigation }: Props) {
     />
   ) : null;
 
+  const avatarUri = post ? resolveCommunityAssetUrl(post.authorAvatar) : null;
+
+  const mobileHeader = post ? (
+    <View
+      className="gap-2.5 border-b px-4 pb-3 pt-1"
+      style={{ borderBottomColor: palette.border, backgroundColor: palette.surface }}>
+      <View className="flex-row items-center gap-3">
+        <Pressable
+          className="h-9 w-9 items-center justify-center rounded-full"
+          style={{ backgroundColor: palette.surfaceAlt }}
+          onPress={() => navigation.goBack()}>
+          <AppIcon color={palette.text} name="arrow-left" size={18} />
+        </Pressable>
+        <Text className={typography.h3} style={{ color: palette.text }}>
+          {t('帖子详情')}
+        </Text>
+      </View>
+      <Pressable
+        className="flex-row items-center gap-2.5"
+        onPress={() => navigation.navigate('UserProfile', { userId: post.userId })}>
+        <Avatar alt={`${post.authorNickname} 的头像`} color="accent" size="sm">
+          {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
+          <Avatar.Fallback>{getUserAvatarFallback(post.authorNickname)}</Avatar.Fallback>
+        </Avatar>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text className={`${typography.body} font-semibold`} numberOfLines={1} style={{ color: palette.text }}>
+            {post.authorNickname}
+          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <Text className={typography.bodySmall} numberOfLines={1} style={{ color: palette.textSoft }}>
+              {formatRelativeTime(post.createdAt)}
+            </Text>
+            <Text style={{ color: palette.textSoft }}>·</Text>
+            <AppIcon color={palette.textSoft} name="eye" size={12} />
+            <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+              {post.viewCount}
+            </Text>
+          </View>
+        </View>
+        {currentUserId !== post.userId ? (
+          <Button size="sm" variant={isFollowingAuthor ? 'outline' : 'primary'} onPress={() => { void handleToggleFollow(); }}>
+            {isFollowingAuthor ? t('已关注') : t('关注')}
+          </Button>
+        ) : null}
+      </Pressable>
+    </View>
+  ) : null;
+
+  const markdownStyleMobile = useMemo(
+    () => ({
+      body: { color: theme === 'dark' ? '#F5F5F5' : '#18181B', fontSize: 15, lineHeight: 24 },
+      heading1: { color: theme === 'dark' ? '#FAFAFA' : '#09090B', fontSize: 28, fontWeight: '700' as const, marginBottom: 12 },
+      heading2: { color: theme === 'dark' ? '#FAFAFA' : '#09090B', fontSize: 22, fontWeight: '700' as const, marginBottom: 10 },
+      heading3: { color: theme === 'dark' ? '#FAFAFA' : '#09090B', fontSize: 18, fontWeight: '600' as const, marginBottom: 8 },
+      paragraph: { marginTop: 0, marginBottom: 12 },
+      bullet_list: { marginBottom: 12 },
+      ordered_list: { marginBottom: 12 },
+      blockquote: { borderLeftWidth: 3, borderLeftColor: theme === 'dark' ? '#52525B' : '#D4D4D8', color: theme === 'dark' ? '#D4D4D8' : '#52525B', paddingLeft: 12, marginBottom: 12 },
+      code_inline: { backgroundColor: theme === 'dark' ? '#2D2D2D' : '#F8F8F8', color: theme === 'dark' ? '#F4F4F5' : '#18181B', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+      code_block: { backgroundColor: theme === 'dark' ? '#2D2D2D' : '#F8F8F8', color: theme === 'dark' ? '#F4F4F5' : '#18181B', borderRadius: 14, padding: 14 },
+      fence: { backgroundColor: theme === 'dark' ? '#2D2D2D' : '#F8F8F8', color: theme === 'dark' ? '#F4F4F5' : '#18181B', borderRadius: 14, padding: 14 },
+      link: { color: theme === 'dark' ? '#60A5FA' : '#2563EB' },
+    }),
+    [theme],
+  );
+
+  const mobileArticleBody = post ? (
+    <View
+      className="gap-4 rounded-[20px] border px-5 py-4"
+      style={{
+        borderColor: palette.border,
+        backgroundColor: palette.surface,
+        shadowColor: palette.shadow,
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 5,
+      }}>
+      <View className="gap-3">
+        <Text className={`${typography.h1} text-foreground`}>{post.title}</Text>
+        <Markdown style={markdownStyleMobile}>{post.content}</Markdown>
+      </View>
+
+      <View className="flex-row flex-wrap gap-2">
+        {post.language ? (
+          <Chip color="accent" size="sm" variant="soft">
+            {post.language}
+          </Chip>
+        ) : null}
+        {post.tags.map(tag => (
+          <Chip key={tag} color="default" size="sm" variant="soft">
+            {tag}
+          </Chip>
+        ))}
+      </View>
+
+      <View className="flex-row flex-wrap gap-2 border-t pt-4" style={{ borderTopColor: palette.border }}>
+        <CommunityActionPill
+          active={post.isLiked}
+          activeIcon="heart-filled"
+          color={palette.danger}
+          icon="heart"
+          label={String(post.likeCount)}
+          size="md"
+          onPress={() => { void handleToggleLike(); }}
+        />
+        <CommunityActionPill
+          active={post.isCollected}
+          activeIcon="bookmark-filled"
+          color={palette.warning}
+          icon="bookmark"
+          label={String(post.collectCount)}
+          size="md"
+          onPress={() => { void handleToggleCollect(); }}
+        />
+        <CommunityActionPill
+          color={palette.accent}
+          icon="share"
+          label={t('分享')}
+          size="md"
+          onPress={() => { void handleShare(); }}
+        />
+        <View
+          className="flex-row items-center gap-1.5 rounded-full border px-4 py-2.5"
+          style={{
+            borderColor: withAlpha(palette.success, 0.28),
+            backgroundColor: withAlpha(palette.success, 0.1),
+          }}>
+          <AppIcon color={palette.success} name="message-square" size={16} />
+          <Text className={`${typography.bodySmall} font-medium`} style={{ color: palette.success }}>
+            {isEnglish ? `${t('评论')} ${post.commentCount}` : `评论 ${post.commentCount}`}
+          </Text>
+        </View>
+      </View>
+    </View>
+  ) : null;
+
   return (
     <View className="flex-1 bg-background">
       <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
@@ -557,25 +696,28 @@ export function PostDetailScreen({ route, navigation }: Props) {
                 </View>
               </View>
             ) : (
-              <View className="flex-1 px-4 pb-4 pt-2">
-                <View className="min-h-0 flex-1">
-                  <CommentSection
-                    headerComponent={article}
-                    postId={post.id}
-                    onPressUser={userId => navigation.navigate('UserProfile', { userId })}
-                    onReply={comment => setReplyTarget(comment)}
+              <View className="flex-1">
+                {mobileHeader}
+                <View className="min-h-0 flex-1 px-4 pt-3">
+                  <View className="min-h-0 flex-1">
+                    <CommentSection
+                      headerComponent={mobileArticleBody}
+                      postId={post.id}
+                      onPressUser={userId => navigation.navigate('UserProfile', { userId })}
+                      onReply={comment => setReplyTarget(comment)}
+                    />
+                  </View>
+                  <CommentComposer
+                    replyTarget={replyTarget}
+                    submitting={submittingComment}
+                    value={commentInput}
+                    onCancelReply={() => setReplyTarget(null)}
+                    onChange={setCommentInput}
+                    onSubmit={() => {
+                      void handleSubmitComment();
+                    }}
                   />
                 </View>
-                <CommentComposer
-                  replyTarget={replyTarget}
-                  submitting={submittingComment}
-                  value={commentInput}
-                  onCancelReply={() => setReplyTarget(null)}
-                  onChange={setCommentInput}
-                  onSubmit={() => {
-                    void handleSubmitComment();
-                  }}
-                />
               </View>
             )
           ) : (

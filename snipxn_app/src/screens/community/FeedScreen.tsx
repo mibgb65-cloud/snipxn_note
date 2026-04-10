@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Alert, Avatar, Button, Spinner } from 'heroui-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 
 import * as postApi from '../../api/post';
@@ -251,7 +251,9 @@ export function FeedScreen() {
   const { isTablet } = useDeviceType();
   const { palette, typography } = useAppTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const safeAreaEdges = isTablet ? (['top', 'left', 'right'] as const) : undefined;
+  const mobileBottomPadding = isTablet ? 16 : 68 + Math.max(insets.bottom, 10) + 8;
 
   const {
     posts,
@@ -568,68 +570,101 @@ export function FeedScreen() {
       <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
         <View className="flex-1 px-4 pb-4 pt-4" style={{ backgroundColor: palette.canvas }}>
           <Animated.View layout={APP_LAYOUT_TRANSITION}>
-            <Animated.View
-              entering={APP_HEADER_ENTERING}
-              exiting={APP_HEADER_EXITING}
-              className="mb-4 overflow-hidden rounded-[12px] border px-4 py-4"
-              style={{
-                borderColor: withAlpha(palette.accent, 0.14),
-                backgroundColor: palette.surface,
-              }}>
-              <View className="gap-3">
-              <View className={isTablet ? 'flex-row items-center gap-3' : 'flex-row items-start gap-3'}>
-                <View className={isTablet ? '' : 'shrink-0'}>
-                  <Text className={typography.h1} style={{ color: palette.text }}>
-                    {t('社区')}
-                  </Text>
-                  {isTablet ? (
-                    <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
-                      {activeTabDescription}
-                    </Text>
+            {isTablet ? (
+              <Animated.View
+                entering={APP_HEADER_ENTERING}
+                exiting={APP_HEADER_EXITING}
+                className="mb-4 overflow-hidden rounded-[12px] border px-4 py-4"
+                style={{
+                  borderColor: withAlpha(palette.accent, 0.14),
+                  backgroundColor: palette.surface,
+                }}>
+                <View className="gap-3">
+                  <View className="flex-row items-center gap-3">
+                    <View>
+                      <Text className={typography.h1} style={{ color: palette.text }}>
+                        {t('社区')}
+                      </Text>
+                      <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+                        {activeTabDescription}
+                      </Text>
+                    </View>
+
+                    <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                      <View
+                        className="min-w-0 flex-1 flex-row items-center gap-2 rounded-[8px] border px-3 py-2.5"
+                        style={{ borderColor: palette.border, backgroundColor: palette.surfaceAlt }}>
+                        <AppIcon color={palette.textSoft} name="search" size={18} />
+                        <TextInput
+                          className={`${typography.body} flex-1`}
+                          placeholder={t('搜索标题、摘要、标签或作者')}
+                          placeholderTextColor={palette.placeholder}
+                          style={{ color: palette.text }}
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                        />
+                      </View>
+                      {tabSwitcher}
+                    </View>
+                  </View>
+
+                  {feedback ? (
+                    <Alert status={feedback.status}>
+                      <Alert.Indicator />
+                      <Alert.Content>
+                        <Alert.Title>{feedback.title}</Alert.Title>
+                        <Alert.Description>{feedback.description}</Alert.Description>
+                      </Alert.Content>
+                    </Alert>
                   ) : null}
                 </View>
+              </Animated.View>
+            ) : (
+              <Animated.View
+                entering={APP_HEADER_ENTERING}
+                exiting={APP_HEADER_EXITING}
+                className="mb-3 overflow-hidden rounded-[12px] border px-4 py-3"
+                style={{
+                  borderColor: withAlpha(palette.accent, 0.14),
+                  backgroundColor: palette.surface,
+                }}>
+                <View className="gap-2.5">
+                  <View className="flex-row items-center justify-between">
+                    <Text className={typography.h3} style={{ color: palette.text }}>
+                      {t('社区')}
+                    </Text>
+                    {tabSwitcher}
+                  </View>
 
-                <View
-                  className="min-w-0 flex-1 flex-row items-center gap-3"
-                  style={isTablet ? undefined : { paddingTop: 2 }}>
                   <View
-                    className="min-w-0 flex-1 flex-row items-center gap-2 rounded-[8px] border px-3 py-2.5"
-                    style={{ borderColor: palette.border, backgroundColor: palette.surfaceAlt }}>
-                    <AppIcon color={palette.textSoft} name="search" size={18} />
+                    className="flex-row items-center gap-2.5 rounded-full border px-3.5 py-2"
+                    style={{
+                      borderColor: withAlpha(palette.accent, 0.12),
+                      backgroundColor: palette.panelInset,
+                    }}>
+                    <AppIcon color={palette.primary} name="search" size={16} />
                     <TextInput
-                      className={`${typography.body} flex-1`}
-                      placeholder={t('搜索标题、摘要、标签或作者')}
+                      className={`${typography.bodySmall} flex-1`}
+                      placeholder={t('搜索标题、标签或作者')}
                       placeholderTextColor={palette.placeholder}
-                      style={{ color: palette.text }}
+                      style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                     />
                   </View>
 
-                  {isTablet ? tabSwitcher : null}
+                  {feedback ? (
+                    <Alert status={feedback.status}>
+                      <Alert.Indicator />
+                      <Alert.Content>
+                        <Alert.Title>{feedback.title}</Alert.Title>
+                        <Alert.Description>{feedback.description}</Alert.Description>
+                      </Alert.Content>
+                    </Alert>
+                  ) : null}
                 </View>
-              </View>
-
-              {!isTablet ? (
-                <View className="flex-row items-center justify-between gap-3">
-                  <Text className={`${typography.bodySmall} flex-1`} style={{ color: palette.textSoft }}>
-                    {activeTabDescription}
-                  </Text>
-                  {tabSwitcher}
-                </View>
-              ) : null}
-
-                {feedback ? (
-                  <Alert status={feedback.status}>
-                    <Alert.Indicator />
-                    <Alert.Content>
-                      <Alert.Title>{feedback.title}</Alert.Title>
-                      <Alert.Description>{feedback.description}</Alert.Description>
-                    </Alert.Content>
-                  </Alert>
-                ) : null}
-              </View>
-            </Animated.View>
+              </Animated.View>
+            )}
           </Animated.View>
 
           {isTablet ? (
@@ -709,7 +744,7 @@ export function FeedScreen() {
           ) : (
             <FlatList
               key="community-list"
-              contentContainerStyle={{ paddingBottom: 16 }}
+              contentContainerStyle={{ paddingBottom: mobileBottomPadding }}
               data={filteredPosts}
               initialNumToRender={10}
               keyExtractor={item => item.id}

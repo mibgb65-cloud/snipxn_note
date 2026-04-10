@@ -28,6 +28,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_BASE_URL } from '../../api/axios';
 import * as fileApi from '../../api/file';
 import { translateLiteral, useI18n } from '../../i18n';
+import { useDeviceType } from '../../hooks';
 import { useAuthStore, useUserStore } from '../../stores';
 import { useAppTheme } from '../../theme';
 
@@ -145,6 +146,7 @@ export function SetupProfileScreen() {
   const user = useAuthStore(state => state.user);
   const updateProfile = useUserStore(state => state.updateProfile);
   const { isTablet, typography } = useAppTheme();
+  const { isTabletLandscape } = useDeviceType();
   const { t } = useI18n();
 
   const [nickname, setNickname] = useState(user?.nickname ?? user?.email.split('@')[0] ?? '');
@@ -281,7 +283,7 @@ export function SetupProfileScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View className="flex-1 justify-center px-6 py-10">
-            <View className={`w-full ${isTablet ? 'mx-auto max-w-[420px]' : ''}`}>
+            <View className={`w-full ${isTablet ? 'mx-auto' : ''}`} style={isTablet ? { maxWidth: isTabletLandscape ? 560 : 420 } : undefined}>
               <View className="items-center gap-2">
                 <Text className={`${typography.h2} text-center text-foreground`}>
                   {t('完善个人资料')}

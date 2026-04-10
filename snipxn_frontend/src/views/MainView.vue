@@ -1,7 +1,8 @@
 <template>
-  <div class="workspace-shell animate-fade-in">
+  <div class="workspace-shell animate-fade-in" :class="{ 'workspace-shell-mobile': isPhone }">
     <div class="workspace-frame">
-      <header class="workspace-topbar animate-fade-in-up delay-100">
+      <!-- ── Desktop topbar ── -->
+      <header v-if="!isPhone" class="workspace-topbar animate-fade-in-up delay-100">
         <div class="workspace-brand-block">
           <div class="workspace-brand-icon">
             <img class="workspace-brand-logo" :src="logoUrl" :alt="t('app.logoAlt')" width="40" height="40">
@@ -108,7 +109,119 @@
         </div>
       </header>
 
-      <div class="workspace-body animate-fade-in-up delay-150" :class="{ 'workspace-body-stacked': isStackedWorkspace }">
+      <!-- ── Mobile topbar ── -->
+      <header v-if="isPhone" class="mobile-topbar">
+        <button
+          v-if="mobileActivePanel === 'editor'"
+          class="mobile-topbar-back"
+          @click="mobileGoBack"
+        >
+          <i class="pi pi-arrow-left" />
+        </button>
+        <button
+          v-else
+          class="mobile-topbar-menu"
+          @click="showMobileSidebar = !showMobileSidebar"
+        >
+          <i class="pi pi-bars" />
+        </button>
+
+        <h1 class="mobile-topbar-title">{{ mobileNavTitle }}</h1>
+
+        <div class="mobile-topbar-actions">
+          <button class="mobile-topbar-btn" @click="handleCreateNote" :title="t('notes.createNote')">
+            <i class="pi pi-plus" />
+          </button>
+          <button class="mobile-topbar-btn" @click="handleOpenSettings" :title="t('sidebar.settings')">
+            <i class="pi pi-cog" />
+          </button>
+        </div>
+      </header>
+
+      <!-- ── Mobile search bar ── -->
+      <div v-if="isPhone" class="mobile-search-bar">
+        <div
+          ref="workspaceSearchRef"
+          class="workspace-command"
+          :class="{ 'workspace-command-open': showWorkspaceSearchDropdown }"
+          @focusin="handleWorkspaceSearchFocusIn"
+          @focusout="handleWorkspaceSearchFocusOut"
+        >
+          <div class="workspace-command-field">
+            <i class="pi pi-search workspace-command-icon" aria-hidden="true" />
+            <InputText
+              id="workspace-command-search-mobile"
+              :model-value="noteStore.searchQuery"
+              :placeholder="t('sidebar.searchPlaceholder')"
+              class="workspace-command-input"
+              @update:model-value="handleWorkspaceSearchInput"
+              @keydown.enter.prevent="handleWorkspaceSearchEnter"
+              @keydown.esc.prevent="handleWorkspaceSearchEscape"
+            />
+          </div>
+          <div
+            v-if="showWorkspaceSearchDropdown"
+            class="workspace-command-results"
+            role="listbox"
+          >
+            <button
+              v-for="(note, index) in workspaceSearchResults"
+              :key="note.id"
+              type="button"
+              class="workspace-command-result"
+              :class="{ 'workspace-command-result-active': index === workspaceSearchActiveIndex }"
+              role="option"
+              @mousedown.prevent
+              @click="handleOpenWorkspaceSearchResult(note)"
+            >
+              <div class="workspace-command-result-main">
+                <span class="workspace-command-result-title">{{ note.title || t('notes.untitled') }}</span>
+                <span class="workspace-command-result-summary">{{ note.searchSummary }}</span>
+              </div>
+            </button>
+            <div v-if="!workspaceSearchResults.length" class="workspace-command-empty">
+              {{ t('workspace.searchNoResults') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Mobile sidebar drawer ── -->
+      <Transition name="mobile-drawer">
+        <div v-if="isPhone && showMobileSidebar" class="mobile-sidebar-backdrop" @click="showMobileSidebar = false" />
+      </Transition>
+      <Transition name="mobile-sidebar-slide">
+        <div v-if="isPhone && showMobileSidebar" class="mobile-sidebar-drawer">
+          <Sidebar
+            :folders="folderStore.folders"
+            :active-folder-id="folderStore.activeFolderId"
+            :active-view="noteStore.activeView"
+            :home-active="showWorkspaceHome"
+            :tags="noteStore.tags"
+            :active-tag="noteStore.activeTag"
+            :has-selected-note="Boolean(noteStore.currentNote || noteStore.selectedNoteId)"
+            :user="displayUser"
+            :storage-profile="userStore.profile"
+            :storage-loading="userStore.loadingProfile"
+            :storage-percent="userStore.storageUsagePercent"
+            :collapsed="false"
+            @select-home="() => { handleSelectHome(); showMobileSidebar = false; }"
+            @select-folder="handleSelectFolder"
+            @select-view="handleSelectView"
+            @select-tag="(tag) => { noteStore.setActiveTag(tag); showMobileSidebar = false; mobileActivePanel = 'list'; }"
+            @create-folder="handleCreateFolder"
+            @update-folder="handleUpdateFolder"
+            @delete-folder="handleDeleteFolder"
+            @create-tag="handleCreateTag"
+            @delete-tag="handleDeleteTag"
+            @open-settings="() => { showMobileSidebar = false; handleOpenSettings(); }"
+            @logout="handleLogout"
+          />
+        </div>
+      </Transition>
+
+      <!-- ── Desktop body (unchanged) ── -->
+      <div v-if="!isPhone" class="workspace-body animate-fade-in-up delay-150" :class="{ 'workspace-body-stacked': isStackedWorkspace }">
         <div class="workspace-sidebar-shell" :class="{ 'workspace-sidebar-shell-collapsed': isSidebarCollapsed }">
           <Sidebar
             :folders="folderStore.folders"
@@ -201,6 +314,63 @@
           </Transition>
         </div>
       </div>
+
+      <!-- ── Mobile body: single-panel switching ── -->
+      <div v-if="isPhone" class="mobile-body">
+        <Transition name="mobile-panel" mode="out-in">
+          <div v-if="showWorkspaceHome && mobileActivePanel === 'list'" key="mobile-home" class="mobile-panel">
+            <WorkspaceHome
+              :user="displayUser"
+              :recent-notes="recentWorkspaceNotes"
+              :folders="folderStore.folders"
+              :metrics="workspaceMetrics"
+              :storage-profile="userStore.profile"
+              :storage-percent="userStore.storageUsagePercent"
+              :active-folder-name="folderStore.activeFolder?.name || t('folders.defaultFolder')"
+              @create-note="handleCreateNote"
+              @create-folder="handleCreateFolder({ name: t('folders.defaultFolderName'), icon: 'pi pi-folder' })"
+              @open-community="handleOpenCommunity"
+              @open-settings="handleOpenSettings"
+              @open-note="handleSelectNote"
+            />
+          </div>
+
+          <div v-else-if="mobileActivePanel === 'list'" key="mobile-list" class="mobile-panel">
+            <NoteList
+              :title="noteListTitle"
+              :notes="displayedNotes"
+              :loading="bootstrapping || noteStore.loadingList"
+              :selected-note-id="noteStore.selectedNoteId"
+              :total="noteStore.total"
+              :page="noteStore.page"
+              :size="noteStore.size"
+              :can-create="!noteStore.isTrashView"
+              @select="handleSelectNote"
+              @create="handleCreateNote"
+              @change-page="handleChangePage"
+              @import="handleImportNotes"
+            />
+          </div>
+
+          <div v-else-if="mobileActivePanel === 'editor'" key="mobile-editor" class="mobile-panel">
+            <NoteEditor
+              :note="noteStore.currentNote"
+              :loading="bootstrapping || noteStore.loadingDetail"
+              :saving="noteStore.saving"
+              :is-trash-view="noteStore.isTrashView"
+              :mobile="true"
+              @create-note="handleCreateNote"
+              @update:title="(value) => syncCurrentNote({ title: value })"
+              @update:language="(value) => syncCurrentNote({ primaryLanguage: value })"
+              @update:content="(value) => syncCurrentNote({ content: value })"
+              @toggle-star="handleToggleStar"
+              @delete="handleDeleteNote"
+              @restore="handleRestoreNote"
+              @purge="handleDeletePermanently"
+            />
+          </div>
+        </Transition>
+      </div>
     </div>
 
   </div>
@@ -227,8 +397,10 @@ import InputText from 'primevue/inputtext';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import { useLogoUrl } from '../composables/useLogoUrl';
+import { useBreakpoints, BREAKPOINTS } from '../composables/useBreakpoints';
 
 const { logoUrl } = useLogoUrl();
+const { isPhone } = useBreakpoints();
 
 const route = useRoute();
 const router = useRouter();
@@ -247,6 +419,21 @@ const workspaceSearchRef = ref(null);
 const workspaceSearchFocused = ref(false);
 const workspaceSearchActiveIndex = ref(-1);
 const workspaceHomeVisible = ref(true);
+
+/* ── Mobile panel navigation ── */
+const mobileActivePanel = ref('list');       // 'sidebar' | 'list' | 'editor'
+const showMobileSidebar = ref(false);
+
+function mobileGoBack() {
+  if (mobileActivePanel.value === 'editor') mobileActivePanel.value = 'list';
+  else if (mobileActivePanel.value === 'sidebar') mobileActivePanel.value = 'list';
+}
+
+const mobileNavTitle = computed(() => {
+  if (mobileActivePanel.value === 'sidebar') return t('sidebar.title') || 'Menu';
+  if (mobileActivePanel.value === 'editor') return noteStore.currentNote?.title || t('notes.untitled');
+  return noteListTitle.value;
+});
 
 const displayUser = computed(() => userStore.profile || authStore.user || null);
 const isStackedWorkspace = computed(() => windowWidth.value <= STACKED_WORKSPACE_BREAKPOINT);
@@ -516,6 +703,7 @@ async function handleSelectFolder(folderId) {
 
   workspaceHomeVisible.value = false;
   folderStore.setActiveFolder(folderId);
+  if (isPhone.value) { showMobileSidebar.value = false; mobileActivePanel.value = 'list'; }
   try {
     await noteStore.setView('folder', folderId);
   } catch (error) {
@@ -550,6 +738,7 @@ async function handleSelectView(view) {
   }
 
   workspaceHomeVisible.value = false;
+  if (isPhone.value) { showMobileSidebar.value = false; mobileActivePanel.value = 'list'; }
   try {
     await noteStore.setView(view, view === 'folder' ? getResolvedActiveFolderId() : null);
   } catch (error) {
@@ -567,6 +756,7 @@ async function handleSelectNote(noteId) {
 
   try {
     await noteStore.selectNote(noteId);
+    if (isPhone.value) mobileActivePanel.value = 'editor';
   } catch (error) {
     showError(error, 'workspace.loadFailed');
   }
@@ -727,6 +917,7 @@ async function handleLogout() {
 
 function lockWorkspaceViewport() {
   if (typeof document === 'undefined') return;
+  if (isPhone.value) return;
   document.documentElement.classList.add('workspace-locked');
   document.body.classList.add('workspace-locked');
 }
@@ -1268,6 +1459,204 @@ onBeforeUnmount(() => {
 
   .workspace-summary {
     flex-wrap: wrap;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Mobile-specific styles (< 768px)
+   ═══════════════════════════════════════════════════════════ */
+
+.workspace-shell-mobile {
+  height: 100dvh;
+}
+
+/* ── Mobile topbar ── */
+.mobile-topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 3.25rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
+  z-index: 18;
+}
+
+.mobile-topbar-back,
+.mobile-topbar-menu {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.mobile-topbar-back:active,
+.mobile-topbar-menu:active {
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+}
+
+.mobile-topbar-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.mobile-topbar-btn {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-color-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.mobile-topbar-btn:active {
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+}
+
+/* ── Mobile search bar ── */
+.mobile-search-bar {
+  flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
+}
+
+.mobile-search-bar .workspace-command {
+  width: 100%;
+}
+
+.mobile-search-bar .workspace-command-field {
+  min-height: 2.25rem;
+  padding: 0 0.6rem;
+}
+
+/* ── Mobile sidebar drawer ── */
+.mobile-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.mobile-sidebar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(80vw, 320px);
+  z-index: 1000;
+  background: color-mix(in srgb, var(--app-panel-strong) 99%, transparent);
+  border-right: 1px solid var(--app-border);
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* drawer transitions */
+.mobile-drawer-enter-active,
+.mobile-drawer-leave-active {
+  transition: opacity 0.25s ease;
+}
+.mobile-drawer-enter-from,
+.mobile-drawer-leave-to {
+  opacity: 0;
+}
+
+.mobile-sidebar-slide-enter-active,
+.mobile-sidebar-slide-leave-active {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mobile-sidebar-slide-enter-from,
+.mobile-sidebar-slide-leave-to {
+  transform: translateX(-100%);
+}
+
+/* ── Mobile body ── */
+.mobile-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* mobile panel transitions */
+.mobile-panel-enter-active,
+.mobile-panel-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mobile-panel-enter-from {
+  opacity: 0;
+  transform: translateX(40px);
+}
+.mobile-panel-leave-to {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* ── Touch-friendly splitter gutter ── */
+@media (pointer: coarse) {
+  :deep(.p-splitter-gutter) {
+    width: 10px !important;
+    touch-action: none;
+  }
+
+  :deep(.p-splitter-gutter)::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+
+  :deep(.p-splitter-gutter-handle) {
+    width: 3px;
+    height: 28px;
+    border-radius: 2px;
+    background: var(--surface-400) !important;
+  }
+
+  :deep(.p-splitter.p-splitter-vertical > .p-splitter-gutter) {
+    height: 10px !important;
   }
 }
 </style>

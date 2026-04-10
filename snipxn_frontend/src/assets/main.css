@@ -1,4 +1,20 @@
 :root {
+  /* ── Safe-area insets ── */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* ── Responsive breakpoints ── */
+  --bp-phone-sm: 375px;
+  --bp-phone: 480px;
+  --bp-tablet-sm: 640px;
+  --bp-tablet: 768px;
+  --bp-tablet-lg: 1024px;
+  --bp-desktop-sm: 1180px;
+  --bp-desktop: 1280px;
+  --bp-desktop-lg: 1440px;
+
   --font-sans: 'MiSans', 'HarmonyOS Sans SC', 'Noto Sans SC', 'Source Han Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Segoe UI', sans-serif;
   --font-display: 'MiSans', 'HarmonyOS Sans SC', 'Noto Sans SC', 'Source Han Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Mono', 'Cascadia Code', 'Sarasa Mono SC', 'Noto Sans Mono CJK SC', 'SFMono-Regular', Consolas, 'Liberation Mono', 'Microsoft YaHei UI', monospace;
@@ -211,6 +227,10 @@ button,
 #app {
   position: relative;
   z-index: 1;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 ::selection {
@@ -371,6 +391,17 @@ button,
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--primary-color) 20%, var(--surface-border));
   background-clip: padding-box;
+}
+
+/* ── Touch devices: hide scrollbars ── */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+  * {
+    scrollbar-width: none;
+  }
 }
 
 @keyframes fade-in-up {

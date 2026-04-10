@@ -776,4 +776,28 @@ watch(
     padding: 0.9rem;
   }
 }
+
+@media (max-width: 480px) {
+  .settings-page-body {
+    padding: 0.5rem;
+  }
+
+  .settings-page-topbar {
+    padding: 0.4rem 0.65rem;
+  }
+
+  .settings-page-command,
+  .settings-page-profile-card,
+  .settings-page-meta-card {
+    padding: 0.65rem;
+  }
+
+  .settings-page-brand-copy .settings-page-eyebrow {
+    display: none;
+  }
+
+  .settings-page-title {
+    font-size: 1rem;
+  }
+}
 </style>

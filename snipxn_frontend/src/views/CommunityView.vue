@@ -1,7 +1,7 @@
 <template>
-  <div class="community-shell animate-fade-in">
+  <div class="community-shell animate-fade-in" :class="{ 'community-shell-mobile': isPhone }">
     <div class="community-frame">
-      <header class="community-topbar animate-fade-in-up delay-100">
+      <header v-if="!isPhone" class="community-topbar animate-fade-in-up delay-100">
         <div class="community-brand-block">
           <div class="community-brand-icon">
             <img class="community-brand-logo" :src="logoUrl" :alt="t('app.logoAlt')" width="36" height="36">
@@ -108,8 +108,32 @@
         </div>
       </header>
 
-      <div class="community-body animate-fade-in-up delay-150" :class="{ 'community-body-stacked': isCommunityStacked }">
-        <aside class="community-sidebar-shell">
+      <!-- ── Mobile topbar ── -->
+      <header v-if="isPhone" class="community-mobile-topbar">
+        <div class="community-mobile-topbar-left">
+          <img class="community-brand-logo" :src="logoUrl" :alt="t('app.logoAlt')" width="28" height="28">
+          <h1 class="community-mobile-title">{{ t('community.title') }}</h1>
+        </div>
+        <ThemeToggle />
+      </header>
+
+      <!-- ── Mobile scope tabs (horizontal scroll) ── -->
+      <div v-if="isPhone" class="community-mobile-scopes">
+        <button
+          v-for="scope in communityScopeButtons"
+          :key="scope.value"
+          type="button"
+          class="community-mobile-scope"
+          :class="{ 'community-mobile-scope-active': activeFeedScope === scope.value }"
+          @click="handleChangeScope(scope.value)"
+        >
+          <i :class="scope.icon" />
+          {{ scope.label }}
+        </button>
+      </div>
+
+      <div class="community-body animate-fade-in-up delay-150" :class="{ 'community-body-stacked': isCommunityStacked, 'community-body-mobile': isPhone }">
+        <aside v-if="!isPhone" class="community-sidebar-shell">
           <div class="community-sidebar">
             <section class="community-sidebar-section">
               <div class="community-sidebar-header">
@@ -532,8 +556,10 @@ import UserHoverCard from '../components/community/UserHoverCard.vue';
 import CommentSection from '../components/community/CommentSection.vue';
 import PostShareDialog from '../components/community/PostShareDialog.vue';
 import { useLogoUrl } from '../composables/useLogoUrl';
+import { useBreakpoints } from '../composables/useBreakpoints';
 
 const { logoUrl } = useLogoUrl();
+const { isPhone } = useBreakpoints();
 import { useAuthStore } from '../stores/auth';
 import { useCommunityStore } from '../stores/community';
 import { useUserStore } from '../stores/user';
@@ -2608,5 +2634,125 @@ watch(
   .community-topbar-actions :deep(.p-button-label) {
     display: none;
   }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile community styles
+   ═══════════════════════════════════════════════ */
+.community-shell-mobile {
+  height: auto;
+  min-height: 100dvh;
+  max-height: none;
+  overflow: visible;
+}
+
+.community-shell-mobile .community-frame {
+  overflow: visible;
+}
+
+.community-mobile-topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.25rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
+}
+
+.community-mobile-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.community-mobile-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.community-mobile-scopes {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
+}
+
+.community-mobile-scopes::-webkit-scrollbar {
+  display: none;
+}
+
+.community-mobile-scope {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: 2rem;
+  background: transparent;
+  color: var(--text-color-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.community-mobile-scope-active {
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color) 30%, var(--app-border));
+  color: var(--primary-color);
+}
+
+.community-body-mobile {
+  flex-direction: column;
+  overflow: visible;
+  height: auto;
+  min-height: 0;
+}
+
+.community-body-mobile .community-main {
+  overflow: visible;
+}
+
+.community-body-mobile .community-feed-panel {
+  overflow: visible;
+  max-height: none;
+}
+
+.community-body-mobile .community-insights {
+  overflow: visible;
+  max-height: none;
+  border-top: 1px solid var(--app-border);
+  padding: 0.75rem;
+}
+
+.community-body-mobile .community-feed-grid {
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.community-body-mobile .community-inline-detail {
+  padding: 0.75rem;
+}
+
+.community-body-mobile .community-inline-detail-toolbar {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.community-body-mobile .community-compose-area {
+  padding: 0.75rem;
 }
 </style>

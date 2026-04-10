@@ -1,5 +1,5 @@
 <template>
-  <section class="panel editor-panel" :aria-busy="loading">
+  <section class="panel editor-panel" :class="{ 'editor-panel-mobile': mobile }" :aria-busy="loading">
     <div v-if="loading && !note" class="editor-loading">
       <Skeleton height="8rem" border-radius="1rem" />
       <Skeleton height="24rem" border-radius="1rem" />
@@ -30,8 +30,26 @@
 
       <div class="editor-workbench">
         <div class="editor-main-stack">
-          <div class="editor-grid">
-            <div class="editor-pane">
+          <div v-if="mobile" class="mobile-editor-tabs">
+            <button
+              class="mobile-editor-tab"
+              :class="{ 'mobile-editor-tab-active': mobileEditorTab === 'edit' }"
+              @click="mobileEditorTab = 'edit'"
+            >
+              <i class="pi pi-pencil" />
+              {{ t('notes.editor') }}
+            </button>
+            <button
+              class="mobile-editor-tab"
+              :class="{ 'mobile-editor-tab-active': mobileEditorTab === 'preview' }"
+              @click="mobileEditorTab = 'preview'"
+            >
+              <i class="pi pi-eye" />
+              {{ t('notes.preview') }}
+            </button>
+          </div>
+          <div class="editor-grid" :class="{ 'editor-grid-mobile': mobile }">
+            <div class="editor-pane" v-show="!mobile || mobileEditorTab === 'edit'">
               <div class="pane-header">
                 <div class="pane-header-main">
                   <span class="pane-chrome" aria-hidden="true">
@@ -92,7 +110,7 @@
               </div>
             </div>
 
-            <div class="preview-pane">
+            <div class="preview-pane" v-show="!mobile || mobileEditorTab === 'preview'">
               <div class="pane-header">
                 <div class="pane-header-main">
                   <span class="pane-chrome" aria-hidden="true">
@@ -110,6 +128,7 @@
         </div>
 
         <CodeRunnerSidebar
+          v-if="!mobile"
           :expanded="codePanelExpanded"
           :active-code-block="activeCodeBlock"
           :theme="monacoTheme"
@@ -243,6 +262,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  mobile: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -263,6 +286,7 @@ const { isDarkTheme } = useTheme();
 const communityStore = useCommunityStore();
 const noteStore = useNoteStore();
 
+const mobileEditorTab = ref('edit'); // 'edit' | 'preview'
 const markdownTextareaRef = ref(null);
 const markdownPreviewRef = ref(null);
 const fileInput = ref(null);
@@ -1949,5 +1973,106 @@ async function handleCancelShare() {
   display: flex;
   justify-content: flex-end;
   gap: 0.55rem;
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile editor styles
+   ═══════════════════════════════════════════════ */
+.editor-panel-mobile {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editor-panel-mobile .editor-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-panel-mobile .editor-workbench {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-panel-mobile .editor-main-stack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-editor-tabs {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-subtle) 96%, transparent);
+}
+
+.mobile-editor-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.mobile-editor-tab-active {
+  color: var(--primary-color);
+}
+
+.mobile-editor-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary-color);
+}
+
+.editor-grid-mobile {
+  grid-template-columns: 1fr !important;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-panel-mobile .editor-pane,
+.editor-panel-mobile .preview-pane {
+  min-height: 0;
+  height: 100%;
+}
+
+.editor-panel-mobile .pane-header {
+  display: none;
+}
+
+.editor-panel-mobile .markdown-textarea {
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 0.75rem;
+}
+
+.editor-panel-mobile .markdown-preview {
+  padding: 0.75rem;
+  font-size: 14px;
+}
+
+.editor-panel-mobile .editor-empty {
+  padding: 2rem 1rem;
 }
 </style>

@@ -87,9 +87,15 @@ export function FolderList() {
   const navigation = useNavigation<any>();
   const { palette, typography } = useAppTheme();
 
-  const { folders, activeFolderId, createFolder, updateFolder, deleteFolder, reorderFolders, setActiveFolder } = useFolderStore(useShallow(state => ({
+  const {
+    folders,
+    createFolder,
+    updateFolder,
+    deleteFolder,
+    reorderFolders,
+    setActiveFolder,
+  } = useFolderStore(useShallow(state => ({
     folders: state.folders,
-    activeFolderId: state.activeFolderId,
     createFolder: state.createFolder,
     updateFolder: state.updateFolder,
     deleteFolder: state.deleteFolder,
@@ -97,11 +103,21 @@ export function FolderList() {
     setActiveFolder: state.setActiveFolder,
   })));
 
-  const { activeView, notes, fetchNotes, setActiveView, setActiveTagId } = useNoteStore(useShallow(state => ({
+  const {
+    activeView,
+    activeFolderId,
+    notes,
+    fetchNotes,
+    setActiveView,
+    setActiveFolderView,
+    setActiveTagId,
+  } = useNoteStore(useShallow(state => ({
     activeView: state.activeView,
+    activeFolderId: state.activeFolderId,
     notes: state.notes,
     fetchNotes: state.fetchNotes,
     setActiveView: state.setActiveView,
+    setActiveFolderView: state.setActiveFolderView,
     setActiveTagId: state.setActiveTagId,
   })));
 
@@ -198,9 +214,8 @@ export function FolderList() {
 
   const handleSelectFolder = async (folderId: string) => {
     setActiveTagId(null);
-    setActiveView('folder');
     setActiveFolder(folderId);
-    await fetchNotes();
+    setActiveFolderView(folderId);
     navigation.navigate('Workspace');
   };
 
@@ -214,6 +229,18 @@ export function FolderList() {
     try {
       await deleteFolder(folder.id);
       closeDialogs();
+
+      if (activeView === 'folder' && activeFolderId === folder.id) {
+        const fallbackFolderId = useFolderStore.getState().activeFolderId;
+
+        if (fallbackFolderId) {
+          setActiveFolderView(fallbackFolderId);
+        } else {
+          setActiveView('all');
+        }
+        return;
+      }
+
       await fetchNotes();
     } catch (error) {
       setSubmitting(false);
@@ -248,9 +275,8 @@ export function FolderList() {
     try {
       if (dialogMode === 'create') {
         setActiveTagId(null);
-        setActiveView('folder');
-        await createFolder(nameInput.trim(), selectedFolderIcon);
-        await fetchNotes();
+        const folder = await createFolder(nameInput.trim(), selectedFolderIcon);
+        setActiveFolderView(folder.id);
       } else if (dialogMode === 'rename' && editingFolder) {
         await updateFolder(editingFolder.id, { name: nameInput.trim() });
       } else if (dialogMode === 'icon' && editingFolder) {

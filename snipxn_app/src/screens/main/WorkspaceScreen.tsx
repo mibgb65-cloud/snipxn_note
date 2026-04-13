@@ -1,3 +1,4 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { Button, Spinner } from 'heroui-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -13,6 +14,7 @@ import {
   AppIcon,
   GlassPanel,
 } from '../../components/common';
+import { TabPageHeader } from '../../components/common/TabPageHeader';
 import { NoteEditorPane } from '../../components/note/NoteEditorPane';
 import { NoteList } from '../../components/note/NoteList';
 import { useDeviceType } from '../../hooks';
@@ -40,6 +42,22 @@ function getViewLabel(
   }
 
   return t('文件夹');
+}
+
+function resolvePreferredFolderId(
+  preferredFolderId: string | null,
+  fallbackFolderId: string | null,
+  folders: { id: string; isDefault: boolean; isDeleted: boolean }[],
+): string | null {
+  if (preferredFolderId && folders.some(folder => folder.id === preferredFolderId && !folder.isDeleted)) {
+    return preferredFolderId;
+  }
+
+  if (fallbackFolderId && folders.some(folder => folder.id === fallbackFolderId && !folder.isDeleted)) {
+    return fallbackFolderId;
+  }
+
+  return folders.find(folder => folder.isDefault && !folder.isDeleted)?.id ?? folders.find(folder => !folder.isDeleted)?.id ?? null;
 }
 
 type WorkspaceFeedback = {
@@ -164,7 +182,8 @@ type NoteView = 'folder' | 'all' | 'starred' | 'trash';
 interface MobileFilterBarProps {
   activeView: NoteView;
   folders: { id: string; name: string; isDefault: boolean; isDeleted: boolean }[];
-  activeFolderId: string | null;
+  currentFolderId: string | null;
+  rememberedFolderId: string | null;
   onSelectView: (view: NoteView) => void;
   onSelectFolder: (folderId: string) => void;
   onCreateFolder: (name: string) => Promise<void>;
@@ -173,7 +192,8 @@ interface MobileFilterBarProps {
 function MobileFilterBar({
   activeView,
   folders,
-  activeFolderId,
+  currentFolderId,
+  rememberedFolderId,
   onSelectView,
   onSelectFolder,
   onCreateFolder,
@@ -186,6 +206,9 @@ function MobileFilterBar({
   const [creating, setCreating] = useState(false);
 
   const visibleFolders = folders.filter(f => !f.isDeleted);
+  const selectedFolderId = activeView === 'folder' ? currentFolderId : rememberedFolderId;
+  const selectedFolderName =
+    visibleFolders.find(folder => folder.id === selectedFolderId)?.name ?? null;
 
   const chipStyle = (active: boolean) => ({
     backgroundColor: active ? withAlpha(palette.primary, 0.18) : withAlpha(palette.textSoft, 0.08),
@@ -217,7 +240,7 @@ function MobileFilterBar({
 
   return (
     <>
-      <View className="px-4 pb-2">
+      <View className="px-4 pb-1">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row items-center">
             <Pressable onPress={() => onSelectView('all')} style={chipStyle(activeView === 'all')}>
@@ -237,9 +260,7 @@ function MobileFilterBar({
             </Pressable>
             <Pressable onPress={() => setFolderDialogOpen(true)} style={chipStyle(activeView === 'folder')}>
               <Text style={{ color: chipTextColor(activeView === 'folder'), fontSize: 13, fontWeight: '600' }}>
-                {activeView === 'folder' && activeFolderId
-                  ? `📁 ${visibleFolders.find(f => f.id === activeFolderId)?.name ?? t('文件夹')}`
-                  : `📁 ${t('文件夹')}`}
+                {selectedFolderName ? `📁 ${selectedFolderName}` : `📁 ${t('文件夹')}`}
                 {' ›'}
               </Text>
             </Pressable>
@@ -247,22 +268,58 @@ function MobileFilterBar({
         </ScrollView>
       </View>
 
-      {/* Folder list dialog */}
-      <Modal visible={folderDialogOpen} transparent animationType="fade" onRequestClose={() => setFolderDialogOpen(false)}>
-        <Pressable className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={() => setFolderDialogOpen(false)}>
+      {/* Folder switcher */}
+      <Modal visible={folderDialogOpen} transparent animationType="slide" onRequestClose={() => setFolderDialogOpen(false)}>
+        <Pressable className="flex-1 justify-end" style={{ backgroundColor: 'transparent' }} onPress={() => setFolderDialogOpen(false)}>
           <Pressable
-            className="w-[85%] max-w-[360px] rounded-2xl p-5"
-            style={{ backgroundColor: palette.surface }}
+            className="rounded-t-[28px] px-5 pb-6 pt-4"
+            style={{
+              backgroundColor: palette.canvas,
+              borderTopWidth: 1,
+              borderTopColor: withAlpha(palette.primary, 0.12),
+              maxHeight: '78%',
+            }}
             onPress={e => e.stopPropagation()}>
-            <Text className={typography.h3} style={{ color: palette.text, marginBottom: 16 }}>
+            <View
+              className="self-center rounded-full"
+              style={{
+                width: 42,
+                height: 4,
+                backgroundColor: withAlpha(palette.textSoft, 0.24),
+                marginBottom: 14,
+              }}
+            />
+            <Text className={typography.h3} style={{ color: palette.text, marginBottom: 8 }}>
               {t('选择文件夹')}
             </Text>
+            <Text className={typography.bodySmall} style={{ color: palette.textSoft, marginBottom: 16 }}>
+              {t('切到全部笔记，或者进入一个具体文件夹。')}
+            </Text>
+            <Pressable
+              className="mb-2 flex-row items-center rounded-xl px-4 py-3"
+              style={{
+                backgroundColor: activeView === 'all'
+                  ? withAlpha(palette.primary, 0.12)
+                  : 'transparent',
+              }}
+              onPress={() => {
+                onSelectView('all');
+                setFolderDialogOpen(false);
+              }}>
+              <AppIcon color={palette.primary} name="notes" size={18} />
+              <Text className="ml-3 flex-1" style={{ color: palette.text, fontSize: 15 }}>
+                {t('全部笔记')}
+              </Text>
+              {activeView === 'all' ? (
+                <AppIcon color={palette.primary} name="check-circle" size={18} />
+              ) : null}
+            </Pressable>
             {visibleFolders.map(folder => (
               <Pressable
                 key={folder.id}
                 className="flex-row items-center rounded-xl px-4 py-3 mb-1.5"
                 style={{
-                  backgroundColor: activeFolderId === folder.id && activeView === 'folder'
+                  backgroundColor: currentFolderId === folder.id && activeView === 'folder'
                     ? withAlpha(palette.primary, 0.12)
                     : 'transparent',
                 }}
@@ -278,7 +335,7 @@ function MobileFilterBar({
                   {folder.name}
                   {folder.isDefault ? ` (${t('默认')})` : ''}
                 </Text>
-                {activeFolderId === folder.id && activeView === 'folder' ? (
+                {currentFolderId === folder.id && activeView === 'folder' ? (
                   <AppIcon color={palette.primary} name="check-circle" size={18} />
                 ) : null}
               </Pressable>
@@ -365,9 +422,16 @@ export function WorkspaceScreen() {
   const { showSidebar } = useDeviceType();
   const { palette, typography } = useAppTheme();
   const { t } = useI18n();
-  const safeAreaEdges = showSidebar ? (['top', 'left', 'right'] as const) : undefined;
+  const desktopSafeAreaEdges = ['top', 'left', 'right'] as const;
+  const mobileSafeAreaEdges = ['left', 'right'] as const;
 
-  const { folders, activeFolderId, fetchFolders, createFolder, setActiveFolder } = useFolderStore(useShallow(state => ({
+  const {
+    folders,
+    activeFolderId: rememberedFolderId,
+    fetchFolders,
+    createFolder,
+    setActiveFolder,
+  } = useFolderStore(useShallow(state => ({
     folders: state.folders,
     activeFolderId: state.activeFolderId,
     fetchFolders: state.fetchFolders,
@@ -375,9 +439,23 @@ export function WorkspaceScreen() {
     setActiveFolder: state.setActiveFolder,
   })));
 
-  const { notes, activeView, searchQuery, setSearchQuery, activeTagId, selectedNoteId, fetchNotes, fetchTags, setActiveView } = useNoteStore(useShallow(state => ({
+  const {
+    notes,
+    activeView,
+    activeFolderId,
+    searchQuery,
+    setSearchQuery,
+    activeTagId,
+    selectedNoteId,
+    fetchNotes,
+    fetchTags,
+    setActiveView,
+    setActiveFolderView,
+    setActiveTagId,
+  } = useNoteStore(useShallow(state => ({
     notes: state.notes,
     activeView: state.activeView,
+    activeFolderId: state.activeFolderId,
     searchQuery: state.searchQuery,
     setSearchQuery: state.setSearchQuery,
     activeTagId: state.activeTagId,
@@ -385,6 +463,8 @@ export function WorkspaceScreen() {
     fetchNotes: state.fetchNotes,
     fetchTags: state.fetchTags,
     setActiveView: state.setActiveView,
+    setActiveFolderView: state.setActiveFolderView,
+    setActiveTagId: state.setActiveTagId,
   })));
 
   const syncNow = useSyncStore(state => state.syncNow);
@@ -412,13 +492,36 @@ export function WorkspaceScreen() {
   }, [setSidebarCollapsed]);
 
   useEffect(() => {
-    void fetchFolders();
-    void fetchTags();
-  }, [fetchFolders, fetchTags]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        await Promise.all([fetchFolders(), fetchTags()]);
+      } finally {
+        if (!cancelled) {
+          await fetchNotes();
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchFolders, fetchNotes, fetchTags]);
 
   useEffect(() => {
-    void fetchNotes();
-  }, [activeFolderId, activeView, fetchNotes]);
+    if (activeView !== 'folder') {
+      return;
+    }
+
+    const resolvedFolderId = resolvePreferredFolderId(activeFolderId, rememberedFolderId, folders);
+
+    if (!resolvedFolderId || activeFolderId === resolvedFolderId) {
+      return;
+    }
+
+    setActiveFolderView(resolvedFolderId);
+  }, [activeFolderId, activeView, folders, rememberedFolderId, setActiveFolderView]);
 
   const visibleSelectedNoteId = useMemo(() => {
     if (!selectedNoteId) return null;
@@ -434,6 +537,16 @@ export function WorkspaceScreen() {
       setIsEditorFullScreen(false);
     }
   }, [showSidebar, visibleSelectedNoteId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (showSidebar || useNoteStore.getState().searchQuery.trim().length === 0) {
+        return;
+      }
+
+      setSearchQuery('');
+    }, [setSearchQuery, showSidebar]),
+  );
 
   const currentLocationLabel = useMemo(() => {
     if (activeView === 'folder' && activeFolderId) {
@@ -524,33 +637,43 @@ export function WorkspaceScreen() {
   );
 
   const handleSelectView = useCallback((view: NoteView) => {
+    setActiveTagId(null);
     setActiveView(view);
-  }, [setActiveView]);
+  }, [setActiveTagId, setActiveView]);
 
   const handleSelectFolder = useCallback((folderId: string) => {
+    setActiveTagId(null);
     setActiveFolder(folderId);
-    setActiveView('folder');
-  }, [setActiveFolder, setActiveView]);
+    setActiveFolderView(folderId);
+  }, [setActiveFolder, setActiveFolderView, setActiveTagId]);
 
   const handleCreateFolder = useCallback(async (name: string) => {
-    await createFolder(name);
-  }, [createFolder]);
+    setActiveTagId(null);
+    const folder = await createFolder(name);
+    setActiveFolderView(folder.id);
+  }, [createFolder, setActiveFolderView, setActiveTagId]);
 
   if (!showSidebar) {
     return (
       <AppCanvas className="flex-1">
-        <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
+        <TabPageHeader title={t('笔记')} />
+        <SafeAreaView edges={mobileSafeAreaEdges} style={{ flex: 1 }}>
           <View className="flex-1">
-            {renderWorkspaceHeader()}
-            <MobileFilterBar
-              activeView={activeView}
-              folders={folders}
-              activeFolderId={activeFolderId}
-              onSelectView={handleSelectView}
-              onSelectFolder={handleSelectFolder}
-              onCreateFolder={handleCreateFolder}
+            <NoteList
+              showCreateButton={false}
+              showSearchHeader={true}
+              headerComponent={
+                <MobileFilterBar
+                  activeView={activeView}
+                  folders={folders}
+                  currentFolderId={activeFolderId}
+                  rememberedFolderId={rememberedFolderId}
+                  onSelectView={handleSelectView}
+                  onSelectFolder={handleSelectFolder}
+                  onCreateFolder={handleCreateFolder}
+                />
+              }
             />
-            <NoteList />
           </View>
         </SafeAreaView>
       </AppCanvas>
@@ -559,7 +682,7 @@ export function WorkspaceScreen() {
 
   return (
     <AppCanvas className="flex-1">
-      <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
+      <SafeAreaView edges={desktopSafeAreaEdges} style={{ flex: 1 }}>
         <Animated.View layout={APP_LAYOUT_TRANSITION} style={{ flex: 1, minHeight: 0 }}>
           {isEditorFullScreen ? null : (
             <Animated.View layout={APP_LAYOUT_TRANSITION}>
@@ -598,7 +721,7 @@ export function WorkspaceScreen() {
                 isEditorFullScreen ? null : (
                   <View className="flex-1">
                     {renderWorkspaceHeader()}
-                    <NoteList showSearchHeader={false} />
+                    <NoteList showCreateButton={showSidebar} showSearchHeader={false} />
                   </View>
                 )
               }

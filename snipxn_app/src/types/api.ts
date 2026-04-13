@@ -32,6 +32,19 @@ export interface OAuthLoginRequest {
   deviceName: string;
 }
 
+export interface GoogleMobileLoginRequest {
+  googleId: string;
+  email: string;
+  name: string | null;
+  avatar: string | null;
+  deviceId: string;
+  deviceName: string;
+}
+
+export interface GoogleMobileBindRequest {
+  googleId: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;

@@ -1,6 +1,7 @@
 import type {
   CheckEmailRequest,
   CheckEmailResponse,
+  GoogleMobileLoginRequest,
   LoginRequest,
   LoginResponse,
   OAuthLoginRequest,
@@ -141,5 +142,21 @@ export function oauthGoogle(
       deviceId,
       deviceName,
     })
+    .then(normalizeLoginResponse);
+}
+
+export function oauthGoogleMobile(
+  googleId: string,
+  email: string,
+  name: string | null,
+  avatar: string | null,
+  deviceId: string,
+  deviceName: string,
+): Promise<LoginResponse> {
+  return apiClient
+    .post<RawLoginResponse, GoogleMobileLoginRequest>(
+      `${AUTH_BASE_URL}/oauth/google/mobile`,
+      { googleId, email, name, avatar, deviceId, deviceName },
+    )
     .then(normalizeLoginResponse);
 }

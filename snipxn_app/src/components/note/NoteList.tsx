@@ -12,7 +12,7 @@ import { applyFilters, useFolderStore, useNoteStore, useSyncStore } from '../../
 import { useAppTheme, withAlpha } from '../../theme';
 import type { Note } from '../../types';
 import { IconBadge } from '../common/AppChrome';
-import { AppIcon } from '../common/AppIcon';
+import { AppIcon, type AppIconName } from '../common/AppIcon';
 
 import { NoteListItem } from './NoteListItem';
 
@@ -34,17 +34,36 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 function resolveCreateFolderId(
-  activeFolderId: string | null,
+  preferredFolderId: string | null,
+  fallbackFolderId: string | null,
   folders: ReturnType<typeof useFolderStore.getState>['folders'],
 ): string | null {
-  if (activeFolderId && folders.some(folder => folder.id === activeFolderId)) {
-    return activeFolderId;
+  if (preferredFolderId && folders.some(folder => folder.id === preferredFolderId)) {
+    return preferredFolderId;
+  }
+
+  if (fallbackFolderId && folders.some(folder => folder.id === fallbackFolderId)) {
+    return fallbackFolderId;
   }
 
   return folders.find(folder => folder.isDefault)?.id ?? folders[0]?.id ?? null;
 }
 
-export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boolean }) {
+export function NoteList({
+  showSearchHeader = true,
+  showCreateButton = true,
+  emptyIcon = 'notes' as AppIconName,
+  emptyTitle,
+  emptyHint,
+  headerComponent,
+}: {
+  showSearchHeader?: boolean;
+  showCreateButton?: boolean;
+  emptyIcon?: AppIconName;
+  emptyTitle?: string;
+  emptyHint?: string;
+  headerComponent?: React.ReactNode;
+}) {
   const navigation = useNavigation<any>();
   const { showSidebar } = useDeviceType();
   const { palette, typography } = useAppTheme();
@@ -57,16 +76,17 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
   const fabBottom = 24 + tabBarHeight;
   const listBottomPaddingWithCreate = 84 + tabBarHeight;
 
-  const { folders, activeFolderId, fetchFolders } = useFolderStore(useShallow(state => ({
+  const { folders, rememberedFolderId, fetchFolders } = useFolderStore(useShallow(state => ({
     folders: state.folders,
-    activeFolderId: state.activeFolderId,
+    rememberedFolderId: state.activeFolderId,
     fetchFolders: state.fetchFolders,
   })));
 
-  const { allNotes, loading, activeView, searchQuery, activeTagId } = useNoteStore(useShallow(state => ({
+  const { allNotes, loading, activeView, activeFolderId, searchQuery, activeTagId } = useNoteStore(useShallow(state => ({
     allNotes: state.notes,
     loading: state.loading,
     activeView: state.activeView,
+    activeFolderId: state.activeFolderId,
     searchQuery: state.searchQuery,
     activeTagId: state.activeTagId,
   })));
@@ -89,7 +109,7 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
   const [refreshing, setRefreshing] = useState(false);
   const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const showCreateButton = activeView !== 'trash';
+  const canCreate = showCreateButton && activeView !== 'trash';
 
   const handleSelectNote = async (noteId: string) => {
     await selectNote(noteId);
@@ -100,11 +120,11 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
   };
 
   const handleCreateNote = async () => {
-    if (!showCreateButton) {
+    if (!canCreate) {
       return;
     }
 
-    const folderId = resolveCreateFolderId(activeFolderId, folders);
+    const folderId = resolveCreateFolderId(activeFolderId, rememberedFolderId, folders);
 
     if (!folderId) {
       setErrorMessage(t('请先创建至少一个文件夹，再新建笔记。'));
@@ -151,38 +171,42 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
   };
 
   const renderHeader = () => {
-    if (!showSearchHeader && !errorMessage) {
+    const hasContent = showSearchHeader || errorMessage || headerComponent;
+
+    if (!hasContent) {
       return null;
     }
 
     return (
-      <View className={showSearchHeader ? 'px-4 pb-2 pt-1' : 'px-4 pb-3 pt-3'}>
+      <View>
         {showSearchHeader ? (
-          <View
-            className="flex-row items-center gap-2.5 rounded-full border px-3.5 py-2"
-            style={{
-              borderColor: withAlpha(palette.primary, 0.12),
-              backgroundColor: palette.panelInset,
-            }}>
-            <AppIcon color={palette.primary} name="search" size={16} />
-            <TextInput
-              autoCapitalize="none"
-              className={`${typography.bodySmall} flex-1`}
-              onChangeText={value => {
-                setErrorMessage(null);
-                setSearchQuery(value);
-              }}
-              placeholder={t('搜索标题、摘要或内容')}
-              placeholderTextColor={palette.placeholder}
-              returnKeyType="search"
-              style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
-              value={searchQuery}
-            />
+          <View className="px-4 pb-2 pt-1">
+            <View
+              className="flex-row items-center gap-2.5 rounded-full border px-3.5 py-2"
+              style={{
+                borderColor: withAlpha(palette.primary, 0.12),
+                backgroundColor: palette.panelInset,
+              }}>
+              <AppIcon color={palette.primary} name="search" size={16} />
+              <TextInput
+                autoCapitalize="none"
+                className={`${typography.bodySmall} flex-1`}
+                onChangeText={value => {
+                  setErrorMessage(null);
+                  setSearchQuery(value);
+                }}
+                placeholder={t('搜索标题、摘要或内容')}
+                placeholderTextColor={palette.placeholder}
+                returnKeyType="search"
+                style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
+                value={searchQuery}
+              />
+            </View>
           </View>
         ) : null}
-
+        {headerComponent ?? null}
         {errorMessage ? (
-          <View className={showSearchHeader ? 'mt-2 px-1' : ''}>
+          <View className={showSearchHeader ? 'mt-2 px-4' : 'px-4 pb-2'}>
             <Text className={typography.bodySmall} style={{ color: palette.danger }}>
               {errorMessage}
             </Text>
@@ -192,21 +216,31 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
     );
   };
 
-  const renderEmptyState = () => (
-    <View className="flex-1 items-center justify-center px-8 py-16">
-      <IconBadge icon="notes" iconSize={34} size={96} />
-      <Text className={`${typography.h3} mt-5`} style={{ color: palette.text }}>
-        {t('暂无笔记')}
-      </Text>
-      <Text
-        className={`${typography.body} mt-2 text-center`}
-        style={{ color: palette.textSoft }}>
-        {searchQuery.trim().length > 0
-          ? t('没有找到匹配当前搜索条件的内容。')
-          : t('从右下角开始，写下你的第一条笔记。')}
-      </Text>
-    </View>
-  );
+  const renderEmptyState = () => {
+    const hasQuery = searchQuery.trim().length > 0;
+    const title = hasQuery
+      ? t('没有匹配结果')
+      : emptyTitle ?? t('暂无笔记');
+    const hint = hasQuery
+      ? t('没有找到匹配当前搜索条件的内容。')
+      : emptyHint ?? (canCreate
+          ? t('从右下角开始，写下你的第一条笔记。')
+          : t('点击底部新建，写下你的第一条笔记。'));
+
+    return (
+      <View className="flex-1 items-center justify-center px-8 py-16">
+        <IconBadge icon={hasQuery ? 'search' : emptyIcon} iconSize={34} size={96} />
+        <Text className={`${typography.h3} mt-5`} style={{ color: palette.text }}>
+          {title}
+        </Text>
+        <Text
+          className={`${typography.body} mt-2 text-center`}
+          style={{ color: palette.textSoft }}>
+          {hint}
+        </Text>
+      </View>
+    );
+  };
 
   const renderFooter = () => {
     if (loading && notes.length > 0) {
@@ -217,7 +251,7 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
       );
     }
 
-    return <View className={showCreateButton ? 'h-3' : 'h-2'} />;
+    return <View className={canCreate ? 'h-3' : 'h-2'} />;
   };
 
   return (
@@ -225,7 +259,7 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
       <FlatList<Note>
         contentContainerStyle={{
           flexGrow: notes.length === 0 ? 1 : 0,
-          paddingBottom: showCreateButton
+          paddingBottom: canCreate
             ? listBottomPaddingWithCreate
             : LIST_BOTTOM_PADDING,
         }}
@@ -257,7 +291,7 @@ export function NoteList({ showSearchHeader = true }: { showSearchHeader?: boole
         windowSize={5}
       />
 
-      {showCreateButton ? (
+      {canCreate ? (
         <View
           className="absolute right-6 rounded-full"
           style={{

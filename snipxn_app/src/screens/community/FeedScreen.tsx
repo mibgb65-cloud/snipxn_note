@@ -2,11 +2,22 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Alert, Avatar, Button, Spinner } from 'heroui-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import * as postApi from '../../api/post';
+import { AppCanvas, GlassPanel, IconBadge, MetricPill, SectionEyebrow } from '../../components/common';
+import { TabPageHeader } from '../../components/common/TabPageHeader';
 import { prefetchImages } from '../../utils/imageCache';
 import { AppIcon } from '../../components/common/AppIcon';
 import {
@@ -161,34 +172,163 @@ function matchesSearch(post: PostListItemResponse, query: string): boolean {
   );
 }
 
-function FeedTabButton({
-  icon,
-  label,
+function FeedTextTab({
   active,
+  label,
+  onLayout,
   onPress,
 }: {
-  icon: 'sparkles' | 'flame';
-  label: string;
   active: boolean;
+  label: string;
+  onLayout: (event: LayoutChangeEvent) => void;
   onPress: () => void;
+}) {
+  const { palette } = useAppTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onLayout={onLayout}
+      onPress={onPress}
+      style={{ paddingTop: 2, paddingBottom: 12 }}>
+      <Text
+        style={{
+          color: active ? palette.primary : palette.textSoft,
+          fontSize: 17,
+          fontWeight: active ? '700' : '600',
+        }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function FeedSlidingTabs({
+  activeTab,
+  onChange,
+}: {
+  activeTab: FeedTab;
+  onChange: (tab: FeedTab) => void;
+}) {
+  const { palette } = useAppTheme();
+  const { t } = useI18n();
+  const [tabLayouts, setTabLayouts] = useState<Partial<Record<FeedTab, { x: number; width: number }>>>({});
+  const indicatorX = useSharedValue(0);
+  const indicatorWidth = useSharedValue(0);
+
+  useEffect(() => {
+    const activeLayout = tabLayouts[activeTab];
+
+    if (!activeLayout) {
+      return;
+    }
+
+    indicatorX.value = withSpring(activeLayout.x, { damping: 18, stiffness: 220 });
+    indicatorWidth.value = withSpring(activeLayout.width, { damping: 18, stiffness: 220 });
+  }, [activeTab, indicatorWidth, indicatorX, tabLayouts]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+    width: indicatorWidth.value,
+    opacity: indicatorWidth.value > 0 ? 1 : 0,
+  }));
+
+  const handleLayout =
+    (tab: FeedTab) =>
+    (event: LayoutChangeEvent): void => {
+      const { x, width } = event.nativeEvent.layout;
+
+      setTabLayouts(previousLayouts => {
+        const previousLayout = previousLayouts[tab];
+
+        if (previousLayout?.x === x && previousLayout?.width === width) {
+          return previousLayouts;
+        }
+
+        return {
+          ...previousLayouts,
+          [tab]: { x, width },
+        };
+      });
+    };
+
+  return (
+    <View style={{ alignSelf: 'flex-start', position: 'relative' }}>
+      <View className="flex-row items-center gap-6">
+        <FeedTextTab
+          active={activeTab === 'latest'}
+          label={t('最新')}
+          onLayout={handleLayout('latest')}
+          onPress={() => onChange('latest')}
+        />
+        <FeedTextTab
+          active={activeTab === 'hot'}
+          label={t('热榜')}
+          onLayout={handleLayout('hot')}
+          onPress={() => onChange('hot')}
+        />
+      </View>
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 1,
+          backgroundColor: withAlpha(palette.textSoft, 0.18),
+        }}
+      />
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            height: 3,
+            borderRadius: 999,
+            backgroundColor: palette.primary,
+          },
+          indicatorStyle,
+        ]}
+      />
+    </View>
+  );
+}
+
+function FeedSearchField({
+  placeholder,
+  searchQuery,
+  onChangeText,
+}: {
+  placeholder: string;
+  searchQuery: string;
+  onChangeText: (value: string) => void;
 }) {
   const { palette, typography } = useAppTheme();
 
   return (
-    <MotionPressable
-      accessibilityRole="button"
-      className="flex-1 rounded-full px-4 py-3"
-      onPress={onPress}
-      style={{ backgroundColor: active ? palette.primarySoft : 'transparent' }}>
-      <View className="flex-row items-center justify-center gap-1.5">
-        <AppIcon color={active ? palette.primary : palette.textSoft} name={icon} size={14} />
-        <Text
-          className={`${typography.bodySmall} text-center`}
-          style={{ color: active ? palette.primary : palette.textSoft }}>
-          {label}
-        </Text>
-      </View>
-    </MotionPressable>
+    <View
+      className="flex-row items-center gap-2.5 rounded-full border px-3.5 py-2"
+      style={{
+        borderColor: withAlpha(palette.primary, 0.12),
+        backgroundColor: palette.panelInset,
+      }}>
+      <AppIcon color={palette.primary} name="search" size={16} />
+      <TextInput
+        autoCapitalize="none"
+        className={`${typography.bodySmall} flex-1`}
+        placeholder={placeholder}
+        placeholderTextColor={palette.placeholder}
+        returnKeyType="search"
+        style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
+        value={searchQuery}
+        onChangeText={onChangeText}
+      />
+    </View>
   );
 }
 
@@ -252,7 +392,7 @@ export function FeedScreen() {
   const { palette, typography } = useAppTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
-  const safeAreaEdges = isTablet ? (['top', 'left', 'right'] as const) : undefined;
+  const safeAreaEdges = isTablet ? (['top', 'left', 'right'] as const) : (['left', 'right'] as const);
   const mobileBottomPadding = isTablet ? 16 : 68 + Math.max(insets.bottom, 10) + 8;
 
   const {
@@ -537,132 +677,111 @@ export function FeedScreen() {
 
   const activeTabDescription =
     activeTab === 'latest' ? t('实时更新的最新分享') : t('当前最受欢迎的内容');
+  const activeCountLabel = activeTab === 'latest' ? t('篇更新') : t('篇热门');
+  const hasSearchQuery = searchQuery.trim().length > 0;
 
   const tabSwitcher = (
-    <View
-      className="rounded-full border p-1"
-      style={{ borderColor: palette.border, backgroundColor: palette.surfaceAlt }}>
-      <View className="flex-row">
-        <FeedTabButton
-          active={activeTab === 'latest'}
-          icon="sparkles"
-          label={t('最新')}
-          onPress={() => {
-            setActiveTab('latest');
-            setFeedback(null);
-          }}
-        />
-        <FeedTabButton
-          active={activeTab === 'hot'}
-          icon="flame"
-          label={t('热门')}
-          onPress={() => {
-            setActiveTab('hot');
-            setFeedback(null);
-          }}
-        />
-      </View>
+    <FeedSlidingTabs
+      activeTab={activeTab}
+      onChange={tab => {
+        setActiveTab(tab);
+        setFeedback(null);
+      }}
+    />
+  );
+
+  const summaryPills = (
+    <View className="flex-row flex-wrap gap-2">
+      <MetricPill label={`${currentPosts.length} ${activeCountLabel}`} tone="accent" />
+      <MetricPill label={`${recommendedUsers.length} ${t('位创作者')}`} />
+      {hasSearchQuery ? (
+        <MetricPill label={`${filteredPosts.length} ${t('条匹配')}`} tone="cta" />
+      ) : null}
     </View>
   );
 
   return (
-    <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
+    <AppCanvas className="flex-1">
+      {!isTablet && <TabPageHeader title={t('社区')} />}
       <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
-        <View className="flex-1 px-4 pb-4 pt-4" style={{ backgroundColor: palette.canvas }}>
+        <View className="flex-1 px-4 pb-4 pt-4">
           <Animated.View layout={APP_LAYOUT_TRANSITION}>
             {isTablet ? (
               <Animated.View
                 entering={APP_HEADER_ENTERING}
                 exiting={APP_HEADER_EXITING}
-                className="mb-4 overflow-hidden rounded-[12px] border px-4 py-4"
-                style={{
-                  borderColor: withAlpha(palette.accent, 0.14),
-                  backgroundColor: palette.surface,
-                }}>
-                <View className="gap-3">
-                  <View className="flex-row items-center gap-3">
-                    <View>
-                      <Text className={typography.h1} style={{ color: palette.text }}>
-                        {t('社区')}
-                      </Text>
-                      <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
-                        {activeTabDescription}
-                      </Text>
-                    </View>
+                className="mb-4">
+                <GlassPanel className="px-5 py-5" highlight={palette.primary} variant="strong">
+                  <View className="gap-4">
+                    <View className="flex-row items-start gap-4">
+                      <IconBadge
+                        backgroundColor={withAlpha(palette.primary, 0.12)}
+                        color={palette.primary}
+                        icon="community"
+                        iconSize={20}
+                        round
+                        size={48}
+                      />
+                      <View className="min-w-0 flex-1 gap-2">
+                        <View>
+                          <SectionEyebrow>{t('社区')}</SectionEyebrow>
+                          <Text className={typography.h1} style={{ color: palette.text }}>
+                            {t('社区')}
+                          </Text>
+                          <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+                            {activeTabDescription}
+                          </Text>
+                        </View>
 
-                    <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                      <View
-                        className="min-w-0 flex-1 flex-row items-center gap-2 rounded-[8px] border px-3 py-2.5"
-                        style={{ borderColor: palette.border, backgroundColor: palette.surfaceAlt }}>
-                        <AppIcon color={palette.textSoft} name="search" size={18} />
-                        <TextInput
-                          className={`${typography.body} flex-1`}
-                          placeholder={t('搜索标题、摘要、标签或作者')}
-                          placeholderTextColor={palette.placeholder}
-                          style={{ color: palette.text }}
-                          value={searchQuery}
-                          onChangeText={setSearchQuery}
-                        />
+                        {tabSwitcher}
+
+                        <View className="flex-row items-start gap-4">
+                          <View className="min-w-0 flex-1">{summaryPills}</View>
+                          <View className="w-[300px]">
+                            <FeedSearchField
+                              placeholder={t('搜索标题、摘要、标签或作者')}
+                              searchQuery={searchQuery}
+                              onChangeText={setSearchQuery}
+                            />
+                          </View>
+                        </View>
                       </View>
-                      {tabSwitcher}
                     </View>
-                  </View>
 
-                  {feedback ? (
-                    <Alert status={feedback.status}>
-                      <Alert.Indicator />
-                      <Alert.Content>
-                        <Alert.Title>{feedback.title}</Alert.Title>
-                        <Alert.Description>{feedback.description}</Alert.Description>
-                      </Alert.Content>
-                    </Alert>
-                  ) : null}
-                </View>
+                    {feedback ? (
+                      <Alert status={feedback.status}>
+                        <Alert.Indicator />
+                        <Alert.Content>
+                          <Alert.Title>{feedback.title}</Alert.Title>
+                          <Alert.Description>{feedback.description}</Alert.Description>
+                        </Alert.Content>
+                      </Alert>
+                    ) : null}
+                  </View>
+                </GlassPanel>
               </Animated.View>
             ) : (
               <Animated.View
                 entering={APP_HEADER_ENTERING}
                 exiting={APP_HEADER_EXITING}
-                className="mb-3 overflow-hidden rounded-[12px] border px-4 py-3"
-                style={{
-                  borderColor: withAlpha(palette.accent, 0.14),
-                  backgroundColor: palette.surface,
-                }}>
-                <View className="gap-2.5">
-                  <View className="flex-row items-center justify-between">
-                    <Text className={typography.h3} style={{ color: palette.text }}>
-                      {t('社区')}
-                    </Text>
-                    {tabSwitcher}
-                  </View>
+                className="mb-3 gap-3">
+                {tabSwitcher}
 
-                  <View
-                    className="flex-row items-center gap-2.5 rounded-full border px-3.5 py-2"
-                    style={{
-                      borderColor: withAlpha(palette.accent, 0.12),
-                      backgroundColor: palette.panelInset,
-                    }}>
-                    <AppIcon color={palette.primary} name="search" size={16} />
-                    <TextInput
-                      className={`${typography.bodySmall} flex-1`}
-                      placeholder={t('搜索标题、标签或作者')}
-                      placeholderTextColor={palette.placeholder}
-                      style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
-                      value={searchQuery}
-                      onChangeText={setSearchQuery}
-                    />
-                  </View>
+                <FeedSearchField
+                  placeholder={t('搜索标题、标签或作者')}
+                  searchQuery={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
 
-                  {feedback ? (
-                    <Alert status={feedback.status}>
-                      <Alert.Indicator />
-                      <Alert.Content>
-                        <Alert.Title>{feedback.title}</Alert.Title>
-                        <Alert.Description>{feedback.description}</Alert.Description>
-                      </Alert.Content>
-                    </Alert>
-                  ) : null}
-                </View>
+                {feedback ? (
+                  <Alert status={feedback.status}>
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>{feedback.title}</Alert.Title>
+                      <Alert.Description>{feedback.description}</Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                ) : null}
               </Animated.View>
             )}
           </Animated.View>
@@ -764,6 +883,6 @@ export function FeedScreen() {
           )}
         </View>
       </SafeAreaView>
-    </View>
+    </AppCanvas>
   );
 }

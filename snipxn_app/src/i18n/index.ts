@@ -10,6 +10,8 @@ import {
 
 const ENGLISH_LITERALS: Record<string, string> = {
   '工作区': 'Workspace',
+  '搜索': 'Search',
+  '新建': 'Create',
   '社区': 'Community',
   '我的': 'Profile',
   '帖子详情': 'Post Detail',
@@ -238,8 +240,13 @@ const ENGLISH_LITERALS: Record<string, string> = {
   '正在加载设置...': 'Loading settings...',
   '账号、安全、偏好与存储管理': 'Account, security, preferences, and storage management',
   '搜索标题、摘要、标签或内容': 'Search title, summary, tags, or content',
+  '搜索你的全部笔记': 'Search all your notes',
+  '按标题、摘要和内容快速回到你要的上下文。': 'Jump back into context by title, summary, or content.',
+  '切到全部笔记，或者进入一个具体文件夹。':
+    'Jump back to all notes, or open a specific folder.',
   '云同步待命': 'Sync idle',
   '导入笔记': 'Import Notes',
+  '导入内容': 'Import Content',
   '导入中...': 'Importing...',
   '选择一个笔记开始编辑': 'Select a note to start editing',
   '选择一个笔记开始编辑。': 'Select a note to start editing.',
@@ -289,8 +296,26 @@ const ENGLISH_LITERALS: Record<string, string> = {
   '暂无笔记': 'No notes yet',
   '没有找到匹配当前搜索条件的内容。': 'No notes match the current search.',
   '从右下角开始，写下你的第一条笔记。': 'Start from the button in the lower-right corner and write your first note.',
+  '点击底部新建，写下你的第一条笔记。': 'Tap Create in the bottom bar to write your first note.',
   '继续下滑以加载更多': 'Scroll down to load more',
   '请先创建至少一个文件夹，再新建笔记。': 'Create at least one folder before creating a note.',
+  '新建失败': 'Creation failed',
+  '创建失败': 'Failed to create',
+  '新建内容': 'Create Something',
+  '从这里快速开始一条笔记、导入内容或整理文件夹。':
+    'Start a note, import content, or organize folders from here.',
+  '新建笔记': 'New Note',
+  '立刻进入编辑器，开始记录代码或想法。':
+    'Jump straight into the editor and capture code or ideas.',
+  '从 Markdown 或 JSON 导入已有内容。':
+    'Import existing content from Markdown or JSON.',
+  '新建文件夹': 'New Folder',
+  '先整理结构，再把笔记放进合适的位置。':
+    'Set up the structure first, then place notes where they belong.',
+  '先给它一个清晰名字，后续整理会轻松很多。':
+    'Give it a clear name now to make organization easier later.',
+  '文件夹名称': 'Folder Name',
+  '创建': 'Create',
   '新建笔记失败，请稍后重试。': 'Failed to create a note. Please try again later.',
   '当前处于离线状态，已显示本地笔记。': 'The app is offline. Showing local notes.',
   '同步未完成，已刷新本地列表。': 'Sync did not complete. The local list has been refreshed.',
@@ -373,7 +398,12 @@ const ENGLISH_LITERALS: Record<string, string> = {
   '导出': 'Export',
   '搜索标题、摘要、标签或作者': 'Search titles, summaries, tags, or authors',
   '最新': 'Latest',
+  '热榜': 'Trending',
   '热门': 'Popular',
+  '篇更新': 'updates',
+  '篇热门': 'popular posts',
+  '位创作者': 'creators',
+  '条匹配': 'matches',
   '实时更新的最新分享': 'Fresh posts in real time',
   '当前最受欢迎的内容': 'The most popular posts right now',
   '加载最新帖子失败': 'Failed to load latest posts',

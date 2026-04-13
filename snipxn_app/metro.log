@@ -1,0 +1,44 @@
+
+Welcome to React Native v0.84
+Starting dev server on http://localhost:8081
+
+[31m[1merror[22m[39m [0mlisten EADDRINUSE: address already in use :::8081.[0m
+[0mError: listen EADDRINUSE: address already in use :::8081
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\index.flow.js:455:14
+    at new Promise (<anonymous>)
+    at earlyPortCheck (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\index.flow.js:451:11)
+    at Object.runServer (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\index.flow.js:201:9)
+    at Object.runServer [as func] (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\@react-native\community-cli-plugin\dist\commands\start\runServer.js:147:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Command.handleAction (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\@react-native-commun INFO  Dev server ready. Press Ctrl+C to exit.
+ INFO  Interactive mode is not supported in this environment
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 1% (1/1)
+ BUNDLE  ./index.js ▓▓░░░░░░░░░░░░░░ 16% (5/33)
+ BUNDLE  ./index.js ▓▓▓░░░░░░░░░░░░░ 24% (92/293)
+ BUNDLE  ./index.js ▓▓▓▓░░░░░░░░░░░░ 28% (315/585)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 57% (858/1136)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58% (1196/1702)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 81% (1769/1962)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99% (2394/2399)
+ BUNDLE  ./index.js 
+ INFO  [1m[7m💡 JavaScript logs have moved![22m They can now be viewed in React Native DevTools. Tip: Type [1mj[22m in the terminal to open.[27m
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  ./index.js 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  ./index.js 

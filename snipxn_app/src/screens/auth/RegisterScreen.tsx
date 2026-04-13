@@ -16,6 +16,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import * as authApi from '../../api/auth';
+import { AppLogo } from '../../components/common/AppLogo';
 import { translateLiteral, useI18n } from '../../i18n';
 import { useDeviceType } from '../../hooks';
 import type { AuthStackParamList } from '../../navigation/types';
@@ -245,7 +246,8 @@ export function RegisterScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}>
           <View className="flex-1 justify-center px-6 py-10">
             <View className={`w-full ${isTablet ? 'mx-auto' : ''}`} style={isTablet ? { maxWidth: isTabletLandscape ? 540 : 400 } : undefined}>
-              <View className="items-center gap-2">
+              <View className="items-center gap-3">
+                <AppLogo size={64} />
                 <Text className={`${typography.h2} text-center text-foreground`}>{t('注册 Snipxn')}</Text>
                 <Text className={`${typography.body} text-center text-foreground/70`}>
                   {step === 'form'

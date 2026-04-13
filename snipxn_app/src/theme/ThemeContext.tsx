@@ -3,7 +3,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme, useWindowDimensions } from 'react-native';
 import { Uniwind } from 'uniwind';
 
-import { appPalettes, brandColors, createNavigationTheme, type AppPalette } from './colors';
+import {
+  appPalettes,
+  brandColors,
+  createNavigationTheme,
+  type AppPalette,
+  withAlpha,
+} from './colors';
 import { createTypography } from './typography';
 
 export type ThemeMode = 'light' | 'dark';
@@ -27,6 +33,67 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const isThemePreference = (value: string | null): value is ThemePreference =>
   value === 'light' || value === 'dark' || value === 'system';
+
+function createUniwindThemeVariables(themeMode: ThemeMode) {
+  const palette = appPalettes[themeMode];
+  const accentForeground = themeMode === 'dark' ? '#081018' : brandColors.night;
+  const surfaceShadow =
+    themeMode === 'dark'
+      ? '0 18px 42px 0 rgba(2, 8, 23, 0.42)'
+      : '0 18px 40px 0 rgba(15, 23, 42, 0.08), 0 4px 12px 0 rgba(15, 23, 42, 0.04)';
+  const overlayShadow =
+    themeMode === 'dark'
+      ? '0 20px 46px 0 rgba(2, 8, 23, 0.56), 0 0 0 1px rgba(34, 211, 238, 0.05) inset'
+      : '0 20px 46px 0 rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(34, 211, 238, 0.06) inset';
+  const fieldShadow =
+    themeMode === 'dark'
+      ? '0 0 0 1px rgba(34, 211, 238, 0.03) inset'
+      : '0 10px 24px 0 rgba(15, 23, 42, 0.05), 0 2px 6px 0 rgba(15, 23, 42, 0.03)';
+
+  return {
+    '--background': palette.background,
+    '--foreground': palette.text,
+    '--surface': palette.surface,
+    '--surface-secondary': palette.surfaceAlt,
+    '--surface-tertiary': palette.surfaceMuted,
+    '--overlay': palette.panelStrong,
+    '--overlay-foreground': palette.text,
+    '--muted': palette.textSoft,
+    '--default': palette.surfaceAlt,
+    '--default-foreground': palette.text,
+    '--accent': palette.cta,
+    '--accent-foreground': accentForeground,
+    '--field-background': themeMode === 'dark' ? palette.panelStrong : palette.elevated,
+    '--field-foreground': palette.text,
+    '--field-placeholder': palette.placeholder,
+    '--field-border': withAlpha(palette.primary, themeMode === 'dark' ? 0.14 : 0.12),
+    '--success': palette.success,
+    '--success-foreground': accentForeground,
+    '--warning': palette.warning,
+    '--warning-foreground': accentForeground,
+    '--danger': palette.danger,
+    '--danger-foreground': '#FFF5F7',
+    '--segment': themeMode === 'dark' ? palette.panelInset : palette.panelSubtle,
+    '--segment-foreground': palette.text,
+    '--border': palette.border,
+    '--separator': withAlpha(palette.textSoft, themeMode === 'dark' ? 0.3 : 0.18),
+    '--focus': palette.accent,
+    '--link': palette.accent,
+    '--surface-shadow': surfaceShadow,
+    '--overlay-shadow': overlayShadow,
+    '--field-shadow': fieldShadow,
+    '--color-primary': palette.primary,
+    '--color-primary-foreground': accentForeground,
+    '--color-primary-soft': palette.primarySoft,
+    '--color-star': brandColors.star,
+    '--color-code-background': brandColors.codeBackground[themeMode],
+    '--color-app-canvas': palette.canvas,
+    '--color-app-surface': palette.surface,
+    '--color-app-surface-alt': palette.surfaceAlt,
+    '--color-app-border': palette.border,
+    '--color-app-primary-soft': palette.primarySoft,
+  };
+}
 
 async function persistThemePreference(preference: ThemePreference): Promise<void> {
   await AsyncStorage.setItem(THEME_STORAGE_KEY, preference);
@@ -68,24 +135,8 @@ export function ThemeProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   useEffect(() => {
-    Uniwind.updateCSSVariables('light', {
-      '--color-star': brandColors.star,
-      '--color-code-background': brandColors.codeBackground.light,
-      '--color-app-canvas': appPalettes.light.canvas,
-      '--color-app-surface': appPalettes.light.surface,
-      '--color-app-surface-alt': appPalettes.light.surfaceAlt,
-      '--color-app-border': appPalettes.light.border,
-      '--color-app-primary-soft': appPalettes.light.primarySoft,
-    });
-    Uniwind.updateCSSVariables('dark', {
-      '--color-star': brandColors.star,
-      '--color-code-background': brandColors.codeBackground.dark,
-      '--color-app-canvas': appPalettes.dark.canvas,
-      '--color-app-surface': appPalettes.dark.surface,
-      '--color-app-surface-alt': appPalettes.dark.surfaceAlt,
-      '--color-app-border': appPalettes.dark.border,
-      '--color-app-primary-soft': appPalettes.dark.primarySoft,
-    });
+    Uniwind.updateCSSVariables('light', createUniwindThemeVariables('light'));
+    Uniwind.updateCSSVariables('dark', createUniwindThemeVariables('dark'));
   }, []);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import type {
   ChangePasswordRequest,
+  GoogleMobileBindRequest,
   LinkedAccount,
   OAuthBindRequest,
   UpdateMeRequest,
@@ -111,6 +112,13 @@ export function bindGoogle(code: string, redirectUri: string): Promise<void> {
       code,
       redirectUri,
     },
+  );
+}
+
+export function bindGoogleMobile(googleId: string): Promise<void> {
+  return apiClient.post<void, GoogleMobileBindRequest>(
+    `${USER_BASE_URL}/linked-accounts/google/mobile`,
+    { googleId },
   );
 }
 

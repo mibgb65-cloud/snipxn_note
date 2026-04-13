@@ -27,6 +27,7 @@ export interface NoteState {
   loading: boolean;
   saving: boolean;
   activeView: NoteView;
+  activeFolderId: string | null;
   searchQuery: string;
   activeTagId: string | null;
   filteredNotes: () => Note[];
@@ -39,6 +40,7 @@ export interface NoteState {
   permanentDeleteNote: (id: string) => Promise<void>;
   toggleStar: (id: string) => Promise<void>;
   setActiveView: (view: NoteView) => void;
+  setActiveFolderView: (folderId: string | null) => void;
   setSearchQuery: (query: string) => void;
   setActiveTagId: (tagId: string | null) => void;
   fetchTags: () => Promise<void>;
@@ -55,6 +57,7 @@ const initialNoteState = {
   loading: false,
   saving: false,
   activeView: 'folder',
+  activeFolderId: null,
   searchQuery: '',
   activeTagId: null,
 } satisfies Pick<
@@ -66,6 +69,7 @@ const initialNoteState = {
   | 'loading'
   | 'saving'
   | 'activeView'
+  | 'activeFolderId'
   | 'searchQuery'
   | 'activeTagId'
 >;
@@ -256,9 +260,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     set({ loading: true });
 
     try {
-      const { activeView, searchQuery } = get();
-      const activeFolderId = useFolderStore.getState().activeFolderId;
-      const notes = await loadNotesForView(user.id, activeView, activeFolderId, searchQuery);
+      const { activeView, activeFolderId, searchQuery } = get();
+      const rememberedFolderId = useFolderStore.getState().activeFolderId;
+      const effectiveFolderId = activeView === 'folder' ? activeFolderId ?? rememberedFolderId : activeFolderId;
+      const notes = await loadNotesForView(user.id, activeView, effectiveFolderId, searchQuery);
 
       set({ notes, loading: false });
     } catch (error) {
@@ -452,6 +457,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
   setActiveView: view => {
     set({ activeView: view });
+    void get().fetchNotes();
+  },
+  setActiveFolderView: folderId => {
+    set({ activeView: 'folder', activeFolderId: folderId });
     void get().fetchNotes();
   },
   setSearchQuery: query => {

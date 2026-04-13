@@ -1,10 +1,16 @@
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
 };
 
 export type NoteStackParamList = {
   Workspace: undefined;
+  NoteEditor: { noteId: string };
+};
+
+export type SearchStackParamList = {
+  Search: undefined;
   NoteEditor: { noteId: string };
 };
 
@@ -16,6 +22,8 @@ export type CommunityStackParamList = {
 
 export type MainTabParamList = {
   NotesTab: undefined;
+  SearchTab: undefined;
+  NewTab: undefined;
   CommunityTab: undefined;
   SettingsTab: undefined;
 };

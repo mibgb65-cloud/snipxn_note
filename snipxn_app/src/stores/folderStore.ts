@@ -13,7 +13,7 @@ export interface FolderState {
   activeFolderId: string | null;
   loading: boolean;
   fetchFolders: () => Promise<void>;
-  createFolder: (name: string, icon?: string) => Promise<void>;
+  createFolder: (name: string, icon?: string) => Promise<Folder>;
   updateFolder: (id: string, data: Partial<Folder>) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
   reorderFolders: (folderIds: string[]) => Promise<void>;
@@ -162,6 +162,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
     set({ activeFolderId: folder.id });
     await get().fetchFolders();
     await trySyncFolders();
+    return folder;
   },
   updateFolder: async (id, data) => {
     const existingFolder = await folderDao.getById(id);

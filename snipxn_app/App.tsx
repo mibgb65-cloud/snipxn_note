@@ -6,7 +6,7 @@ import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AppCanvas, GlassPanel, IconBadge, SectionEyebrow } from './src/components/common';
+import { AppCanvas, AppLogo, GlassPanel, SectionEyebrow } from './src/components/common';
 import { initDatabase } from './src/db/database';
 import { isOnline, startNetworkMonitor, stopNetworkMonitor } from './src/db/sync/networkMonitor';
 import { useI18n, useI18nStore } from './src/i18n';
@@ -119,7 +119,7 @@ function AppContent() {
           <View className="flex-1 items-center justify-center px-6">
             <GlassPanel className="w-full max-w-[420px] px-6 py-6" highlight={palette.primary}>
               <View className="items-center gap-4">
-                <IconBadge icon="notes" iconSize={28} size={68} />
+                <AppLogo size={68} />
                 <View className="items-center gap-2">
                   <SectionEyebrow>Snipxn Workspace</SectionEyebrow>
                   <Text className={typography.h1} style={{ color: palette.text }}>

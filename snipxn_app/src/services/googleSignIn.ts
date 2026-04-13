@@ -1,25 +1,29 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
-const DEV_CLIENT_ID =
-  '849351808154-ege9pte7j31pnvv8hnhgj95s3fgkto93.apps.googleusercontent.com';
-const RELEASE_CLIENT_ID =
-  '841313932086-bigskud2ci5od18hfbetrqrr34vq4u1h.apps.googleusercontent.com';
-
-export function configureGoogleSignIn(): void {
-  GoogleSignin.configure({
-    webClientId: __DEV__ ? DEV_CLIENT_ID : RELEASE_CLIENT_ID,
-    offlineAccess: true,
-  });
+export interface GoogleUserInfo {
+  googleId: string;
+  email: string;
+  name: string | null;
+  avatar: string | null;
 }
 
-export async function signInWithGoogle(): Promise<string> {
-  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-  const userInfo = await GoogleSignin.signIn();
-  const serverAuthCode = userInfo.data?.serverAuthCode;
+export function configureGoogleSignIn(): void {
+  GoogleSignin.configure({});
+}
 
-  if (!serverAuthCode) {
-    throw new Error('无法获取 Google 授权码，请重试。');
+export async function signInWithGoogle(): Promise<GoogleUserInfo> {
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  const result = await GoogleSignin.signIn();
+  const user = result.data?.user;
+
+  if (!user?.id) {
+    throw new Error('无法获取 Google 用户信息，请重试。');
   }
 
-  return serverAuthCode;
+  return {
+    googleId: user.id,
+    email: user.email,
+    name: user.name ?? null,
+    avatar: user.photo ?? null,
+  };
 }

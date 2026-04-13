@@ -10,6 +10,7 @@ import * as authApi from '../api/auth';
 import * as userApi from '../api/user';
 import { getOAuthRedirectUri, type OAuthProvider } from '../config/oauth';
 import { initDatabase, resetDatabase } from '../db/database';
+import type { GoogleUserInfo } from '../services/googleSignIn';
 import type { LoginResponse, User } from '../types';
 import { getDeviceId } from '../utils/deviceId';
 import { toISOString } from '../utils/time';
@@ -24,6 +25,7 @@ export interface AuthState {
   isNewUser: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithOAuth: (provider: OAuthProvider, code: string) => Promise<void>;
+  loginWithGoogleMobile: (info: GoogleUserInfo) => Promise<void>;
   register: (email: string, code: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<void>;
@@ -202,6 +204,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await runInitialSync();
     } catch (error) {
       console.warn('Failed to complete the initial sync after OAuth login.', error);
+    }
+  },
+  loginWithGoogleMobile: async (info) => {
+    await initDatabase();
+
+    const [deviceId, deviceName] = await Promise.all([getDeviceId(), resolveDeviceName()]);
+
+    const response = await authApi.oauthGoogleMobile(
+      info.googleId, info.email, info.name, info.avatar, deviceId, deviceName,
+    );
+
+    await saveAuthTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+    });
+
+    const sessionUser = buildSessionUser(info.email, response, get().user);
+
+    applyAuthState(set, {
+      user: sessionUser,
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      isAuthenticated: true,
+      isNewUser: response.isNewUser,
+    });
+
+    try {
+      const latestUser = await userApi.getMe();
+      set({
+        user: latestUser,
+        isNewUser: response.isNewUser || isMissingNickname(latestUser),
+      });
+    } catch (error) {
+      console.warn('Failed to fetch the latest user profile after Google mobile login.', error);
+    }
+
+    try {
+      await runInitialSync();
+    } catch (error) {
+      console.warn('Failed to complete the initial sync after Google mobile login.', error);
     }
   },
   register: async (email, code, password) => {

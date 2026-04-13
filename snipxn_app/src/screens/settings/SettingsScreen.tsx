@@ -28,10 +28,12 @@ import {
   type ImagePickerResponse,
 } from 'react-native-image-picker';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 import { API_BASE_URL } from '../../api/axios';
 import { AppIcon, type AppIconName } from '../../components/common/AppIcon';
+import { TabPageHeader } from '../../components/common/TabPageHeader';
 import {
   APP_FADE_IN,
   APP_LAYOUT_TRANSITION,
@@ -46,6 +48,10 @@ import { useDeviceType } from '../../hooks';
 import { useI18n } from '../../i18n';
 import { useShallow } from 'zustand/react/shallow';
 
+import {
+  createMobileTabBarStyle,
+  MOBILE_TAB_BAR_MIN_BOTTOM_PADDING,
+} from '../../navigation/mobileTabBarStyle';
 import { useAppUpdateStore, useAuthStore, useUserStore } from '../../stores';
 import { useAppTheme, withAlpha } from '../../theme';
 import type { LinkedAccount, StorageBreakdownResponse, User, UserDevice } from '../../types';
@@ -445,7 +451,9 @@ export function SettingsScreen() {
   const { isTablet } = useDeviceType();
   const { palette, theme, themePreference, setThemePreference, typography } = useAppTheme();
   const { isEnglish, language, setLanguage, t } = useI18n();
-  const safeAreaEdges = isTablet ? (['top', 'left', 'right'] as const) : undefined;
+  const insets = useSafeAreaInsets();
+  const fullSafeAreaEdges = ['top', 'left', 'right'] as const;
+  const horizontalSafeAreaEdges = ['left', 'right'] as const;
   const { authUser, logout } = useAuthStore(useShallow(state => ({
     authUser: state.user,
     logout: state.logout,
@@ -482,6 +490,7 @@ export function SettingsScreen() {
     fetchStorageBreakdown: state.fetchStorageBreakdown,
   })));
 
+  const navigation = useNavigation();
   const [activeSection, setActiveSection] = useState<SettingsSectionKey>('profile');
   const [mobileSection, setMobileSection] = useState<SettingsSectionKey | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -570,6 +579,25 @@ export function SettingsScreen() {
   const latestVersionLabel = latestVersionInfo
     ? formatInstalledVersionLabel(latestVersionInfo.version, latestVersionInfo.buildNumber)
     : null;
+  const tabBarBottomPadding = Math.max(insets.bottom, MOBILE_TAB_BAR_MIN_BOTTOM_PADDING);
+  const mobileTabBarStyle = useMemo(
+    () => createMobileTabBarStyle(palette, tabBarBottomPadding),
+    [palette, tabBarBottomPadding],
+  );
+
+  useEffect(() => {
+    if (isTablet) {
+      return;
+    }
+
+    navigation.setOptions({
+      tabBarStyle: mobileSection !== null ? { display: 'none' as const } : mobileTabBarStyle,
+    });
+
+    return () => {
+      navigation.setOptions({ tabBarStyle: mobileTabBarStyle });
+    };
+  }, [isTablet, mobileSection, mobileTabBarStyle, navigation]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -802,8 +830,8 @@ export function SettingsScreen() {
 
     (async () => {
       try {
-        const serverAuthCode = await signInWithGoogle();
-        await userApi.bindGoogle(serverAuthCode, '');
+        const googleUser = await signInWithGoogle();
+        await userApi.bindGoogleMobile(googleUser.googleId);
 
         const { useUserStore } = await import('../../stores/userStore');
         await useUserStore.getState().fetchLinkedAccounts();
@@ -1408,7 +1436,7 @@ export function SettingsScreen() {
   if (initializing) {
     return (
       <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
-        <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
+        <SafeAreaView edges={fullSafeAreaEdges} style={{ flex: 1 }}>
           <View className="flex-1 items-center justify-center gap-3 px-6">
             <Spinner color="default" size="lg" />
             <Text className={typography.body} style={{ color: palette.textSoft }}>
@@ -1422,7 +1450,10 @@ export function SettingsScreen() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
-      <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
+      {!isTablet && mobileSection === null && <TabPageHeader title={t('我的')} />}
+      <SafeAreaView
+        edges={isTablet || mobileSection !== null ? fullSafeAreaEdges : horizontalSafeAreaEdges}
+        style={{ flex: 1 }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         {isTablet ? (
           <View className="flex-1 flex-row" style={{ backgroundColor: palette.canvas }}>
@@ -1525,22 +1556,6 @@ export function SettingsScreen() {
             style={{ flex: 1, minHeight: 0 }}>
             <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View className="gap-5">
-                <View className="flex-row items-center justify-between gap-3">
-                  <View className="flex-row items-center gap-3">
-                    <View
-                      className="h-10 w-10 items-center justify-center rounded-2xl"
-                      style={{ backgroundColor: palette.primarySoft }}>
-                      <AppIcon color={palette.primary} name="settings" size={18} />
-                    </View>
-                    <Text className={typography.h3} style={{ color: palette.text }}>
-                      {t('设置')}
-                    </Text>
-                  </View>
-                  <Button isDisabled={refreshing} variant="outline" onPress={() => void refreshData()}>
-                    {renderButtonContent(refreshing, t('刷新中...'), t('刷新'))}
-                  </Button>
-                </View>
-
                 {/* user profile card */}
                 {currentUser ? (
                   <View

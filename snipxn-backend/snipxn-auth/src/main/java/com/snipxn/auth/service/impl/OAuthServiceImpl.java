@@ -2,6 +2,8 @@ package com.snipxn.auth.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.snipxn.auth.config.OAuthProperties;
+import com.snipxn.auth.dto.req.GoogleMobileBindRequest;
+import com.snipxn.auth.dto.req.GoogleMobileLoginRequest;
 import com.snipxn.auth.dto.req.OAuthBindRequest;
 import com.snipxn.auth.dto.req.OAuthLoginRequest;
 import com.snipxn.auth.dto.resp.LinkedAccountResponse;
@@ -209,6 +211,14 @@ public class OAuthServiceImpl implements OAuthService {
                 request.getDeviceId(), request.getDeviceName(), clientIp);
     }
 
+    @Override
+    @Transactional
+    public LoginResponse loginWithGoogleMobile(GoogleMobileLoginRequest request, String clientIp) {
+        return findOrCreateOAuthUser("GOOGLE",
+                request.getGoogleId(), request.getEmail(), request.getName(), request.getAvatar(),
+                request.getDeviceId(), request.getDeviceName(), clientIp);
+    }
+
     // ══════════════════════════════════════════════════════════
     //  绑定 / 解绑 / 查询
     // ══════════════════════════════════════════════════════════
@@ -241,6 +251,12 @@ public class OAuthServiceImpl implements OAuthService {
     public void bindGoogle(String userId, OAuthBindRequest req) {
         OAuthUserInfo info = exchangeGoogle(req.getCode(), req.getRedirectUri());
         doBind(userId, "GOOGLE", info.id());
+    }
+
+    @Override
+    @Transactional
+    public void bindGoogleMobile(String userId, GoogleMobileBindRequest req) {
+        doBind(userId, "GOOGLE", req.getGoogleId());
     }
 
     @Override

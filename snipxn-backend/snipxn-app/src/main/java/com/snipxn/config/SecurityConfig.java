@@ -54,7 +54,8 @@ public class SecurityConfig {
                     "/api/v1/auth/refresh",
                     "/api/v1/auth/reset-password",
                     "/api/v1/auth/oauth/github",
-                    "/api/v1/auth/oauth/google"
+                    "/api/v1/auth/oauth/google",
+                    "/api/v1/auth/oauth/google/mobile"
                 ).permitAll()
                 // Swagger / 健康检查
                 .requestMatchers(

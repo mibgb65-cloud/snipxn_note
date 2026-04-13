@@ -2,6 +2,7 @@ package com.snipxn.auth.controller;
 
 import com.snipxn.auth.dto.req.CheckEmailRequest;
 import com.snipxn.auth.dto.req.LoginRequest;
+import com.snipxn.auth.dto.req.GoogleMobileLoginRequest;
 import com.snipxn.auth.dto.req.OAuthLoginRequest;
 import com.snipxn.auth.dto.req.RefreshTokenRequest;
 import com.snipxn.auth.dto.req.RegisterRequest;
@@ -103,6 +104,14 @@ public class AuthController {
     public Result<LoginResponse> oauthGoogle(@Valid @RequestBody OAuthLoginRequest req,
                                               HttpServletRequest httpRequest) {
         return Result.success(oAuthService.loginWithGoogle(req, getClientIp(httpRequest)));
+    }
+
+    /** 移动端 Google 登录 */
+    @Operation(summary = "移动端 Google 登录", description = "移动端直接传递 Google 用户信息完成登录，无需授权码交换")
+    @PostMapping("/oauth/google/mobile")
+    public Result<LoginResponse> oauthGoogleMobile(@Valid @RequestBody GoogleMobileLoginRequest req,
+                                                    HttpServletRequest httpRequest) {
+        return Result.success(oAuthService.loginWithGoogleMobile(req, getClientIp(httpRequest)));
     }
 
     private String getClientIp(HttpServletRequest request) {

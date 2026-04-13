@@ -1,5 +1,7 @@
 package com.snipxn.auth.service;
 
+import com.snipxn.auth.dto.req.GoogleMobileBindRequest;
+import com.snipxn.auth.dto.req.GoogleMobileLoginRequest;
 import com.snipxn.auth.dto.req.OAuthBindRequest;
 import com.snipxn.auth.dto.req.OAuthLoginRequest;
 import com.snipxn.auth.dto.resp.LinkedAccountResponse;
@@ -15,6 +17,9 @@ public interface OAuthService {
     /** Google OAuth 登录 */
     LoginResponse loginWithGoogle(OAuthLoginRequest request, String clientIp);
 
+    /** 移动端 Google 登录（直接传递用户信息，无需 code 交换） */
+    LoginResponse loginWithGoogleMobile(GoogleMobileLoginRequest request, String clientIp);
+
     /** 查询当前用户绑定的所有认证方式 */
     List<LinkedAccountResponse> listLinkedAccounts(String userId);
 
@@ -23,6 +28,9 @@ public interface OAuthService {
 
     /** 绑定 Google 账号 */
     void bindGoogle(String userId, OAuthBindRequest req);
+
+    /** 移动端绑定 Google 账号 */
+    void bindGoogleMobile(String userId, GoogleMobileBindRequest req);
 
     /** 解绑某个认证方式 */
     void unbind(String userId, String identityType);

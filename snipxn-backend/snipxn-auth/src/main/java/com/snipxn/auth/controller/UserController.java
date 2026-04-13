@@ -1,5 +1,6 @@
 package com.snipxn.auth.controller;
 
+import com.snipxn.auth.dto.req.GoogleMobileBindRequest;
 import com.snipxn.auth.dto.req.OAuthBindRequest;
 import com.snipxn.auth.dto.req.SetPasswordRequest;
 import com.snipxn.auth.dto.req.UpdateProfileRequest;
@@ -105,6 +106,15 @@ public class UserController {
     public Result<Void> bindGoogle(@Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
                                    @Valid @RequestBody OAuthBindRequest req) {
         oAuthService.bindGoogle(userDetails.getUserId(), req);
+        return Result.success();
+    }
+
+    /** 移动端绑定 Google 账号 */
+    @Operation(summary = "移动端绑定 Google 账号", description = "移动端直接传递 Google 用户 ID 完成绑定")
+    @PostMapping("/me/linked-accounts/google/mobile")
+    public Result<Void> bindGoogleMobile(@Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
+                                          @Valid @RequestBody GoogleMobileBindRequest req) {
+        oAuthService.bindGoogleMobile(userDetails.getUserId(), req);
         return Result.success();
     }
 

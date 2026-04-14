@@ -6,7 +6,14 @@ import { sandboxApi } from '../../api';
 import { useI18n } from '../../i18n';
 import { useAppTheme, withAlpha } from '../../theme';
 import { extractCodeBlocks, type CodeBlock } from '../../utils/codeBlocks';
-import { DEFAULT_CODE_FONT_SIZE, getStoredCodeFontSize } from '../../utils/preferences';
+import {
+  DEFAULT_CODE_FONT_SIZE,
+  formatSandboxDuration,
+  formatSandboxMemory,
+  getSandboxStderr,
+  getSandboxStdout,
+  getStoredCodeFontSize,
+} from '../../utils';
 import type { RunCodeResponse } from '../../types';
 import { AppIcon } from '../common/AppIcon';
 import { GlassPanel } from '../common/AppChrome';
@@ -46,85 +53,6 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function pickNumber(source: RunCodeResponse, keys: string[]): number | null {
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-  }
-  return null;
-}
-
-function pickString(source: RunCodeResponse, keys: string[]): string | null {
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  const units = ['KB', 'MB', 'GB'];
-  let value = bytes / 1024;
-  let unitIndex = 0;
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[unitIndex]}`;
-}
-
-function formatDuration(response: RunCodeResponse | null): string {
-  if (!response) {
-    return '--';
-  }
-
-  const numericDuration = pickNumber(response, [
-    'executionTimeMs',
-    'timeMs',
-    'durationMs',
-    'runtimeMs',
-  ]);
-
-  if (numericDuration !== null) {
-    return `${numericDuration} ms`;
-  }
-
-  return pickString(response, ['executionTime', 'duration', 'runtime']) ?? '--';
-}
-
-function formatMemory(response: RunCodeResponse | null): string {
-  if (!response) {
-    return '--';
-  }
-
-  const memoryBytes = pickNumber(response, ['memoryBytes', 'memoryUsedBytes']);
-  if (memoryBytes !== null) {
-    return formatBytes(memoryBytes);
-  }
-
-  const memoryKb = pickNumber(response, ['memoryKb', 'memoryKB', 'memoryUsedKb']);
-  if (memoryKb !== null) {
-    return `${memoryKb} KB`;
-  }
-
-  const memoryMb = pickNumber(response, ['memoryMb', 'memoryMB', 'memoryUsedMb']);
-  if (memoryMb !== null) {
-    return `${memoryMb} MB`;
-  }
-
-  return pickString(response, ['memory', 'memoryUsed']) ?? '--';
-}
-
 function resolveRunnerStatus(response: RunCodeResponse): RunnerStatus {
   const status = typeof response.status === 'string' ? response.status.toLowerCase() : '';
 
@@ -136,7 +64,7 @@ function resolveRunnerStatus(response: RunCodeResponse): RunnerStatus {
     return 'error';
   }
 
-  if (typeof response.stderr === 'string' && response.stderr.trim().length > 0) {
+  if (getSandboxStderr(response).length > 0) {
     return 'error';
   }
 
@@ -269,8 +197,8 @@ export function CodeBlockRunner({
     }
   };
 
-  const stdout = typeof result?.stdout === 'string' ? result.stdout.trim() : '';
-  const stderr = typeof result?.stderr === 'string' ? result.stderr.trim() : '';
+  const stdout = getSandboxStdout(result);
+  const stderr = getSandboxStderr(result);
 
   return (
     <GlassPanel className="flex-1 px-4 py-4" variant="strong">
@@ -396,10 +324,10 @@ export function CodeBlockRunner({
         {result ? (
           <View className="flex-row items-center gap-3 rounded-2xl px-3 py-2" style={{ backgroundColor: palette.panelInset }}>
             <Text className={typography.caption} style={{ color: palette.textSoft }}>
-              {t('运行时间')}：{formatDuration(result)}
+              {t('运行时间')}：{formatSandboxDuration(result)}
             </Text>
             <Text className={typography.caption} style={{ color: palette.textSoft }}>
-              {t('内存占用')}：{formatMemory(result)}
+              {t('内存占用')}：{formatSandboxMemory(result)}
             </Text>
           </View>
         ) : null}
@@ -431,7 +359,7 @@ export function CodeBlockRunner({
 
             {!stdout && !stderr ? (
               <Text className={typography.body} style={{ color: palette.textMuted }}>
-                {t('运行输出将显示在这里')}
+                {status === 'success' ? t('运行完成，当前代码没有输出。') : t('运行输出将显示在这里')}
               </Text>
             ) : null}
           </ScrollView>

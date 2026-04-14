@@ -6,5 +6,6 @@ export * from './preferences';
 export * from './time';
 export * from './uuid';
 export * from './noteImport';
+export * from './sandboxResult';
 
 

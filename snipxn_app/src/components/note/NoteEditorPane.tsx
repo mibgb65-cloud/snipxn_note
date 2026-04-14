@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Dialog } from 'heroui-native';
 
 import { useAutoSave, useDeviceType } from '../../hooks';
 import { translateLiteral, useI18n } from '../../i18n';
@@ -21,7 +22,7 @@ import { GlassPanel, IconBadge } from '../common/AppChrome';
 import { AiPanel } from './AiPanel';
 import { CodeBlockRunner } from './CodeBlockRunner';
 import { CodeEditor, type CodeEditorHandle } from './CodeEditor';
-import { CodeRunnerPanel, type RunnerStatus } from './CodeRunnerPanel';
+import type { RunnerStatus } from './CodeRunnerPanel';
 import { NoteToolbar } from './NoteToolbar';
 
 export interface NoteEditorPaneHandle {
@@ -36,6 +37,7 @@ export interface NoteEditorPaneProps {
   onToggleFullScreen?: () => void;
   onEnterRunMode?: () => void;
   onExitRunMode?: () => void;
+  preferCompactLayout?: boolean;
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -143,13 +145,22 @@ function mergeGeneratedContent(currentContent: string, generatedContent: string)
 
 export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPaneProps>(
   function NoteEditorPane(
-    { noteId, emptyMessage = '选择一个笔记开始编辑。', isFullScreen = false, onToggleFullScreen, onEnterRunMode, onExitRunMode },
+    {
+      noteId,
+      emptyMessage = '选择一个笔记开始编辑。',
+      isFullScreen = false,
+      onToggleFullScreen,
+      onEnterRunMode,
+      onExitRunMode,
+      preferCompactLayout = false,
+    },
     ref,
   ) {
     const { palette, theme, typography, isTablet } = useAppTheme();
     const { t } = useI18n();
     const { height: windowHeight } = useWindowDimensions();
     const { showSidebar } = useDeviceType();
+    const useSidePanelLayout = showSidebar && !preferCompactLayout;
 
     const { currentNote, saving, selectNote, updateNote } = useNoteStore(useShallow(state => ({
       currentNote: state.currentNote,
@@ -359,23 +370,18 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
     }, [flush, isPending, persistNote]);
 
     const handleRunnerOpenChange = (open: boolean) => {
-      if (showSidebar) {
-        // Tablet: use CodeBlockRunner in side panel + run mode
-        setIsBlockRunnerOpen(open);
-        setIsRunnerOpen(false);
+      setIsBlockRunnerOpen(open);
+      setIsRunnerOpen(false);
 
+      if (open) {
+        setIsAiOpen(false);
+      }
+
+      if (useSidePanelLayout) {
         if (open) {
-          setIsAiOpen(false);
           onEnterRunMode?.();
         } else {
           onExitRunMode?.();
-        }
-      } else {
-        // Mobile: keep existing bottom-sheet dialog
-        setIsRunnerOpen(open);
-
-        if (open) {
-          setIsAiOpen(false);
         }
       }
     };
@@ -383,7 +389,7 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
     const handleAiOpenChange = (open: boolean) => {
       setIsAiOpen(open);
 
-      if (showSidebar) {
+      if (useSidePanelLayout) {
         // Tablet: side panel + run mode (same pattern as code runner)
         if (open) {
           setIsRunnerOpen(false);
@@ -409,7 +415,15 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
         closeFloatingPanel: () => {
           if (isAiOpen) {
             setIsAiOpen(false);
-            if (showSidebar) {
+            if (useSidePanelLayout) {
+              onExitRunMode?.();
+            }
+            return true;
+          }
+
+          if (isBlockRunnerOpen) {
+            setIsBlockRunnerOpen(false);
+            if (useSidePanelLayout) {
               onExitRunMode?.();
             }
             return true;
@@ -420,16 +434,10 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
             return true;
           }
 
-          if (isBlockRunnerOpen) {
-            setIsBlockRunnerOpen(false);
-            onExitRunMode?.();
-            return true;
-          }
-
           return false;
         },
       }),
-      [isAiOpen, isBlockRunnerOpen, isRunnerOpen, onExitRunMode, requestSave, showSidebar],
+      [isAiOpen, isBlockRunnerOpen, isRunnerOpen, onExitRunMode, requestSave, useSidePanelLayout],
     );
 
     useEffect(() => {
@@ -558,6 +566,7 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
           onToggleFullScreen={onToggleFullScreen}
           onToggleReadMode={() => setIsReadMode(prev => !prev)}
           onToggleRunner={() => handleRunnerOpenChange(!(isRunnerOpen || isBlockRunnerOpen))}
+          preferCompactLayout={preferCompactLayout}
           readOnly={readOnly}
           tagIds={tagIdsInput}
           title={titleInput}
@@ -629,7 +638,7 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
           </View>
         ) : null}
 
-        {(isBlockRunnerOpen || (isAiOpen && showSidebar)) ? (
+        {(isBlockRunnerOpen || (isAiOpen && useSidePanelLayout)) ? (
           <View className="flex-1 min-h-0 flex-row" style={{ minHeight: editorMinHeight }}>
             <View style={{ flex: 3, minWidth: 200 }}>
               <CodeEditor
@@ -674,7 +683,7 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
           </View>
         )}
 
-        {!showSidebar && (
+        {!useSidePanelLayout && (
           <AiPanel
             currentContent={editorContent}
             currentLanguage={languageInput}
@@ -685,13 +694,27 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
           />
         )}
 
-        <CodeRunnerPanel
-          isOpen={isRunnerOpen}
-          language={languageInput}
-          onOpenChange={handleRunnerOpenChange}
-          onStatusChange={setRunnerStatus}
-          sourceCode={editorContent}
-        />
+        {!useSidePanelLayout ? (
+          <Dialog isOpen={isBlockRunnerOpen} onOpenChange={handleRunnerOpenChange}>
+            <Dialog.Portal>
+              <Dialog.Overlay />
+              <Dialog.Content
+                className="mt-auto rounded-b-none rounded-t-3xl p-0"
+                style={{
+                  backgroundColor: 'transparent',
+                  height: Math.max(520, Math.floor(windowHeight * 0.8)),
+                }}>
+                <CodeBlockRunner
+                  content={editorContent}
+                  documentLanguage={languageInput}
+                  onClose={() => handleRunnerOpenChange(false)}
+                  onScrollToLine={(line) => codeEditorRef.current?.scrollToLine(line)}
+                  onStatusChange={setRunnerStatus}
+                />
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog>
+        ) : null}
       </GlassPanel>
     );
   },

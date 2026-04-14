@@ -42,6 +42,7 @@ export interface NoteToolbarProps {
   isRunningCode?: boolean;
   isAiOpen?: boolean;
   isAiBusy?: boolean;
+  preferCompactLayout?: boolean;
 }
 
 const LANGUAGE_OPTIONS = [
@@ -201,11 +202,13 @@ export function NoteToolbar({
   isRunningCode = false,
   isAiOpen = false,
   isAiBusy = false,
+  preferCompactLayout = false,
 }: NoteToolbarProps) {
   const navigation = useNavigation<any>();
   const { isTablet, showSidebar } = useDeviceType();
   const { palette, typography } = useAppTheme();
   const { t } = useI18n();
+  const useCompactLayout = preferCompactLayout || !showSidebar;
 
   const { tags, createTag, toggleStar, updateNote, deleteNote } = useNoteStore(useShallow(state => ({
     tags: state.tags,
@@ -415,7 +418,7 @@ export function NoteToolbar({
       await deleteNote(note.id);
       closeDialogs();
 
-      if (!showSidebar && navigation.canGoBack()) {
+      if (useCompactLayout && navigation.canGoBack()) {
         navigation.goBack();
       }
     } catch (error) {
@@ -443,7 +446,7 @@ export function NoteToolbar({
       <View className="flex-row items-center gap-2">
         <View className="min-w-0 flex-1">
           <TextInput
-            className={`${isTablet ? 'text-xl' : 'text-lg'} font-bold`}
+            className={`${useCompactLayout ? 'text-lg' : isTablet ? 'text-xl' : 'text-lg'} font-bold`}
             editable={!readOnly}
             onChangeText={onTitleChange}
             placeholder={t('无标题笔记')}
@@ -809,7 +812,6 @@ export function NoteToolbar({
     </View>
   );
 }
-
 
 
 

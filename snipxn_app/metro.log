@@ -42,3 +42,136 @@ Starting dev server on http://localhost:8081
  BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
  BUNDLE  ./index.js 
  BUNDLE  ./index.js 
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  src\stores/communityStore.ts ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\stores/folderStore.ts ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\stores/userStore.ts ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\stores/noteStore.ts ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\stores/syncStore.ts ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\stores/communityStore.ts ▓▓▓▓▓▓░░░░░░░░░░ 37% (58/100)
+ BUNDLE  src\stores/folderStore.ts ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 73% (473/552)
+ BUNDLE  src\stores/userStore.ts ▓▓▓▓▓▓▓▓░░░░░░░░ 51% (332/470)
+ BUNDLE  src\stores/noteStore.ts ▓▓▓▓▓▓▓▓▓░░░░░░░ 58% (396/516)
+ BUNDLE  src\stores/syncStore.ts ▓▓▓▓▓▓▓▓▓░░░░░░░ 62% (401/508)
+ BUNDLE  src\stores/communityStore.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99% (763/765)
+ BUNDLE  src\stores/folderStore.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99% (787/802)
+ BUNDLE  src\stores/userStore.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 87% (696/746)
+ BUNDLE  src\stores/noteStore.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 92% (803/833)
+ BUNDLE  src\stores/syncStore.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 87% (717/766)
+ BUNDLE  src\stores/folderStore.ts 
+ BUNDLE  src\stores/userStore.ts 
+ BUNDLE  src\stores/syncStore.ts 
+ BUNDLE  src\stores/noteStore.ts 
+ BUNDLE  src\stores/communityStore.ts 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  src\screens\community/PostDetailScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\community/PostDetailScreen.tsx ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 69% (1289/1550)
+ BUNDLE  src\screens\community/PostDetailScreen.tsx ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99% (2257/2257)
+ BUNDLE  src\screens\community/PostDetailScreen.tsx 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 
+ BUNDLE  src\screens\community/PostDetailScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\community/PostDetailScreen.tsx 
+ ERROR  Error: Unable to resolve module ./CodeEditor from E:\biyesheji\Snipxn_System\snipxn_app\src\components\note\index.ts: 
+
+None of these files exist:
+  * src\components\note\CodeEditor(.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.css|.native.css|.css)
+  * src\components\note\CodeEditor
+  1 | ﻿export * from './AiPanel';
+  2 | export * from './CodeBlockRunner';
+> 3 | export * from './CodeEditor';
+    |                ^
+  4 | export * from './CodeRunnerPanel';
+  5 | export * from './NoteEditorPane';
+  6 | export * from './NoteList';
+    at ModuleResolver.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:142:15)
+    at DependencyGraph.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\lib\transformHelpers.js:165:21
+    at resolveDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:43:25)
+    at visit (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:81:30)
+    at async Promise.all (index 0)
+    at async buildSubgraph (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:105:3)
+    at async Graph._buildDelta (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:163:22)
+    at async Graph.traverseDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:50:19)
+    at async DeltaCalculator._getChangedDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\DeltaCalculator.js:191:42)
+ ERROR  Error: Unable to resolve module ./CodeEditor from E:\biyesheji\Snipxn_System\snipxn_app\src\components\note\index.ts: 
+
+None of these files exist:
+  * src\components\note\CodeEditor(.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.css|.native.css|.css)
+  * src\components\note\CodeEditor
+  1 | ﻿export * from './AiPanel';
+  2 | export * from './CodeBlockRunner';
+> 3 | export * from './CodeEditor';
+    |                ^
+  4 | export * from './CodeRunnerPanel';
+  5 | export * from './NoteEditorPane';
+  6 | export * from './NoteList';
+    at ModuleResolver.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:142:15)
+    at DependencyGraph.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\lib\transformHelpers.js:165:21
+    at resolveDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:43:25)
+    at visit (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:81:30)
+    at async Promise.all (index 0)
+    at async buildSubgraph (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:105:3)
+    at async Graph._buildDelta (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:163:22)
+    at async Graph.traverseDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:50:19)
+    at async DeltaCalculator._getChangedDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\DeltaCalculator.js:191:42)
+ ERROR  Error: Unable to resolve module ./CodeRunnerPanel from E:\biyesheji\Snipxn_System\snipxn_app\src\components\note\index.ts: 
+
+None of these files exist:
+  * src\components\note\CodeRunnerPanel(.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.css|.native.css|.css)
+  * src\components\note\CodeRunnerPanel
+  2 | export * from './CodeBlockRunner';
+  3 | export * from './CodeEditor';
+> 4 | export * from './CodeRunnerPanel';
+    |                ^
+  5 | export * from './NoteEditorPane';
+  6 | export * from './NoteList';
+  7 | export * from './NoteListItem';
+    at ModuleResolver.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:142:15)
+    at DependencyGraph.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\lib\transformHelpers.js:165:21
+    at resolveDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:43:25)
+    at visit (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:81:30)
+    at async Promise.all (index 0)
+    at async buildSubgraph (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:105:3)
+    at async Graph._buildDelta (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:163:22)
+    at async Graph.traverseDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:50:19)
+    at async DeltaCalculator._getChangedDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\DeltaCalculator.js:191:42)
+ ERROR  Error: Unable to resolve module ./CodeRunnerPanel from E:\biyesheji\Snipxn_System\snipxn_app\src\components\note\index.ts: 
+
+None of these files exist:
+  * src\components\note\CodeRunnerPanel(.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.css|.native.css|.css)
+  * src\components\note\CodeRunnerPanel
+  2 | export * from './CodeBlockRunner';
+  3 | export * from './CodeEditor';
+> 4 | export * from './CodeRunnerPanel';
+    |                ^
+  5 | export * from './NoteEditorPane';
+  6 | export * from './NoteList';
+  7 | export * from './NoteListItem';
+    at ModuleResolver.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:142:15)
+    at DependencyGraph.resolveDependency (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\lib\transformHelpers.js:165:21
+    at resolveDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:43:25)
+    at visit (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:81:30)
+    at async Promise.all (index 0)
+    at async buildSubgraph (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\buildSubgraph.js:105:3)
+    at async Graph._buildDelta (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:163:22)
+    at async Graph.traverseDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\Graph.js:50:19)
+    at async DeltaCalculator._getChangedDependencies (E:\biyesheji\Snipxn_System\snipxn_app\node_modules\metro\src\DeltaBundler\DeltaCalculator.js:191:42)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  ./index.js 
+ BUNDLE  src\screens\settings/SettingsScreen.tsx ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  src\screens\settings/SettingsScreen.tsx 

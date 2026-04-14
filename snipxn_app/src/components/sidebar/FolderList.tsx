@@ -216,7 +216,7 @@ export function FolderList() {
     setActiveTagId(null);
     setActiveFolder(folderId);
     setActiveFolderView(folderId);
-    navigation.navigate('Workspace');
+    navigation.navigate('Workspace', { screen: 'Workspace' });
   };
 
   const handleDeleteFolder = async (folder: Folder) => {

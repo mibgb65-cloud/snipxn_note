@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -29,7 +31,7 @@ export type MainTabParamList = {
 };
 
 export type MainDrawerParamList = {
-  Workspace: undefined;
+  Workspace: NavigatorScreenParams<NoteStackParamList> | undefined;
   Community: undefined;
   Settings: undefined;
 };

@@ -474,6 +474,7 @@ export function WorkspaceScreen() {
   const [importing, setImporting] = useState(false);
   const [isEditorFullScreen, setIsEditorFullScreen] = useState(false);
   const [, setWorkspaceFeedback] = useState<WorkspaceFeedback>(null);
+  const usesInlineEditor = false;
 
   // Run mode: save previous state and restore on exit
   const prevSidebarCollapsedRef = useRef(false);
@@ -653,14 +654,15 @@ export function WorkspaceScreen() {
     setActiveFolderView(folder.id);
   }, [createFolder, setActiveFolderView, setActiveTagId]);
 
-  if (!showSidebar) {
+  if (!showSidebar || !usesInlineEditor) {
     return (
       <AppCanvas className="flex-1">
         <TabPageHeader title={t('笔记')} />
         <SafeAreaView edges={mobileSafeAreaEdges} style={{ flex: 1 }}>
           <View className="flex-1">
             <NoteList
-              showCreateButton={false}
+              forceEditorScreenNavigation={showSidebar}
+              showCreateButton={showSidebar}
               showSearchHeader={true}
               headerComponent={
                 <MobileFilterBar

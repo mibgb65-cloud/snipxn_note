@@ -63,6 +63,7 @@ export function SearchScreen() {
       <SafeAreaView edges={['left', 'right']} style={{ flex: 1 }}>
         <View className="flex-1">
           <NoteList
+            forceEditorScreenNavigation
             showCreateButton={false}
             emptyIcon="search"
             emptyTitle={t('搜索笔记')}

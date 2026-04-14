@@ -394,7 +394,7 @@ export function Sidebar({
                 collapsed={collapsed}
                 icon="notes"
                 label={t('工作区')}
-                onPress={() => navigation.navigate('Workspace')}
+                onPress={() => navigation.navigate('Workspace', { screen: 'Workspace' })}
               />
               <SidebarItem
                 active={routeName === 'Community'}
@@ -417,7 +417,7 @@ export function Sidebar({
                 onPress={() => {
                   setActiveTagId(null);
                   setActiveView('all');
-                  navigation.navigate('Workspace');
+                  navigation.navigate('Workspace', { screen: 'Workspace' });
                 }}
               />
               <SidebarItem
@@ -428,7 +428,7 @@ export function Sidebar({
                 onPress={() => {
                   setActiveTagId(null);
                   setActiveView('starred');
-                  navigation.navigate('Workspace');
+                  navigation.navigate('Workspace', { screen: 'Workspace' });
                 }}
               />
               <SidebarItem
@@ -439,7 +439,7 @@ export function Sidebar({
                 onPress={() => {
                   setActiveTagId(null);
                   setActiveView('trash');
-                  navigation.navigate('Workspace');
+                  navigation.navigate('Workspace', { screen: 'Workspace' });
                 }}
               />
             </GlassPanel>

@@ -127,7 +127,7 @@ export function TagList() {
     setActiveView('all');
     setActiveTagId(tagId);
     await fetchNotes();
-    navigation.navigate('Workspace');
+    navigation.navigate('Workspace', { screen: 'Workspace' });
   };
 
   const handleDeleteTag = async (tag: Tag) => {

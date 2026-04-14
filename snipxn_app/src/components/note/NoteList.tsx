@@ -56,6 +56,7 @@ export function NoteList({
   emptyTitle,
   emptyHint,
   headerComponent,
+  forceEditorScreenNavigation = false,
 }: {
   showSearchHeader?: boolean;
   showCreateButton?: boolean;
@@ -63,6 +64,7 @@ export function NoteList({
   emptyTitle?: string;
   emptyHint?: string;
   headerComponent?: React.ReactNode;
+  forceEditorScreenNavigation?: boolean;
 }) {
   const navigation = useNavigation<any>();
   const { showSidebar } = useDeviceType();
@@ -110,11 +112,13 @@ export function NoteList({
   const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const canCreate = showCreateButton && activeView !== 'trash';
+  const shouldNavigateToEditorScreen = forceEditorScreenNavigation || !showSidebar;
+  const useGridLayout = showSidebar;
 
   const handleSelectNote = async (noteId: string) => {
     await selectNote(noteId);
 
-    if (!showSidebar) {
+    if (shouldNavigateToEditorScreen) {
       navigation.navigate('NoteEditor', { noteId });
     }
   };
@@ -137,10 +141,10 @@ export function NoteList({
     try {
       const note = await createNote(folderId);
 
-      if (showSidebar) {
-        await selectNote(note.id);
-      } else {
+      if (shouldNavigateToEditorScreen) {
         navigation.navigate('NoteEditor', { noteId: note.id });
+      } else {
+        await selectNote(note.id);
       }
     } catch (error) {
       setErrorMessage(getErrorMessage(error, t('新建笔记失败，请稍后重试。')));
@@ -257,6 +261,8 @@ export function NoteList({
   return (
     <View className="flex-1" style={{ backgroundColor: 'transparent' }}>
       <FlatList<Note>
+        key={useGridLayout ? 'note-grid' : 'note-list'}
+        columnWrapperStyle={useGridLayout ? { paddingHorizontal: 8 } : undefined}
         contentContainerStyle={{
           flexGrow: notes.length === 0 ? 1 : 0,
           paddingBottom: canCreate
@@ -270,14 +276,16 @@ export function NoteList({
         ListFooterComponent={renderFooter}
         ListHeaderComponent={renderHeader}
         maxToRenderPerBatch={10}
+        numColumns={useGridLayout ? 2 : 1}
         onRefresh={() => {
           void handleRefresh();
         }}
         refreshing={refreshing}
         removeClippedSubviews
         renderItem={({ item }) => (
-          <View className="px-4">
+          <View className={useGridLayout ? 'flex-1 px-2' : 'px-4'}>
             <NoteListItem
+              compactLayout={useGridLayout}
               isSelected={selectedNoteId === item.id}
               note={item}
               onPress={() => {

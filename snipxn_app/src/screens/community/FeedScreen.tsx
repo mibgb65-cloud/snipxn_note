@@ -16,7 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import * as postApi from '../../api/post';
-import { AppCanvas, GlassPanel, IconBadge, MetricPill, SectionEyebrow } from '../../components/common';
+import { AppCanvas, GlassPanel, IconBadge, SectionEyebrow } from '../../components/common';
 import { TabPageHeader } from '../../components/common/TabPageHeader';
 import { prefetchImages } from '../../utils/imageCache';
 import { AppIcon } from '../../components/common/AppIcon';
@@ -677,8 +677,6 @@ export function FeedScreen() {
 
   const activeTabDescription =
     activeTab === 'latest' ? t('实时更新的最新分享') : t('当前最受欢迎的内容');
-  const activeCountLabel = activeTab === 'latest' ? t('篇更新') : t('篇热门');
-  const hasSearchQuery = searchQuery.trim().length > 0;
 
   const tabSwitcher = (
     <FeedSlidingTabs
@@ -688,16 +686,6 @@ export function FeedScreen() {
         setFeedback(null);
       }}
     />
-  );
-
-  const summaryPills = (
-    <View className="flex-row flex-wrap gap-2">
-      <MetricPill label={`${currentPosts.length} ${activeCountLabel}`} tone="accent" />
-      <MetricPill label={`${recommendedUsers.length} ${t('位创作者')}`} />
-      {hasSearchQuery ? (
-        <MetricPill label={`${filteredPosts.length} ${t('条匹配')}`} tone="cta" />
-      ) : null}
-    </View>
   );
 
   return (
@@ -722,22 +710,20 @@ export function FeedScreen() {
                         round
                         size={48}
                       />
-                      <View className="min-w-0 flex-1 gap-2">
-                        <View>
-                          <SectionEyebrow>{t('社区')}</SectionEyebrow>
-                          <Text className={typography.h1} style={{ color: palette.text }}>
-                            {t('社区')}
-                          </Text>
-                          <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
-                            {activeTabDescription}
-                          </Text>
-                        </View>
+                      <View className="min-w-0 flex-1">
+                        <View className="flex-row items-start justify-between gap-4">
+                          <View className="min-w-0 flex-1">
+                            <SectionEyebrow>{t('社区')}</SectionEyebrow>
+                            <Text className={typography.h1} style={{ color: palette.text }}>
+                              {t('社区')}
+                            </Text>
+                            <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+                              {activeTabDescription}
+                            </Text>
+                          </View>
 
-                        {tabSwitcher}
-
-                        <View className="flex-row items-start gap-4">
-                          <View className="min-w-0 flex-1">{summaryPills}</View>
-                          <View className="w-[300px]">
+                          <View className="w-[320px] gap-3">
+                            {tabSwitcher}
                             <FeedSearchField
                               placeholder={t('搜索标题、摘要、标签或作者')}
                               searchQuery={searchQuery}

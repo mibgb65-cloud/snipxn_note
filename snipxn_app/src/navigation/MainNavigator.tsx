@@ -12,6 +12,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassPanel, SectionEyebrow } from '../components/common';
@@ -19,7 +25,6 @@ import { AppIcon, type AppIconName } from '../components/common/AppIcon';
 import { Sidebar } from '../components/sidebar/Sidebar';
 import { useDeviceType } from '../hooks';
 import { translateLiteral, useI18n } from '../i18n';
-import { WorkspaceScreen } from '../screens/main/WorkspaceScreen';
 import { useFolderStore, useNoteStore, useSyncStore, useUIStore } from '../stores';
 import { useAppTheme, withAlpha } from '../theme';
 import { describeImportNotesResult, pickAndImportNotes } from '../utils';
@@ -140,26 +145,41 @@ function NewTabButton({
 }) {
   const { palette } = useAppTheme();
   const { t } = useI18n();
+  const rotation = useSharedValue(0);
+
+  const plusAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  const handlePress = () => {
+    rotation.value = withTiming(rotation.value + 360, {
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+    });
+    onPress();
+  };
 
   return (
     <Pressable
       accessibilityLabel={t('新建')}
       accessibilityRole="button"
       className="flex-1 items-center justify-center"
-      onPress={onPress}
+      onPress={handlePress}
       style={{ marginTop: -10 }}>
       <View
         className="h-16 w-16 items-center justify-center rounded-full border"
         style={{
-          borderColor: withAlpha(palette.cta, 0.38),
+          borderColor: withAlpha(active ? palette.primary : palette.cta, active ? 0.54 : 0.38),
           backgroundColor: palette.cta,
           shadowColor: palette.shadow,
-          shadowOpacity: 0.26,
-          shadowRadius: 18,
+          shadowOpacity: active ? 0.32 : 0.26,
+          shadowRadius: active ? 22 : 18,
           shadowOffset: { width: 0, height: 10 },
           elevation: 16,
         }}>
-        <AppIcon color="#FFFFFF" name="plus" size={24} strokeWidth={2.4} />
+        <Animated.View style={plusAnimatedStyle}>
+          <AppIcon color="#FFFFFF" name="plus" size={24} strokeWidth={2.4} />
+        </Animated.View>
       </View>
     </Pressable>
   );
@@ -176,6 +196,7 @@ export function MainNavigator() {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const isSidebarCollapsed = useUIStore(state => state.sidebarCollapsed);
+  const isSidebarHidden = useUIStore(state => state.sidebarHidden);
   const toggleSidebar = useUIStore(state => state.toggleSidebar);
   const folders = useFolderStore(state => state.folders);
   const rememberedFolderId = useFolderStore(state => state.activeFolderId);
@@ -203,6 +224,13 @@ export function MainNavigator() {
     () => createMobileTabBarStyle(palette, tabBarBottomPadding),
     [palette, tabBarBottomPadding],
   );
+  const resolveDrawerStyle = (hidden: boolean) => ({
+    width: hidden ? 0 : isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,
+    backgroundColor: hidden ? 'transparent' : palette.panelStrong,
+    borderRightColor: hidden ? 'transparent' : palette.borderStrong,
+    borderRightWidth: hidden ? 0 : 1,
+    overflow: 'hidden' as const,
+  });
 
   const handleSidebarToggle = () => toggleSidebar();
 
@@ -329,21 +357,30 @@ export function MainNavigator() {
   if (isTablet) {
     return (
       <Drawer.Navigator
-        drawerContent={() => (
-          <Sidebar collapsed={isSidebarCollapsed} onToggleCollapse={handleSidebarToggle} />
-        )}
+          drawerContent={() =>
+            isSidebarHidden ? null : (
+              <Sidebar collapsed={isSidebarCollapsed} onToggleCollapse={handleSidebarToggle} />
+            )
+          }
         screenOptions={{
           headerShown: false,
           drawerType: 'permanent',
           overlayColor: 'transparent',
           sceneStyle: { backgroundColor: palette.canvas },
-          drawerStyle: {
-            width: isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,
-            backgroundColor: palette.panelStrong,
-            borderRightColor: palette.borderStrong,
-          },
+          drawerStyle: resolveDrawerStyle(isSidebarHidden),
         }}>
-        <Drawer.Screen name="Workspace" component={WorkspaceScreen} />
+        <Drawer.Screen
+          name="Workspace"
+          component={NoteStack}
+          options={({ route }) => {
+            const focusedRoute = getFocusedRouteNameFromRoute(route) ?? 'Workspace';
+            const hideSidebar = isSidebarHidden || focusedRoute === 'NoteEditor';
+
+            return {
+              drawerStyle: resolveDrawerStyle(hideSidebar),
+            };
+          }}
+        />
         <Drawer.Screen name="Community" component={CommunityStack} />
         <Drawer.Screen name="Settings" component={SettingsScreenLazy} />
       </Drawer.Navigator>

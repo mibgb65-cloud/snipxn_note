@@ -5,19 +5,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../components/common/AppIcon';
 import { NoteEditorPane, type NoteEditorPaneHandle } from '../../components/note/NoteEditorPane';
+import { useDeviceType } from '../../hooks';
 import { useI18n } from '../../i18n';
 import type { NoteStackParamList } from '../../navigation/types';
-import { useNoteStore } from '../../stores';
+import { useNoteStore, useUIStore } from '../../stores';
 import { useAppTheme, withAlpha } from '../../theme';
 
 type Props = NativeStackScreenProps<NoteStackParamList, 'NoteEditor'>;
 
 export function NoteEditorScreen({ route, navigation }: Props) {
   const { noteId } = route.params;
+  const { showSidebar } = useDeviceType();
   const { palette, typography } = useAppTheme();
   const { t } = useI18n();
 
   const currentNote = useNoteStore(state => state.currentNote);
+  const setSidebarHidden = useUIStore(state => state.setSidebarHidden);
 
   const editorRef = useRef<NoteEditorPaneHandle | null>(null);
 
@@ -38,6 +41,18 @@ export function NoteEditorScreen({ route, navigation }: Props) {
   const handleManualSave = async () => {
     await editorRef.current?.flushSave();
   };
+
+  useEffect(() => {
+    if (!showSidebar) {
+      return;
+    }
+
+    setSidebarHidden(true);
+
+    return () => {
+      setSidebarHidden(false);
+    };
+  }, [setSidebarHidden, showSidebar]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -86,7 +101,7 @@ export function NoteEditorScreen({ route, navigation }: Props) {
             </View>
           </View>
 
-          <NoteEditorPane ref={editorRef} noteId={noteId} />
+          <NoteEditorPane preferCompactLayout ref={editorRef} noteId={noteId} />
         </View>
       </SafeAreaView>
     </View>

@@ -19,6 +19,7 @@ export interface NoteListItemProps {
   note: Note;
   isSelected: boolean;
   onPress: () => void;
+  compactLayout?: boolean;
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -126,7 +127,12 @@ function formatSyncMeta(
   return formatRelativeTime(updatedAt, language);
 }
 
-export function NoteListItem({ note, isSelected, onPress }: NoteListItemProps) {
+export function NoteListItem({
+  note,
+  isSelected,
+  onPress,
+  compactLayout = false,
+}: NoteListItemProps) {
   const { palette, typography } = useAppTheme();
   const { language, t } = useI18n();
 
@@ -228,16 +234,17 @@ export function NoteListItem({ note, isSelected, onPress }: NoteListItemProps) {
 
   return (
     <>
-      <View>
+      <View className={compactLayout ? 'flex-1' : ''}>
           <MotionPressable
             accessibilityRole="button"
-            className="mb-3 rounded-[10px] border px-4 py-4"
+            className={`${compactLayout ? 'mb-4 flex-1 rounded-[14px]' : 'mb-3 rounded-[10px]'} border px-4 py-4`}
             onLongPress={() => {
               setErrorMessage(null);
               setIsMenuOpen(true);
             }}
             onPress={onPress}
             style={{
+              minHeight: compactLayout ? 176 : undefined,
               borderColor: isSelected ? withAlpha(palette.primary, 0.42) : palette.border,
               backgroundColor: isSelected ? withAlpha(palette.primary, 0.1) : palette.panelRaised,
               shadowColor: palette.shadow,
@@ -259,7 +266,7 @@ export function NoteListItem({ note, isSelected, onPress }: NoteListItemProps) {
                 <View className="flex-row items-start gap-3">
                   <Text
                     className={`${typography.h3} min-w-0 flex-1`}
-                    numberOfLines={1}
+                    numberOfLines={compactLayout ? 2 : 1}
                     style={{ color: palette.text }}>
                     {note.title}
                   </Text>
@@ -280,7 +287,7 @@ export function NoteListItem({ note, isSelected, onPress }: NoteListItemProps) {
 
                 <Text
                   className={typography.bodySmall}
-                  numberOfLines={2}
+                  numberOfLines={compactLayout ? 3 : 2}
                   style={{ color: palette.textSoft }}>
                   {note.summary?.trim() || t('暂无摘要')}
                 </Text>

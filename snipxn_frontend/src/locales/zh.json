@@ -140,7 +140,7 @@
     "downloadBody": "安卓客户端已就绪，扫码或点击按钮下载安装。",
     "downloadAndroid": "下载 Android 安装包",
     "downloadApkSize": "APK 约 81 MB",
-    "downloadVersion": "v1.2",
+    "downloadVersion": "v1.3.0",
     "downloadQrHint": "手机扫码下载",
     "downloadRequirement": "Android 7.0+",
     "downloadFeature1": "离线笔记管理",

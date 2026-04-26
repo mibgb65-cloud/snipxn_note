@@ -24,27 +24,28 @@ function normalizeStatus(value: unknown): User['status'] {
   return value === 'BANNED' || value === 'LOCKED' ? value : 'ACTIVE';
 }
 
-function normalizeUser(raw: Record<string, unknown>): User {
+function normalizeUser(raw: Record<string, unknown> | null | undefined): User {
+  const source = raw ?? {};
   const now = new Date().toISOString();
-  const createdAt = normalizeNullableString(raw.createdAt) ?? now;
-  const updatedAt = normalizeNullableString(raw.updatedAt) ?? createdAt;
+  const createdAt = normalizeNullableString(source.createdAt) ?? now;
+  const updatedAt = normalizeNullableString(source.updatedAt) ?? createdAt;
 
   return {
-    id: String(raw.id ?? ''),
-    email: normalizeNullableString(raw.email) ?? '',
-    nickname: normalizeNullableString(raw.nickname),
-    avatar: normalizeNullableString(raw.avatar),
-    bio: normalizeNullableString(raw.bio),
-    gender: normalizeNumber(raw.gender, 0),
-    birthday: normalizeNullableString(raw.birthday),
-    website: normalizeNullableString(raw.website),
-    github: normalizeNullableString(raw.github),
-    location: normalizeNullableString(raw.location),
-    company: normalizeNullableString(raw.company),
-    techStack: normalizeNullableString(raw.techStack),
-    storageLimit: normalizeNumber(raw.storageLimit, 0),
-    storageUsed: normalizeNumber(raw.storageUsed, 0),
-    status: normalizeStatus(raw.status),
+    id: String(source.id ?? ''),
+    email: normalizeNullableString(source.email) ?? '',
+    nickname: normalizeNullableString(source.nickname),
+    avatar: normalizeNullableString(source.avatar),
+    bio: normalizeNullableString(source.bio),
+    gender: normalizeNumber(source.gender, 0),
+    birthday: normalizeNullableString(source.birthday),
+    website: normalizeNullableString(source.website),
+    github: normalizeNullableString(source.github),
+    location: normalizeNullableString(source.location),
+    company: normalizeNullableString(source.company),
+    techStack: normalizeNullableString(source.techStack),
+    storageLimit: normalizeNumber(source.storageLimit, 0),
+    storageUsed: normalizeNumber(source.storageUsed, 0),
+    status: normalizeStatus(source.status),
     createdAt,
     updatedAt,
   };
@@ -56,8 +57,16 @@ export async function getMe(): Promise<User> {
 }
 
 export async function updateMe(data: UpdateMeRequest): Promise<User> {
-  const response = await apiClient.put<Record<string, unknown>, UpdateMeRequest>(USER_BASE_URL, data);
-  return normalizeUser(response);
+  const response = await apiClient.put<Record<string, unknown> | null, UpdateMeRequest>(
+    USER_BASE_URL,
+    data,
+  );
+
+  if (response && typeof response === 'object') {
+    return normalizeUser(response);
+  }
+
+  return getMe();
 }
 
 export function changePassword(password: string): Promise<void> {

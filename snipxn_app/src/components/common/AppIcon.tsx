@@ -16,6 +16,7 @@ export type AppIconName =
   | 'devices'
   | 'edit-3'
   | 'eye'
+  | 'eye-off'
   | 'folder'
   | 'flame'
   | 'github'
@@ -237,6 +238,15 @@ export function AppIcon({
         <>
           <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" {...commonProps} />
           <Circle cx="12" cy="12" r="3" {...commonProps} />
+        </>
+      ) : null}
+
+      {name === 'eye-off' ? (
+        <>
+          <Path d="M3 3l18 18" {...commonProps} />
+          <Path d="M10.7 5.1A10.7 10.7 0 0 1 12 5c7 0 11 7 11 7a18.4 18.4 0 0 1-3.2 4.2" {...commonProps} />
+          <Path d="M6.2 6.9C3 9 1 12 1 12s4 7 11 7a10.8 10.8 0 0 0 4.9-1.1" {...commonProps} />
+          <Path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" {...commonProps} />
         </>
       ) : null}
 

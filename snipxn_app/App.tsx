@@ -1,21 +1,20 @@
 import './src/global.css';
 
 import { HeroUINativeProvider } from 'heroui-native';
-import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AppCanvas, AppLogo, GlassPanel, SectionEyebrow } from './src/components/common';
+import { LaunchExperience } from './src/components/common';
 import { initDatabase } from './src/db/database';
 import { isOnline, startNetworkMonitor, stopNetworkMonitor } from './src/db/sync/networkMonitor';
-import { useI18n, useI18nStore } from './src/i18n';
+import { useI18nStore } from './src/i18n';
 import { RootNavigator } from './src/navigation';
 import { useShallow } from 'zustand/react/shallow';
 
 import { configureGoogleSignIn } from './src/services/googleSignIn';
 import { useAppUpdateStore, useAuthStore, useSyncStore } from './src/stores';
-import { ThemeProvider, useAppTheme } from './src/theme';
+import { ThemeProvider } from './src/theme';
 
 const APP_READY_MAX_WAIT_MS = 4000;
 
@@ -45,9 +44,12 @@ function AppContent() {
     setOffline: state.setOffline,
   })));
   const checkForUpdates = useAppUpdateStore(state => state.checkForUpdates);
-  const { palette, typography } = useAppTheme();
-  const { t } = useI18n();
   const [appReady, setAppReady] = useState(false);
+  const [launchFinished, setLaunchFinished] = useState(false);
+
+  const handleLaunchFinish = useCallback(() => {
+    setLaunchFinished(true);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -112,27 +114,10 @@ function AppContent() {
 
   return (
     <HeroUINativeProvider>
-      {appReady ? (
+      {appReady && launchFinished ? (
         <RootNavigator />
       ) : (
-        <AppCanvas className="flex-1">
-          <View className="flex-1 items-center justify-center px-6">
-            <GlassPanel className="w-full max-w-[420px] px-6 py-6" highlight={palette.primary}>
-              <View className="items-center gap-4">
-                <AppLogo size={68} />
-                <View className="items-center gap-2">
-                  <SectionEyebrow>Snipxn Workspace</SectionEyebrow>
-                  <Text className={typography.h1} style={{ color: palette.text }}>
-                    Snipxn
-                  </Text>
-                  <Text className={`${typography.body} text-center`} style={{ color: palette.textSoft }}>
-                    {t('正在恢复本地会话与同步状态...')}
-                  </Text>
-                </View>
-              </View>
-            </GlassPanel>
-          </View>
-        </AppCanvas>
+        <LaunchExperience ready={appReady} onFinish={handleLaunchFinish} />
       )}
     </HeroUINativeProvider>
   );

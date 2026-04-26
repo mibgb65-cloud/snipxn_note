@@ -1,26 +1,23 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { useI18n } from '../i18n';
 import { NoteEditorScreen, WorkspaceScreen } from '../screens';
 
+import {
+  EDITOR_STACK_SCREEN_OPTIONS,
+  ROOT_STACK_SCREEN_OPTIONS,
+} from './stackTransitions';
 import type { NoteStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<NoteStackParamList>();
 
 export function NoteStack() {
-  const { t } = useI18n();
-
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="Workspace"
-        component={WorkspaceScreen}
-        options={{ headerShown: false }}
-      />
+    <Stack.Navigator screenOptions={ROOT_STACK_SCREEN_OPTIONS}>
+      <Stack.Screen name="Workspace" component={WorkspaceScreen} />
       <Stack.Screen
         name="NoteEditor"
         component={NoteEditorScreen}
-        options={{ headerShown: false }}
+        options={EDITOR_STACK_SCREEN_OPTIONS}
       />
     </Stack.Navigator>
   );

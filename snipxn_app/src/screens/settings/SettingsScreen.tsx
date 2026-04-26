@@ -17,7 +17,6 @@ import {
   Linking,
   Platform,
   ScrollView,
-  Share,
   Text,
   View,
 } from 'react-native';
@@ -40,6 +39,7 @@ import {
   APP_PANEL_ENTERING,
   MotionPressable,
 } from '../../components/common/AppMotion';
+import * as feedbackApi from '../../api/feedback';
 import * as fileApi from '../../api/file';
 import * as userApi from '../../api/user';
 import { buildGitHubAuthorizeUrl } from '../../config/oauth';
@@ -82,6 +82,7 @@ type FeedbackState = {
 } | null;
 
 const PROFILE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const FEEDBACK_CONTENT_LIMIT = 5000;
 
 function getSectionTitles(t: (text: string) => string): Record<SettingsSectionKey, string> {
   return {
@@ -1002,20 +1003,30 @@ export function SettingsScreen() {
       return;
     }
 
+    if (message.length > FEEDBACK_CONTENT_LIMIT) {
+      setFeedback({
+        status: 'warning',
+        title: t('反馈内容过长'),
+        description: t('反馈内容不能超过 5000 字。'),
+      });
+      return;
+    }
+
     setSubmittingFeedback(true);
 
     try {
-      await Share.share({
-        title: 'Snipxn Feedback',
-        message: isEnglish
-          ? `Snipxn Mobile Feedback\n\nVersion: ${currentVersionLabel}\nTheme: ${themePreference}\nLanguage: ${language}\nCode Font Size: ${codeFontSize}\n\n${message}`
-          : `Snipxn 移动端反馈\n\n版本: ${currentVersionLabel}\n主题: ${themePreference}\n语言偏好: ${language}\n代码字号: ${codeFontSize}\n\n${message}`,
+      const response = await feedbackApi.submitFeedback({
+        content: message,
+        contact: currentUser?.email ?? null,
+        images: [],
       });
       setFeedbackText('');
       setFeedback({
         status: 'success',
-        title: t('反馈已准备好'),
-        description: t('系统分享面板已打开，你可以选择合适的发送渠道。'),
+        title: t('反馈已提交'),
+        description: response.confirmationEmailQueued
+          ? t('反馈已提交，确认邮件已发送到账号邮箱。')
+          : t('反馈已提交，我们会尽快处理。'),
       });
     } catch (error) {
       setFeedback({
@@ -1391,13 +1402,27 @@ export function SettingsScreen() {
         </Button>
       </SectionShell>
 
-      <SectionShell title={t('反馈')} description={t('当前通过系统分享面板发送反馈内容。')}>
+      <SectionShell title={t('反馈')} description={t('反馈会直接提交到 Snipxn 后台，便于后续跟进。')}>
         <TextField>
           <Label>{t('反馈内容')}</Label>
-          <TextArea numberOfLines={5} placeholder={isEnglish ? 'Tell us what you want to improve or describe the issue you hit.' : '告诉我们你希望改进的地方，或描述你遇到的问题。'} value={feedbackText} onChangeText={setFeedbackText} />
+          <TextArea
+            maxLength={FEEDBACK_CONTENT_LIMIT}
+            numberOfLines={5}
+            placeholder={isEnglish ? 'Tell us what you want to improve or describe the issue you hit.' : '告诉我们你希望改进的地方，或描述你遇到的问题。'}
+            value={feedbackText}
+            onChangeText={value => {
+              setFeedbackText(value);
+              setFeedback(null);
+            }}
+          />
+          <View className="mt-2 flex-row justify-end">
+            <Text className="text-xs text-foreground/45">
+              {feedbackText.trim().length}/{FEEDBACK_CONTENT_LIMIT}
+            </Text>
+          </View>
         </TextField>
         <Button isDisabled={submittingFeedback} variant="outline" onPress={() => void handleSendFeedback()}>
-          {renderButtonContent(submittingFeedback, t('准备中...'), t('发送反馈'))}
+          {renderButtonContent(submittingFeedback, t('提交中...'), t('发送反馈'))}
         </Button>
       </SectionShell>
     </View>

@@ -2,9 +2,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { useI18n } from '../i18n';
 import { FeedScreen } from '../screens';
 
+import {
+  ROOT_STACK_SCREEN_OPTIONS,
+  SUBPAGE_STACK_SCREEN_OPTIONS,
+} from './stackTransitions';
 import type { CommunityStackParamList } from './types';
 
 const LazyPostDetailScreen = React.lazy(() =>
@@ -41,20 +44,18 @@ function UserProfileScreenLazy(props: any) {
 const Stack = createNativeStackNavigator<CommunityStackParamList>();
 
 export function CommunityStack() {
-  const { t } = useI18n();
-
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Feed" component={FeedScreen} options={{ headerShown: false }} />
+    <Stack.Navigator screenOptions={ROOT_STACK_SCREEN_OPTIONS}>
+      <Stack.Screen name="Feed" component={FeedScreen} />
       <Stack.Screen
         name="PostDetail"
         component={PostDetailScreenLazy}
-        options={{ headerShown: false, animation: 'slide_from_right' }}
+        options={SUBPAGE_STACK_SCREEN_OPTIONS}
       />
       <Stack.Screen
         name="UserProfile"
         component={UserProfileScreenLazy}
-        options={{ headerShown: false, animation: 'slide_from_right' }}
+        options={SUBPAGE_STACK_SCREEN_OPTIONS}
       />
     </Stack.Navigator>
   );

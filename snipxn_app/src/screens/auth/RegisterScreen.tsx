@@ -12,10 +12,11 @@ import {
   REGEXP_ONLY_DIGITS,
 } from 'heroui-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import * as authApi from '../../api/auth';
+import { AppIcon } from '../../components/common/AppIcon';
 import { AppLogo } from '../../components/common/AppLogo';
 import { translateLiteral, useI18n } from '../../i18n';
 import { useDeviceType } from '../../hooks';
@@ -34,6 +35,7 @@ type FeedbackState = {
 } | null;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_HAS_LETTER_AND_NUMBER = /^(?=.*[A-Za-z])(?=.*\d).+$/;
 const RESEND_SECONDS = 60;
 const OTP_LENGTH = 6;
 const OTP_SLOT_CLASS_NAME = 'h-12 w-10 rounded-2xl';
@@ -54,7 +56,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 export function RegisterScreen({ navigation }: Props) {
   const register = useAuthStore(state => state.register);
   const login = useAuthStore(state => state.login);
-  const { isTablet, typography } = useAppTheme();
+  const { isTablet, palette, typography } = useAppTheme();
   const { isTabletLandscape } = useDeviceType();
   const { isEnglish, t } = useI18n();
 
@@ -63,11 +65,10 @@ export function RegisterScreen({ navigation }: Props) {
   const [step, setStep] = useState<RegisterStep>('form');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
-  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
   const [codeTouched, setCodeTouched] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -92,20 +93,20 @@ export function RegisterScreen({ navigation }: Props) {
       return t('请输入密码');
     }
 
+    if (password.length < 8) {
+      return t('密码长度至少 8 位');
+    }
+
+    if (password.length > 64) {
+      return t('密码长度不能超过 64 位');
+    }
+
+    if (!PASSWORD_HAS_LETTER_AND_NUMBER.test(password)) {
+      return t('密码必须包含字母和数字');
+    }
+
     return null;
   }, [password, t]);
-
-  const confirmPasswordError = useMemo(() => {
-    if (confirmPassword.trim().length === 0) {
-      return t('请再次输入密码');
-    }
-
-    if (confirmPassword !== password) {
-      return t('两次输入的密码不一致');
-    }
-
-    return null;
-  }, [confirmPassword, password, t]);
 
   const codeError = useMemo(() => {
     if (code.length === 0) {
@@ -157,10 +158,9 @@ export function RegisterScreen({ navigation }: Props) {
   const handleNextStep = async () => {
     setEmailTouched(true);
     setPasswordTouched(true);
-    setConfirmPasswordTouched(true);
     setFeedback(null);
 
-    if (emailError || passwordError || confirmPasswordError) {
+    if (emailError || passwordError) {
       return;
     }
 
@@ -289,43 +289,39 @@ export function RegisterScreen({ navigation }: Props) {
 
                     <TextField isRequired isInvalid={passwordTouched && passwordError !== null}>
                       <Label>{t('密码')}</Label>
-                      <Input
-                        autoCapitalize="none"
-                        autoComplete="password-new"
-                        placeholder={t('请输入密码')}
-                        secureTextEntry
-                        textContentType="newPassword"
-                        value={password}
-                        onBlur={() => setPasswordTouched(true)}
-                        onChangeText={value => {
-                          setPassword(value);
-                          setFeedback(null);
-                        }}
-                      />
+                      <View className="relative">
+                        <Input
+                          autoCapitalize="none"
+                          autoComplete="password-new"
+                          className="pr-12"
+                          maxLength={64}
+                          placeholder={t('请输入密码')}
+                          secureTextEntry={!showPassword}
+                          textContentType="newPassword"
+                          value={password}
+                          onBlur={() => setPasswordTouched(true)}
+                          onChangeText={value => {
+                            setPassword(value);
+                            setFeedback(null);
+                          }}
+                          onSubmitEditing={() => {
+                            void handleNextStep();
+                          }}
+                        />
+                        <Pressable
+                          accessibilityLabel={showPassword ? t('隐藏密码') : t('显示密码')}
+                          accessibilityRole="button"
+                          className="absolute bottom-0 right-3 top-0 justify-center px-1"
+                          hitSlop={10}
+                          onPress={() => setShowPassword(current => !current)}>
+                          <AppIcon
+                            color={palette.textMuted}
+                            name={showPassword ? 'eye-off' : 'eye'}
+                            size={20}
+                          />
+                        </Pressable>
+                      </View>
                       <FieldError>{passwordError ?? ''}</FieldError>
-                    </TextField>
-
-                    <TextField
-                      isRequired
-                      isInvalid={confirmPasswordTouched && confirmPasswordError !== null}>
-                      <Label>{t('确认密码')}</Label>
-                      <Input
-                        autoCapitalize="none"
-                        autoComplete="password-new"
-                        placeholder={t('请再次输入密码')}
-                        secureTextEntry
-                        textContentType="newPassword"
-                        value={confirmPassword}
-                        onBlur={() => setConfirmPasswordTouched(true)}
-                        onChangeText={value => {
-                          setConfirmPassword(value);
-                          setFeedback(null);
-                        }}
-                        onSubmitEditing={() => {
-                          void handleNextStep();
-                        }}
-                      />
-                      <FieldError>{confirmPasswordError ?? ''}</FieldError>
                     </TextField>
 
                     <Button

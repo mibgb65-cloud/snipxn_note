@@ -2,18 +2,22 @@ import { Button, Spinner } from 'heroui-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import React, { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import Animated, {
   Easing,
+  interpolate,
+  runOnJS,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -93,46 +97,69 @@ function getErrorMessage(error: unknown, fallback: string): string {
 function NewActionItem({
   description,
   icon,
+  index = 0,
   label,
   loading = false,
+  menuProgress,
   onPress,
 }: {
   description: string;
   icon: AppIconName;
+  index?: number;
   label: string;
   loading?: boolean;
+  menuProgress?: SharedValue<number>;
   onPress: () => void;
 }) {
   const { palette, typography } = useAppTheme();
+  const itemAnimatedStyle = useAnimatedStyle(() => {
+    if (!menuProgress) {
+      return {};
+    }
+
+    const start = 0.18 + index * 0.08;
+    const end = Math.min(1, start + 0.52);
+    const progress = interpolate(menuProgress.value, [0, start, end, 1], [0, 0, 1, 1]);
+
+    return {
+      opacity: progress,
+      transform: [
+        { translateY: interpolate(progress, [0, 1], [14, 0]) },
+        { scale: interpolate(progress, [0, 1], [0.985, 1]) },
+      ],
+    };
+  });
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      className="flex-row items-center gap-3 rounded-[14px] border px-4 py-4"
-      onPress={onPress}
-      style={{
-        borderColor: withAlpha(palette.primary, 0.16),
-        backgroundColor: palette.panelInset,
-      }}>
-      <View
-        className="h-11 w-11 items-center justify-center rounded-full"
-        style={{ backgroundColor: withAlpha(palette.primary, 0.12) }}>
-        {loading ? (
-          <Spinner color={palette.primary} size="sm" />
-        ) : (
-          <AppIcon color={palette.primary} name={icon} size={19} />
-        )}
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className={typography.body} style={{ color: palette.text }}>
-          {label}
-        </Text>
-        <Text className={`${typography.bodySmall} mt-1`} style={{ color: palette.textSoft }}>
-          {description}
-        </Text>
-      </View>
-      <AppIcon color={palette.textSoft} name="chevron-right" size={16} />
-    </Pressable>
+    <Animated.View style={itemAnimatedStyle}>
+      <Pressable
+        accessibilityRole="button"
+        className="flex-row items-center gap-3 rounded-[14px] border px-4 py-4"
+        onPress={onPress}
+        style={{
+          borderColor: withAlpha(palette.primary, 0.16),
+          backgroundColor: palette.panelInset,
+        }}>
+        <View
+          className="h-11 w-11 items-center justify-center rounded-full"
+          style={{ backgroundColor: withAlpha(palette.primary, 0.12) }}>
+          {loading ? (
+            <Spinner color={palette.primary} size="sm" />
+          ) : (
+            <AppIcon color={palette.primary} name={icon} size={19} />
+          )}
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className={typography.body} style={{ color: palette.text }}>
+            {label}
+          </Text>
+          <Text className={`${typography.bodySmall} mt-1`} style={{ color: palette.textSoft }}>
+            {description}
+          </Text>
+        </View>
+        <AppIcon color={palette.textSoft} name="chevron-right" size={16} />
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -145,17 +172,30 @@ function NewTabButton({
 }) {
   const { palette } = useAppTheme();
   const { t } = useI18n();
-  const rotation = useSharedValue(0);
+  const activeProgress = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    activeProgress.value = withTiming(active ? 1 : 0, {
+      duration: 220,
+      easing: active ? Easing.out(Easing.cubic) : Easing.inOut(Easing.cubic),
+    });
+  }, [active, activeProgress]);
 
   const plusAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
+    transform: [
+      { rotate: `${interpolate(activeProgress.value, [0, 1], [0, 45])}deg` },
+      { scale: interpolate(activeProgress.value, [0, 1], [1, 0.92]) },
+    ],
+  }));
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(activeProgress.value, [0, 1], [0, -3]) },
+      { scale: interpolate(activeProgress.value, [0, 1], [1, 1.04]) },
+    ],
   }));
 
   const handlePress = () => {
-    rotation.value = withTiming(rotation.value + 360, {
-      duration: 520,
-      easing: Easing.out(Easing.cubic),
-    });
     onPress();
   };
 
@@ -166,25 +206,27 @@ function NewTabButton({
       className="flex-1 items-center justify-center"
       onPress={handlePress}
       style={{ marginTop: -10 }}>
-      <View
+      <Animated.View
         className="h-16 w-16 items-center justify-center rounded-full border"
-        style={{
-          borderColor: withAlpha(active ? palette.primary : palette.cta, active ? 0.54 : 0.38),
-          backgroundColor: palette.cta,
-          shadowColor: palette.shadow,
-          shadowOpacity: active ? 0.32 : 0.26,
-          shadowRadius: active ? 22 : 18,
-          shadowOffset: { width: 0, height: 10 },
-          elevation: 16,
-        }}>
+        style={[
+          {
+            borderColor: withAlpha(active ? palette.primary : palette.cta, active ? 0.54 : 0.38),
+            backgroundColor: palette.cta,
+            shadowColor: palette.shadow,
+            shadowOpacity: active ? 0.32 : 0.26,
+            shadowRadius: active ? 22 : 18,
+            shadowOffset: { width: 0, height: 10 },
+            elevation: 16,
+          },
+          buttonAnimatedStyle,
+        ]}>
         <Animated.View style={plusAnimatedStyle}>
           <AppIcon color="#FFFFFF" name="plus" size={24} strokeWidth={2.4} />
         </Animated.View>
-      </View>
+      </Animated.View>
     </Pressable>
   );
 }
-
 function NewTabPlaceholder() {
   return <View style={{ flex: 1 }} />;
 }
@@ -210,6 +252,7 @@ export function MainNavigator() {
   const syncNow = useSyncStore(state => state.syncNow);
 
   const [isCreateMenuVisible, setCreateMenuVisible] = useState(false);
+  const [isCreateMenuOpen, setCreateMenuOpen] = useState(false);
   const [isFolderDialogVisible, setFolderDialogVisible] = useState(false);
   const [folderName, setFolderName] = useState('');
   const [creatingNote, setCreatingNote] = useState(false);
@@ -219,11 +262,22 @@ export function MainNavigator() {
   const tabBarBottomPadding = Math.max(insets.bottom, MOBILE_TAB_BAR_MIN_BOTTOM_PADDING);
   const createSheetBottomOffset = MOBILE_TAB_BAR_BASE_HEIGHT + tabBarBottomPadding + 10;
   const isBusy = creatingNote || creatingFolder || importing;
+  const createMenuProgress = useSharedValue(0);
 
   const mobileTabBarStyle = useMemo(
     () => createMobileTabBarStyle(palette, tabBarBottomPadding),
     [palette, tabBarBottomPadding],
   );
+  const createMenuBackdropStyle = useAnimatedStyle(() => ({
+    opacity: createMenuProgress.value,
+  }));
+  const createMenuSheetStyle = useAnimatedStyle(() => ({
+    opacity: createMenuProgress.value,
+    transform: [
+      { translateY: interpolate(createMenuProgress.value, [0, 1], [34, 0]) },
+      { scale: interpolate(createMenuProgress.value, [0, 1], [0.965, 1]) },
+    ],
+  }));
   const resolveDrawerStyle = (hidden: boolean) => ({
     width: hidden ? 0 : isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,
     backgroundColor: hidden ? 'transparent' : palette.panelStrong,
@@ -233,6 +287,40 @@ export function MainNavigator() {
   });
 
   const handleSidebarToggle = () => toggleSidebar();
+
+  const openCreateMenu = useCallback(() => {
+    if (isBusy || isCreateMenuOpen) {
+      return;
+    }
+
+    createMenuProgress.value = 0;
+    setCreateMenuVisible(true);
+    setCreateMenuOpen(true);
+    createMenuProgress.value = withTiming(1, {
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [createMenuProgress, isBusy, isCreateMenuOpen]);
+
+  const closeCreateMenu = useCallback(() => {
+    if (!isCreateMenuVisible && !isCreateMenuOpen) {
+      return;
+    }
+
+    setCreateMenuOpen(false);
+    createMenuProgress.value = withTiming(
+      0,
+      {
+        duration: 180,
+        easing: Easing.in(Easing.cubic),
+      },
+      finished => {
+        if (finished) {
+          runOnJS(setCreateMenuVisible)(false);
+        }
+      },
+    );
+  }, [createMenuProgress, isCreateMenuOpen, isCreateMenuVisible]);
 
   const navigateToNotes = useCallback(
     (screen?: 'Workspace' | 'NoteEditor', params?: Record<string, unknown>) => {
@@ -252,7 +340,7 @@ export function MainNavigator() {
 
   const handleCreateNote = useCallback(async () => {
     const folderId = resolveCreateFolderId(activeFolderId, rememberedFolderId, folders);
-    setCreateMenuVisible(false);
+    closeCreateMenu();
 
     if (!folderId) {
       Alert.alert(t('新建失败'), t('请先创建至少一个文件夹，再新建笔记。'));
@@ -269,10 +357,10 @@ export function MainNavigator() {
     } finally {
       setCreatingNote(false);
     }
-  }, [activeFolderId, createNote, folders, navigateToNotes, rememberedFolderId, t]);
+  }, [activeFolderId, closeCreateMenu, createNote, folders, navigateToNotes, rememberedFolderId, t]);
 
   const handleImportNotes = useCallback(async () => {
-    setCreateMenuVisible(false);
+    closeCreateMenu();
     setImporting(true);
 
     try {
@@ -302,13 +390,13 @@ export function MainNavigator() {
     } finally {
       setImporting(false);
     }
-  }, [fetchFolders, fetchNotes, fetchTags, navigateToNotes, syncNow, t]);
+  }, [closeCreateMenu, fetchFolders, fetchNotes, fetchTags, navigateToNotes, syncNow, t]);
 
   const handleOpenFolderDialog = useCallback(() => {
-    setCreateMenuVisible(false);
+    closeCreateMenu();
     setFolderName('');
     setFolderDialogVisible(true);
-  }, []);
+  }, [closeCreateMenu]);
 
   const handleCreateFolder = useCallback(async () => {
     const trimmedFolderName = folderName.trim();
@@ -461,15 +549,23 @@ export function MainNavigator() {
           listeners={{
             tabPress: event => {
               event.preventDefault();
-              if (!isBusy) {
-                setCreateMenuVisible(true);
-              }
+              openCreateMenu();
             },
           }}
           options={{
             title: t('新建'),
             tabBarButton: () => (
-              <NewTabButton active={isCreateMenuVisible} onPress={() => !isBusy && setCreateMenuVisible(true)} />
+              <NewTabButton
+                active={isCreateMenuOpen}
+                onPress={() => {
+                  if (isCreateMenuOpen) {
+                    closeCreateMenu();
+                    return;
+                  }
+
+                  openCreateMenu();
+                }}
+              />
             ),
           }}
         />
@@ -495,17 +591,27 @@ export function MainNavigator() {
       </Tab.Navigator>
 
       <Modal
-        animationType="fade"
+        animationType="none"
         transparent
         visible={isCreateMenuVisible}
-        onRequestClose={() => setCreateMenuVisible(false)}>
+        onRequestClose={closeCreateMenu}>
         <Pressable
           className="flex-1 justify-end"
-          onPress={() => setCreateMenuVisible(false)}
-          style={{ backgroundColor: palette.overlay }}>
-          <Pressable
-            onPress={event => event.stopPropagation()}
-            style={{ paddingBottom: createSheetBottomOffset, paddingHorizontal: 16 }}>
+          onPress={closeCreateMenu}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: palette.overlay },
+              createMenuBackdropStyle,
+            ]}
+          />
+          <Animated.View
+            style={[
+              { paddingBottom: createSheetBottomOffset, paddingHorizontal: 16 },
+              createMenuSheetStyle,
+            ]}>
+            <Pressable onPress={event => event.stopPropagation()}>
             <GlassPanel className="px-4 py-4" highlight={palette.primary}>
               <SectionEyebrow>{t('新建')}</SectionEyebrow>
               <Text className={`${typography.h3} mt-2`} style={{ color: palette.text }}>
@@ -519,8 +625,10 @@ export function MainNavigator() {
                 <NewActionItem
                   description={t('立刻进入编辑器，开始记录代码或想法。')}
                   icon="notes"
+                  index={0}
                   label={t('新建笔记')}
                   loading={creatingNote}
+                  menuProgress={createMenuProgress}
                   onPress={() => {
                     void handleCreateNote();
                   }}
@@ -528,8 +636,10 @@ export function MainNavigator() {
                 <NewActionItem
                   description={t('从 Markdown 或 JSON 导入已有内容。')}
                   icon="upload"
+                  index={1}
                   label={t('导入内容')}
                   loading={importing}
+                  menuProgress={createMenuProgress}
                   onPress={() => {
                     void handleImportNotes();
                   }}
@@ -537,13 +647,16 @@ export function MainNavigator() {
                 <NewActionItem
                   description={t('先整理结构，再把笔记放进合适的位置。')}
                   icon="folder"
+                  index={2}
                   label={t('新建文件夹')}
                   loading={creatingFolder}
+                  menuProgress={createMenuProgress}
                   onPress={handleOpenFolderDialog}
                 />
               </View>
             </GlassPanel>
-          </Pressable>
+            </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
 

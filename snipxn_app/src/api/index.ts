@@ -2,6 +2,7 @@ import * as aiApi from './ai';
 import * as appVersionApi from './appVersion';
 import * as authApi from './auth';
 import * as commentApi from './comment';
+import * as feedbackApi from './feedback';
 import * as fileApi from './file';
 import * as followApi from './follow';
 import * as folderApi from './folder';
@@ -18,6 +19,7 @@ export {
   appVersionApi,
   authApi,
   commentApi,
+  feedbackApi,
   fileApi,
   followApi,
   folderApi,
@@ -34,6 +36,7 @@ export const api = {
   appVersion: appVersionApi,
   auth: authApi,
   comment: commentApi,
+  feedback: feedbackApi,
   file: fileApi,
   follow: followApi,
   folder: folderApi,

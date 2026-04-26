@@ -12,6 +12,7 @@
 import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -27,10 +28,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '../../api/axios';
 import * as fileApi from '../../api/file';
+import { AppIcon } from '../../components/common/AppIcon';
 import { translateLiteral, useI18n } from '../../i18n';
 import { useDeviceType } from '../../hooks';
 import { useAuthStore, useUserStore } from '../../stores';
-import { useAppTheme } from '../../theme';
+import { useAppTheme, withAlpha } from '../../theme';
 
 type FeedbackState = {
   status: 'success' | 'warning' | 'danger';
@@ -40,8 +42,16 @@ type FeedbackState = {
 
 const DEFAULT_BIO_PLACEHOLDER = '一句话介绍自己';
 const BIRTHDAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DEFAULT_BIRTHDAY_YEAR = 2000;
+const MIN_BIRTHDAY_YEAR = 1900;
 const NICKNAME_MAX_LENGTH = 50;
 const BIO_MAX_LENGTH = 200;
+
+interface DateParts {
+  year: number;
+  month: number;
+  day: number;
+}
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (
@@ -70,11 +80,19 @@ function formatDateInput(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function isValidDateInput(value: string): boolean {
+function formatDateParts(parts: DateParts): string {
+  return [
+    String(parts.year).padStart(4, '0'),
+    String(parts.month).padStart(2, '0'),
+    String(parts.day).padStart(2, '0'),
+  ].join('-');
+}
+
+function parseDateInput(value: string): DateParts | null {
   const match = BIRTHDAY_PATTERN.exec(value);
 
   if (!match) {
-    return false;
+    return null;
   }
 
   const year = Number(match[0].slice(0, 4));
@@ -82,11 +100,55 @@ function isValidDateInput(value: string): boolean {
   const day = Number(match[0].slice(8, 10));
   const parsedDate = new Date(year, month - 1, day);
 
-  return (
+  if (
     parsedDate.getFullYear() === year &&
     parsedDate.getMonth() === month - 1 &&
     parsedDate.getDate() === day
-  );
+  ) {
+    return { year, month, day };
+  }
+
+  return null;
+}
+
+function isValidDateInput(value: string): boolean {
+  return parseDateInput(value) !== null;
+}
+
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+function buildNumberRange(start: number, end: number): number[] {
+  const length = Math.max(0, end - start + 1);
+  return Array.from({ length }, (_, index) => start + index);
+}
+
+function getInitialBirthdayParts(value: string, todayParts: DateParts): DateParts {
+  const parsed = parseDateInput(value);
+
+  if (parsed && formatDateParts(parsed) <= formatDateParts(todayParts)) {
+    return parsed;
+  }
+
+  return {
+    year: Math.min(DEFAULT_BIRTHDAY_YEAR, todayParts.year),
+    month: 1,
+    day: 1,
+  };
+}
+
+function clampBirthdayParts(parts: DateParts, todayParts: DateParts): DateParts {
+  const year = Math.min(Math.max(parts.year, MIN_BIRTHDAY_YEAR), todayParts.year);
+  const maxMonth = year === todayParts.year ? todayParts.month : 12;
+  const month = Math.min(Math.max(parts.month, 1), maxMonth);
+  const maxDay =
+    year === todayParts.year && month === todayParts.month
+      ? todayParts.day
+      : getDaysInMonth(year, month);
+  const day = Math.min(Math.max(parts.day, 1), maxDay);
+
+  return { year, month, day };
 }
 
 function resolveAvatarUri(avatar: string | null, localPreviewUri: string | null): string | null {
@@ -145,12 +207,22 @@ function validateImagePickerResult(result: ImagePickerResponse): Asset | null {
 export function SetupProfileScreen() {
   const user = useAuthStore(state => state.user);
   const updateProfile = useUserStore(state => state.updateProfile);
-  const { isTablet, typography } = useAppTheme();
+  const { isTablet, palette, typography } = useAppTheme();
   const { isTabletLandscape } = useDeviceType();
   const { t } = useI18n();
+  const todayDate = formatDateInput(new Date());
+  const todayParts = parseDateInput(todayDate) ?? {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    day: new Date().getDate(),
+  };
 
   const [nickname, setNickname] = useState(user?.nickname ?? user?.email.split('@')[0] ?? '');
   const [birthday, setBirthday] = useState(user?.birthday?.slice(0, 10) ?? '');
+  const [birthdayPickerVisible, setBirthdayPickerVisible] = useState(false);
+  const [birthdayDraft, setBirthdayDraft] = useState<DateParts>(() =>
+    getInitialBirthdayParts(user?.birthday?.slice(0, 10) ?? '', todayParts),
+  );
   const [bio, setBio] = useState(user?.bio ?? '');
   const [avatar, setAvatar] = useState<string | null>(user?.avatar ?? null);
   const [localAvatarPreviewUri, setLocalAvatarPreviewUri] = useState<string | null>(null);
@@ -164,7 +236,6 @@ export function SetupProfileScreen() {
   const trimmedNickname = nickname.trim();
   const trimmedBirthday = birthday.trim();
   const trimmedBio = bio.trim();
-  const todayDate = formatDateInput(new Date());
 
   const nicknameError = useMemo(() => {
     if (trimmedNickname.length === 0) {
@@ -204,6 +275,40 @@ export function SetupProfileScreen() {
 
   const avatarUri = resolveAvatarUri(avatar, localAvatarPreviewUri);
   const avatarFallback = getAvatarFallback(user?.email, trimmedNickname);
+  const birthdayYearOptions = useMemo(() => {
+    const years = buildNumberRange(MIN_BIRTHDAY_YEAR, todayParts.year);
+    return years.reverse();
+  }, [todayParts.year]);
+  const birthdayMonthOptions = useMemo(() => {
+    const maxMonth = birthdayDraft.year === todayParts.year ? todayParts.month : 12;
+    return buildNumberRange(1, maxMonth);
+  }, [birthdayDraft.year, todayParts.month, todayParts.year]);
+  const birthdayDayOptions = useMemo(() => {
+    const maxDay =
+      birthdayDraft.year === todayParts.year && birthdayDraft.month === todayParts.month
+        ? todayParts.day
+        : getDaysInMonth(birthdayDraft.year, birthdayDraft.month);
+    return buildNumberRange(1, maxDay);
+  }, [birthdayDraft.month, birthdayDraft.year, todayParts.day, todayParts.month, todayParts.year]);
+
+  const openBirthdayPicker = () => {
+    setBirthdayDraft(getInitialBirthdayParts(trimmedBirthday, todayParts));
+    setBirthdayTouched(true);
+    setFeedback(null);
+    setBirthdayPickerVisible(true);
+  };
+
+  const updateBirthdayDraft = (nextParts: DateParts) => {
+    setBirthdayDraft(clampBirthdayParts(nextParts, todayParts));
+  };
+
+  const confirmBirthdayPicker = () => {
+    const selectedBirthday = formatDateParts(clampBirthdayParts(birthdayDraft, todayParts));
+    setBirthday(selectedBirthday);
+    setBirthdayTouched(true);
+    setFeedback(null);
+    setBirthdayPickerVisible(false);
+  };
 
   const handlePickAvatar = async () => {
     setFeedback(null);
@@ -353,22 +458,25 @@ export function SetupProfileScreen() {
 
                 <TextField isRequired isInvalid={birthdayTouched && birthdayError !== null}>
                   <Label>{t('生日')}</Label>
-                  <Input
-                    autoCapitalize="none"
-                    inputMode="numeric"
-                    keyboardType="numbers-and-punctuation"
-                    maxLength={10}
-                    placeholder="YYYY-MM-DD"
-                    value={birthday}
-                    onBlur={() => setBirthdayTouched(true)}
-                    onChangeText={value => {
-                      setBirthday(value);
-                      setFeedback(null);
-                    }}
-                    onSubmitEditing={() => {
-                      void handleSubmit();
-                    }}
-                  />
+                  <Pressable
+                    accessibilityLabel={t('选择生日')}
+                    accessibilityRole="button"
+                    className="min-h-12 flex-row items-center justify-between rounded-2xl border px-4 py-3"
+                    onPress={openBirthdayPicker}
+                    style={{
+                      backgroundColor: palette.elevated,
+                      borderColor:
+                        birthdayTouched && birthdayError
+                          ? palette.danger
+                          : withAlpha(palette.primary, 0.12),
+                    }}>
+                    <Text
+                      className={typography.body}
+                      style={{ color: birthday ? palette.text : palette.placeholder }}>
+                      {birthday || t('请选择生日')}
+                    </Text>
+                    <AppIcon color={palette.textSoft} name="chevron-right" size={18} />
+                  </Pressable>
                   <FieldError>{birthdayError ?? ''}</FieldError>
                 </TextField>
 
@@ -414,6 +522,173 @@ export function SetupProfileScreen() {
           </View>
         </ScrollView>
         </KeyboardAvoidingView>
+        <Modal
+          animationType="fade"
+          transparent
+          visible={birthdayPickerVisible}
+          onRequestClose={() => setBirthdayPickerVisible(false)}>
+          <Pressable
+            className="flex-1 justify-end px-4 pb-6"
+            onPress={() => setBirthdayPickerVisible(false)}
+            style={{ backgroundColor: palette.overlay }}>
+            <Pressable
+              className="rounded-[24px] border px-4 py-4"
+              onPress={event => event.stopPropagation()}
+              style={{
+                backgroundColor: palette.surface,
+                borderColor: withAlpha(palette.primary, 0.18),
+                shadowColor: palette.shadow,
+                shadowOpacity: 0.22,
+                shadowRadius: 24,
+                shadowOffset: { width: 0, height: 12 },
+                elevation: 18,
+              }}>
+              <View className="flex-row items-center justify-between">
+                <View>
+                  <Text className={typography.h3} style={{ color: palette.text }}>
+                    {t('选择生日')}
+                  </Text>
+                  <Text className={`${typography.bodySmall} mt-1`} style={{ color: palette.textSoft }}>
+                    {formatDateParts(birthdayDraft)}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityLabel={t('关闭')}
+                  accessibilityRole="button"
+                  className="h-10 w-10 items-center justify-center rounded-full"
+                  onPress={() => setBirthdayPickerVisible(false)}
+                  style={{ backgroundColor: palette.panelInset }}>
+                  <AppIcon color={palette.textSoft} name="x" size={18} />
+                </Pressable>
+              </View>
+
+              <View className="mt-4 flex-row gap-2">
+                <View className="min-w-0 flex-1">
+                  <Text className={`${typography.bodySmall} mb-2 text-center`} style={{ color: palette.textSoft }}>
+                    {t('年')}
+                  </Text>
+                  <ScrollView
+                    className="max-h-56 rounded-2xl"
+                    showsVerticalScrollIndicator={false}
+                    style={{ backgroundColor: palette.panelInset }}>
+                    {birthdayYearOptions.map(year => {
+                      const isSelected = year === birthdayDraft.year;
+
+                      return (
+                        <Pressable
+                          key={year}
+                          className="h-11 items-center justify-center"
+                          onPress={() =>
+                            updateBirthdayDraft({
+                              ...birthdayDraft,
+                              year,
+                            })
+                          }
+                          style={{
+                            backgroundColor: isSelected
+                              ? withAlpha(palette.primary, 0.16)
+                              : 'transparent',
+                          }}>
+                          <Text
+                            className={typography.body}
+                            style={{ color: isSelected ? palette.primary : palette.text }}>
+                            {year}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                <View className="min-w-0 flex-1">
+                  <Text className={`${typography.bodySmall} mb-2 text-center`} style={{ color: palette.textSoft }}>
+                    {t('月')}
+                  </Text>
+                  <ScrollView
+                    className="max-h-56 rounded-2xl"
+                    showsVerticalScrollIndicator={false}
+                    style={{ backgroundColor: palette.panelInset }}>
+                    {birthdayMonthOptions.map(month => {
+                      const isSelected = month === birthdayDraft.month;
+
+                      return (
+                        <Pressable
+                          key={month}
+                          className="h-11 items-center justify-center"
+                          onPress={() =>
+                            updateBirthdayDraft({
+                              ...birthdayDraft,
+                              month,
+                            })
+                          }
+                          style={{
+                            backgroundColor: isSelected
+                              ? withAlpha(palette.primary, 0.16)
+                              : 'transparent',
+                          }}>
+                          <Text
+                            className={typography.body}
+                            style={{ color: isSelected ? palette.primary : palette.text }}>
+                            {String(month).padStart(2, '0')}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                <View className="min-w-0 flex-1">
+                  <Text className={`${typography.bodySmall} mb-2 text-center`} style={{ color: palette.textSoft }}>
+                    {t('日')}
+                  </Text>
+                  <ScrollView
+                    className="max-h-56 rounded-2xl"
+                    showsVerticalScrollIndicator={false}
+                    style={{ backgroundColor: palette.panelInset }}>
+                    {birthdayDayOptions.map(day => {
+                      const isSelected = day === birthdayDraft.day;
+
+                      return (
+                        <Pressable
+                          key={day}
+                          className="h-11 items-center justify-center"
+                          onPress={() =>
+                            updateBirthdayDraft({
+                              ...birthdayDraft,
+                              day,
+                            })
+                          }
+                          style={{
+                            backgroundColor: isSelected
+                              ? withAlpha(palette.primary, 0.16)
+                              : 'transparent',
+                          }}>
+                          <Text
+                            className={typography.body}
+                            style={{ color: isSelected ? palette.primary : palette.text }}>
+                            {String(day).padStart(2, '0')}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+
+              <View className="mt-4 flex-row gap-3">
+                <Button
+                  className="flex-1"
+                  variant="outline"
+                  onPress={() => setBirthdayPickerVisible(false)}>
+                  {t('取消')}
+                </Button>
+                <Button className="flex-1" variant="primary" onPress={confirmBirthdayPicker}>
+                  {t('完成')}
+                </Button>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </SafeAreaView>
     </View>
   );

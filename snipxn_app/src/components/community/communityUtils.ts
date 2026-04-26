@@ -55,5 +55,5 @@ function resolveWebBaseUrl(): string {
 }
 
 export function buildCommunityShareUrl(shareToken: string): string {
-  return `${resolveWebBaseUrl()}/share/${shareToken}`;
+  return `${resolveWebBaseUrl()}/share/post/${shareToken}`;
 }

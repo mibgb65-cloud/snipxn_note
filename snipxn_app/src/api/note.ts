@@ -75,8 +75,8 @@ export function permanentDelete(id: string): Promise<void> {
   return apiClient.delete<void>(`${NOTES_BASE_URL}/${id}/permanent`);
 }
 
-export function getShareStatus(id: string): Promise<ShareStatusResponse> {
-  return apiClient.get<ShareStatusResponse>(`${NOTES_BASE_URL}/${id}/share`);
+export function getShareStatus(id: string): Promise<ShareStatusResponse | null> {
+  return apiClient.get<ShareStatusResponse | null>(`${NOTES_BASE_URL}/${id}/share`);
 }
 
 export function shareNote(id: string): Promise<ShareResponse> {

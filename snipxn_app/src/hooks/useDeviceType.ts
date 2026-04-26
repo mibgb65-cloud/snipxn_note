@@ -20,8 +20,10 @@ export function useDeviceType(): DeviceType {
   // Use the shorter dimension so a phone in landscape is never mis-detected as tablet.
   // This matches the logic in ThemeContext.tsx.
   const shortSide = Math.min(width, height);
-  const isTablet = shortSide >= TABLET_BREAKPOINT;
   const isLandscape = width > height;
+  // Tablet-only navigation and split-pane layouts are reserved for landscape.
+  // A physical tablet in portrait should keep the phone layout.
+  const isTablet = shortSide >= TABLET_BREAKPOINT && isLandscape;
   const isTabletLandscape = isTablet && isLandscape;
   const showSidebar = isTablet;
   const showMasterDetail = isTablet && width >= TABLET_LANDSCAPE_BREAKPOINT;

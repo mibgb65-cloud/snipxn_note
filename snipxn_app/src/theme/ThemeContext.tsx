@@ -108,7 +108,9 @@ export function ThemeProvider({ children }: React.PropsWithChildren) {
   const resolvedThemePreference = themePreferenceState ?? 'system';
   const theme: ThemeMode =
     resolvedThemePreference === 'system' ? systemTheme : resolvedThemePreference;
-  const isTablet = Math.min(width, height) >= TABLET_BREAKPOINT;
+  const isLandscape = width > height;
+  // Keep portrait tablets on the same compact visual system as phones.
+  const isTablet = Math.min(width, height) >= TABLET_BREAKPOINT && isLandscape;
   const typography = createTypography(isTablet);
   const palette = appPalettes[theme];
   const navigationTheme = createNavigationTheme(theme);

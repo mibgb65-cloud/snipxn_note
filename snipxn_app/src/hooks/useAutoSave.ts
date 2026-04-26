@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface AutoSaveState {
   trigger: () => void;
@@ -8,7 +8,7 @@ export interface AutoSaveState {
 
 export function useAutoSave(
   callback: () => void | Promise<void>,
-  delay = 2000,
+  delay = 5000,
 ): AutoSaveState {
   const callbackRef = useRef(callback);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -28,7 +28,7 @@ export function useAutoSave(
     };
   }, []);
 
-  const trigger = () => {
+  const trigger = useCallback(() => {
     if (timeoutRef.current !== null) {
       clearTimeout(timeoutRef.current);
     }
@@ -41,9 +41,9 @@ export function useAutoSave(
       setIsPending(false);
       void callbackRef.current();
     }, delay);
-  };
+  }, [delay]);
 
-  const flush = async () => {
+  const flush = useCallback(async () => {
     if (timeoutRef.current !== null) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -56,7 +56,7 @@ export function useAutoSave(
     pendingRef.current = false;
     setIsPending(false);
     await callbackRef.current();
-  };
+  }, []);
 
   return {
     trigger,

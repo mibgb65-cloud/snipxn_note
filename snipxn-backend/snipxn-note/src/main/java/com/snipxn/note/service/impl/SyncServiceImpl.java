@@ -94,14 +94,14 @@ public class SyncServiceImpl implements SyncService {
                 applyFolderChange(userId, change);
             }
         }
-        if (req.getNotes() != null) {
-            for (SyncPushRequest.NoteChange change : req.getNotes()) {
-                applyNoteChange(userId, req.getDeviceId(), change);
-            }
-        }
         if (req.getTags() != null) {
             for (SyncPushRequest.TagChange change : req.getTags()) {
                 applyTagChange(userId, change);
+            }
+        }
+        if (req.getNotes() != null) {
+            for (SyncPushRequest.NoteChange change : req.getNotes()) {
+                applyNoteChange(userId, req.getDeviceId(), change);
             }
         }
         return pull(userId, req.getLastPulledAt());
@@ -125,7 +125,14 @@ public class SyncServiceImpl implements SyncService {
         }
 
         Folder existing = folderMapper.selectAnyById(change.getId());
-        if (existing == null || !userId.equals(existing.getUserId()) || change.getVersion() == null) {
+        if (existing == null) {
+            if (Boolean.TRUE.equals(change.getIsDeleted())) {
+                return;
+            }
+            createFolderFromSync(userId, change, change.getId());
+            return;
+        }
+        if (!userId.equals(existing.getUserId()) || change.getVersion() == null) {
             return;
         }
         if (!change.getVersion().equals(existing.getVersion())) {
@@ -211,7 +218,14 @@ public class SyncServiceImpl implements SyncService {
         }
 
         Note existing = noteMapper.selectAnyById(change.getId());
-        if (existing == null || !userId.equals(existing.getUserId()) || change.getVersion() == null) {
+        if (existing == null) {
+            if (Boolean.TRUE.equals(change.getIsDeleted())) {
+                return;
+            }
+            createNoteFromSync(userId, deviceId, change, change.getId());
+            return;
+        }
+        if (!userId.equals(existing.getUserId()) || change.getVersion() == null) {
             return;
         }
         if (!change.getVersion().equals(existing.getVersion())) {
@@ -307,7 +321,14 @@ public class SyncServiceImpl implements SyncService {
         }
 
         Tag existing = tagMapper.selectAnyById(change.getId());
-        if (existing == null || !userId.equals(existing.getUserId()) || change.getVersion() == null) {
+        if (existing == null) {
+            if (Boolean.TRUE.equals(change.getIsDeleted())) {
+                return;
+            }
+            createTagFromSync(userId, change, change.getId());
+            return;
+        }
+        if (!userId.equals(existing.getUserId()) || change.getVersion() == null) {
             return;
         }
         if (!change.getVersion().equals(existing.getVersion())) {
@@ -357,6 +378,77 @@ public class SyncServiceImpl implements SyncService {
             update.setSql("updated_at = NOW(), version = version + 1");
             tagMapper.update(null, update);
         }
+    }
+
+    private void createFolderFromSync(String userId, SyncPushRequest.FolderChange change, String folderId) {
+        if (!StringUtils.hasText(change.getName())) {
+            return;
+        }
+
+        Folder folder = new Folder();
+        if (StringUtils.hasText(folderId)) {
+            folder.setId(folderId);
+        }
+        folder.setUserId(userId);
+        folder.setName(change.getName());
+        folder.setIcon(StringUtils.hasText(change.getIcon()) ? change.getIcon() : "folder");
+        folder.setRankIndex(change.getRankIndex());
+        folder.setIsDefault(false);
+        folder.setIsDeleted(false);
+        folder.setVersion(normalizeInitialVersion(change.getVersion()));
+        folderMapper.insert(folder);
+    }
+
+    private void createNoteFromSync(String userId, String deviceId, SyncPushRequest.NoteChange change, String noteId) {
+        if (!StringUtils.hasText(change.getFolderId()) || !folderOwned(userId, change.getFolderId())) {
+            return;
+        }
+        List<String> tagIds = validateOwnedTagIds(userId, change.getTagIds());
+        if (tagIds == null) {
+            return;
+        }
+
+        String content = change.getContent() == null ? "" : change.getContent();
+        Note note = new Note();
+        if (StringUtils.hasText(noteId)) {
+            note.setId(noteId);
+        }
+        note.setUserId(userId);
+        note.setFolderId(change.getFolderId());
+        note.setTitle(StringUtils.hasText(change.getTitle()) ? change.getTitle() : "无标题笔记");
+        note.setContent(content);
+        note.setSummary(MarkdownUtils.buildSummary(content));
+        note.setPrimaryLanguage(change.getPrimaryLanguage());
+        note.setIsStarred(Boolean.TRUE.equals(change.getIsStarred()));
+        note.setStatus("NORMAL");
+        note.setLastDeviceId(deviceId);
+        note.setIsDeleted(false);
+        note.setVersion(normalizeInitialVersion(change.getVersion()));
+        noteMapper.insert(note);
+        if (!tagIds.isEmpty()) {
+            noteTagMapper.insertBatch(note.getId(), tagIds);
+        }
+    }
+
+    private void createTagFromSync(String userId, SyncPushRequest.TagChange change, String tagId) {
+        if (!StringUtils.hasText(change.getName()) || tagNameExists(userId, null, change.getName())) {
+            return;
+        }
+
+        Tag tag = new Tag();
+        if (StringUtils.hasText(tagId)) {
+            tag.setId(tagId);
+        }
+        tag.setUserId(userId);
+        tag.setName(change.getName());
+        tag.setColor(change.getColor());
+        tag.setIsDeleted(false);
+        tag.setVersion(normalizeInitialVersion(change.getVersion()));
+        tagMapper.insert(tag);
+    }
+
+    private long normalizeInitialVersion(Long version) {
+        return version == null || version < 1L ? 1L : version;
     }
 
     private Folder getDefaultFolder(String userId) {

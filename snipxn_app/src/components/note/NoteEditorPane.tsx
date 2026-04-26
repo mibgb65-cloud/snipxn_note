@@ -25,6 +25,8 @@ import { CodeEditor, type CodeEditorHandle } from './CodeEditor';
 import type { RunnerStatus } from './CodeRunnerPanel';
 import { NoteToolbar } from './NoteToolbar';
 
+const AUTOSAVE_DELAY_MS = 5000;
+
 export interface NoteEditorPaneHandle {
   flushSave: () => Promise<void>;
   closeFloatingPanel: () => boolean;
@@ -124,7 +126,7 @@ function getActivityHelperText(
   }
 
   if (isPending) {
-    return t('自动保存将在 2 秒后触发');
+    return t('正在编辑，稍后自动保存');
   }
 
   return t('已同步到本地');
@@ -191,6 +193,8 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
     const languageRef = useRef('markdown');
     const tagIdsRef = useRef<string[]>([]);
     const savePromiseRef = useRef<Promise<void> | null>(null);
+    const requestSaveRef = useRef<(() => Promise<void>) | null>(null);
+    const hydratedNoteIdRef = useRef<string | null>(null);
     const persistedRef = useRef<{
       title: string;
       content: string;
@@ -202,6 +206,47 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
       primaryLanguage: null,
       tagIds: [],
     });
+
+    const getPendingSaveSnapshot = useCallback(() => {
+      const nextTitle = toStoredTitle(titleRef.current);
+      const nextContent = contentRef.current;
+      const nextPrimaryLanguage = toStoredLanguage(languageRef.current);
+      const nextTagIds = [...tagIdsRef.current];
+      const nextPayload: {
+        title?: string;
+        content?: string;
+        primaryLanguage?: string | null;
+        tagIds?: string[];
+      } = {};
+
+      if (nextTitle !== persistedRef.current.title) {
+        nextPayload.title = nextTitle;
+      }
+
+      if (nextContent !== persistedRef.current.content) {
+        nextPayload.content = nextContent;
+      }
+
+      if (nextPrimaryLanguage !== persistedRef.current.primaryLanguage) {
+        nextPayload.primaryLanguage = nextPrimaryLanguage;
+      }
+
+      if (!areStringArraysEqual(nextTagIds, persistedRef.current.tagIds)) {
+        nextPayload.tagIds = nextTagIds;
+      }
+
+      if (Object.keys(nextPayload).length === 0) {
+        return null;
+      }
+
+      return {
+        title: nextTitle,
+        content: nextContent,
+        primaryLanguage: nextPrimaryLanguage,
+        tagIds: nextTagIds,
+        payload: nextPayload,
+      };
+    }, []);
 
     const note = noteId && currentNote?.id === noteId ? currentNote : null;
     const readOnly = note?.status === 'LOCKED' || note?.isDeleted === true;
@@ -260,23 +305,36 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
 
     useEffect(() => {
       if (!note) {
+        if (!noteId) {
+          hydratedNoteIdRef.current = null;
+        }
+        return;
+      }
+
+      const isDifferentNote = hydratedNoteIdRef.current !== note.id;
+
+      if (!isDifferentNote && getPendingSaveSnapshot()) {
         return;
       }
 
       const editableTitle = toEditableTitle(note.title);
       const normalizedLanguage = note.primaryLanguage ?? 'markdown';
 
+      hydratedNoteIdRef.current = note.id;
       setTitleInput(editableTitle);
       setEditorContent(note.content);
       setLanguageInput(normalizedLanguage);
       setTagIdsInput(note.tagIds);
       setSaveError(null);
-      setIsRunnerOpen(false);
-      setIsBlockRunnerOpen(false);
-      setIsAiOpen(false);
-      setIsAiBusy(false);
-      setIsReadMode(false);
-      setRunnerStatus('idle');
+
+      if (isDifferentNote) {
+        setIsRunnerOpen(false);
+        setIsBlockRunnerOpen(false);
+        setIsAiOpen(false);
+        setIsAiBusy(false);
+        setIsReadMode(false);
+        setRunnerStatus('idle');
+      }
 
       titleRef.current = editableTitle;
       contentRef.current = note.content;
@@ -288,57 +346,32 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
         primaryLanguage: note.primaryLanguage,
         tagIds: note.tagIds,
       };
-    }, [note]);
+    }, [getPendingSaveSnapshot, note, noteId]);
 
     const persistNote = useCallback(async () => {
       if (!note) {
         return;
       }
 
-      if (savePromiseRef.current) {
+      while (savePromiseRef.current) {
         await savePromiseRef.current;
+      }
+
+      const snapshot = getPendingSaveSnapshot();
+
+      if (!snapshot) {
         return;
       }
 
+      const noteIdToSave = note.id;
       const saveTask = (async () => {
-        const nextTitle = toStoredTitle(titleRef.current);
-        const nextContent = contentRef.current;
-        const nextPrimaryLanguage = toStoredLanguage(languageRef.current);
-        const nextTagIds = [...tagIdsRef.current];
-        const nextPayload: {
-          title?: string;
-          content?: string;
-          primaryLanguage?: string | null;
-          tagIds?: string[];
-        } = {};
-
-        if (nextTitle !== persistedRef.current.title) {
-          nextPayload.title = nextTitle;
-        }
-
-        if (nextContent !== persistedRef.current.content) {
-          nextPayload.content = nextContent;
-        }
-
-        if (nextPrimaryLanguage !== persistedRef.current.primaryLanguage) {
-          nextPayload.primaryLanguage = nextPrimaryLanguage;
-        }
-
-        if (!areStringArraysEqual(nextTagIds, persistedRef.current.tagIds)) {
-          nextPayload.tagIds = nextTagIds;
-        }
-
-        if (Object.keys(nextPayload).length === 0) {
-          return;
-        }
-
         try {
-          await updateNote(note.id, nextPayload);
+          await updateNote(noteIdToSave, snapshot.payload);
           persistedRef.current = {
-            title: nextTitle,
-            content: nextContent,
-            primaryLanguage: nextPrimaryLanguage,
-            tagIds: nextTagIds,
+            title: snapshot.title,
+            content: snapshot.content,
+            primaryLanguage: snapshot.primaryLanguage,
+            tagIds: snapshot.tagIds,
           };
           setSaveError(null);
         } catch (error) {
@@ -356,11 +389,11 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
           savePromiseRef.current = null;
         }
       }
-    }, [note, t, updateNote]);
+    }, [getPendingSaveSnapshot, note, t, updateNote]);
 
     const { trigger, flush, isPending } = useAutoSave(async () => {
       await persistNote();
-    }, 2000);
+    }, AUTOSAVE_DELAY_MS);
 
     const requestSave = useCallback(async () => {
       if (isPending) {
@@ -370,6 +403,10 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
 
       await persistNote();
     }, [flush, isPending, persistNote]);
+
+    useEffect(() => {
+      requestSaveRef.current = requestSave;
+    }, [requestSave]);
 
     const handleRunnerOpenChange = (open: boolean) => {
       setIsBlockRunnerOpen(open);
@@ -444,9 +481,9 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
 
     useEffect(() => {
       return () => {
-        void requestSave();
+        void requestSaveRef.current?.();
       };
-    }, [isPending, note?.id, requestSave]);
+    }, [note?.id]);
 
     const handleContentChange = (content: string) => {
       setEditorContent(content);

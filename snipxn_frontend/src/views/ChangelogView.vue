@@ -160,6 +160,44 @@ const platformStyles = computed(() => ({
 
 const releaseEntries = computed(() => [
   {
+    version: 'v1.3.3',
+    date: '2026-04-27',
+    title: t('changelog.v133Title'),
+    summary: t('changelog.v133Summary'),
+    platforms: ['web', 'android', 'backend'],
+    sections: [
+      {
+        id: 'v133-web',
+        platform: 'web',
+        title: t('changelog.webUpdates'),
+        items: [
+          t('changelog.v133Web1'),
+          t('changelog.v133Web2'),
+        ],
+      },
+      {
+        id: 'v133-android',
+        platform: 'android',
+        title: t('changelog.androidUpdates'),
+        items: [
+          t('changelog.v133Android1'),
+          t('changelog.v133Android2'),
+          t('changelog.v133Android3'),
+          t('changelog.v133Android4'),
+        ],
+      },
+      {
+        id: 'v133-backend',
+        platform: 'backend',
+        title: t('changelog.backendUpdates'),
+        items: [
+          t('changelog.v133Backend1'),
+          t('changelog.v133Backend2'),
+        ],
+      },
+    ],
+  },
+  {
     version: 'v1.3.2',
     date: '2026-04-26',
     title: t('changelog.v132Title'),

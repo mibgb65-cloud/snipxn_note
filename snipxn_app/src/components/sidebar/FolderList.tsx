@@ -10,12 +10,22 @@ import { useFolderStore, useNoteStore } from '../../stores';
 import { useAppTheme, withAlpha } from '../../theme';
 import type { Folder } from '../../types';
 import { GlassPanel } from '../common/AppChrome';
-import { AppIcon } from '../common/AppIcon';
+import { AppIcon, type AppIconName } from '../common/AppIcon';
 
 type FolderDialogMode = 'create' | 'rename' | 'icon' | null;
 const SIDEBAR_LIST_ICON_SIZE = 17;
 const SIDEBAR_EMOJI_SIZE = 15;
-const FOLDER_ICON_OPTIONS = ['folder', '📁', '📝', '💡', '🚀', '📚', '🧪', '💼'] as const;
+const FOLDER_ICON_OPTIONS: Array<{ value: string; label: string; icon: AppIconName }> = [
+  { value: 'folder', label: '通用', icon: 'folder' },
+  { value: 'notes', label: '笔记', icon: 'notes' },
+  { value: 'code', label: '代码', icon: 'code' },
+  { value: 'sparkles', label: '灵感', icon: 'sparkles' },
+  { value: 'bookmark', label: '收藏', icon: 'bookmark' },
+  { value: 'database', label: '资料', icon: 'database' },
+  { value: 'tag', label: '标签', icon: 'tag' },
+  { value: 'star', label: '重要', icon: 'star' },
+];
+const FOLDER_ICON_NAME_SET = new Set(FOLDER_ICON_OPTIONS.map(option => option.value));
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (
@@ -51,7 +61,11 @@ function renderFolderGlyph(
   iconSize = SIDEBAR_LIST_ICON_SIZE,
   emojiSize = SIDEBAR_EMOJI_SIZE,
 ) {
-  if (icon === 'folder' || !isFolderEmojiIcon(icon)) {
+  if (FOLDER_ICON_NAME_SET.has(icon)) {
+    return <AppIcon color={color} name={icon as AppIconName} size={iconSize} strokeWidth={2} />;
+  }
+
+  if (!isFolderEmojiIcon(icon)) {
     return <AppIcon color={color} name="folder" size={iconSize} strokeWidth={2} />;
   }
 
@@ -85,7 +99,7 @@ function buildMovedFolderIds(folderId: string, folders: Folder[], direction: -1 
 
 export function FolderList() {
   const navigation = useNavigation<any>();
-  const { palette, typography } = useAppTheme();
+  const { isTablet, palette, typography } = useAppTheme();
 
   const {
     folders,
@@ -140,6 +154,8 @@ export function FolderList() {
   }, [dialogMode, nameInput]);
 
   const selectedFolderIcon = iconInput.trim() || 'folder';
+  const selectedFolderIconOption =
+    FOLDER_ICON_OPTIONS.find(option => option.value === selectedFolderIcon) ?? FOLDER_ICON_OPTIONS[0];
   const folderPreviewName =
     nameInput.trim() ||
     editingFolder?.name ||
@@ -356,8 +372,11 @@ export function FolderList() {
       <Dialog isOpen={menuFolder !== null} onOpenChange={open => !open && closeDialogs()}>
         <Dialog.Portal>
           <Dialog.Overlay />
-          <Dialog.Content className="mx-6 rounded-[10px] p-0" style={{ backgroundColor: 'transparent' }}>
-            <GlassPanel className="px-6 py-6" highlight={palette.primary}>
+          <Dialog.Content className="mx-6 rounded-[10px] p-0" style={{ backgroundColor: palette.surface }}>
+            <GlassPanel
+              className="px-6 py-6"
+              highlight={palette.primary}
+              style={{ backgroundColor: palette.surface }}>
               <View className="gap-5">
                 <View
                   className="rounded-[10px] border px-4 py-4"
@@ -440,117 +459,161 @@ export function FolderList() {
       <Dialog isOpen={dialogMode !== null} onOpenChange={open => !open && closeDialogs()}>
         <Dialog.Portal>
           <Dialog.Overlay />
-          <Dialog.Content className="mx-6 rounded-[10px] p-0" style={{ backgroundColor: 'transparent' }}>
-            <GlassPanel className="px-6 py-6" highlight={palette.primary}>
-              <View className="gap-5">
-                <View className="gap-1">
-                  <Text className={typography.caption} style={{ color: palette.primary }}>
-                    Folder Setup
-                  </Text>
+          <Dialog.Content
+            className="mx-5 overflow-hidden rounded-[16px] p-0"
+            style={{
+              backgroundColor: palette.surface,
+              maxWidth: isTablet ? 580 : undefined,
+            }}>
+            <View
+              className="border-b px-5 py-5"
+              style={{ borderBottomColor: withAlpha(palette.textSoft, 0.14) }}>
+              <View className="flex-row items-center gap-3">
+                <View
+                  className="h-11 w-11 items-center justify-center rounded-[12px]"
+                  style={{ backgroundColor: palette.primarySoft }}>
+                  <AppIcon color={palette.primary} name="folder" size={20} />
+                </View>
+                <View className="min-w-0 flex-1">
                   <Dialog.Title>{folderDialogTitle}</Dialog.Title>
-                  <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+                  <Text className={`${typography.bodySmall} mt-1`} style={{ color: palette.textSoft }}>
                     {folderDialogDescription}
                   </Text>
                 </View>
+              </View>
+            </View>
 
+            <View className="gap-5 px-5 py-5">
+              <View className="gap-4" style={{ flexDirection: isTablet ? 'row' : 'column' }}>
                 <View
-                  className="rounded-[10px] border px-4 py-4"
-                  style={{ borderColor: palette.border, backgroundColor: palette.panelInset }}>
-                  <View className="flex-row items-center gap-3">
-                    <View
-                      className="h-12 w-12 items-center justify-center rounded-[10px] border"
-                      style={{
-                        borderColor: withAlpha(palette.primary, 0.18),
-                        backgroundColor: withAlpha(palette.primary, 0.12),
-                      }}>
-                      {renderFolderGlyph(selectedFolderIcon, palette.primary, 20, 18)}
-                    </View>
-                    <View className="min-w-0 flex-1">
-                      <Text className={typography.body} numberOfLines={1} style={{ color: palette.text }}>
-                        {folderPreviewName}
-                      </Text>
-                      <Text className={typography.caption} style={{ color: palette.textSoft }}>
-                        {dialogMode === 'rename' ? '更新后的文件夹名称预览' : '文件夹入口预览'}
-                      </Text>
-                    </View>
+                  className="rounded-[14px] border px-4 py-4"
+                  style={{
+                    borderColor: withAlpha(palette.primary, 0.18),
+                    backgroundColor: palette.panelInset,
+                    width: isTablet ? 180 : undefined,
+                  }}>
+                  <View
+                    className="h-14 w-14 items-center justify-center rounded-[14px]"
+                    style={{ backgroundColor: withAlpha(palette.primary, 0.12) }}>
+                    {renderFolderGlyph(selectedFolderIconOption.value, palette.primary, 22, 20)}
                   </View>
+                  <Text
+                    className={`${typography.body} mt-4`}
+                    numberOfLines={2}
+                    style={{ color: palette.text, fontWeight: '700' }}>
+                    {folderPreviewName}
+                  </Text>
+                  <Text className={`${typography.caption} mt-1`} style={{ color: palette.textSoft }}>
+                    {dialogMode === 'rename' ? '名称更新预览' : '将在左侧文件夹列表中显示'}
+                  </Text>
                 </View>
 
-                {errorMessage ? (
-                  <Text className={typography.bodySmall} style={{ color: palette.danger }}>
-                    {errorMessage}
-                  </Text>
-                ) : null}
-
-                {dialogMode === 'create' || dialogMode === 'rename' ? (
-                  <TextField isRequired isInvalid={nameTouched && nameError !== null}>
-                    <Label>名称</Label>
-                    <Input
-                      placeholder="请输入文件夹名称"
-                      value={nameInput}
-                      onBlur={() => setNameTouched(true)}
-                      onChangeText={value => {
-                        setNameInput(value);
-                        setErrorMessage(null);
-                      }}
-                    />
-                    <FieldError>{nameError ?? ''}</FieldError>
-                  </TextField>
-                ) : null}
-
-                {dialogMode === 'create' || dialogMode === 'icon' ? (
-                  <View className="gap-3">
-                    <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
-                      选择图标
-                    </Text>
-                    <View className="flex-row flex-wrap gap-3">
-                      {FOLDER_ICON_OPTIONS.map(iconOption => {
-                        const isSelected = selectedFolderIcon === iconOption;
-
-                        return (
-                          <Pressable
-                            key={iconOption}
-                            className="h-12 w-12 items-center justify-center rounded-[10px] border"
-                            onPress={() => {
-                              setIconInput(iconOption);
-                              setErrorMessage(null);
-                            }}
-                            style={{
-                              borderColor: isSelected ? withAlpha(palette.primary, 0.28) : palette.border,
-                              backgroundColor: isSelected ? withAlpha(palette.primary, 0.12) : palette.surfaceAlt,
-                            }}>
-                            {renderFolderGlyph(
-                              iconOption,
-                              isSelected ? palette.primary : palette.textMuted,
-                              18,
-                              16,
-                            )}
-                          </Pressable>
-                        );
-                      })}
+                <View className="min-w-0 flex-1 gap-4">
+                  {errorMessage ? (
+                    <View
+                      className="rounded-[12px] border px-3 py-3"
+                      style={{
+                        borderColor: withAlpha(palette.danger, 0.24),
+                        backgroundColor: withAlpha(palette.danger, 0.08),
+                      }}>
+                      <Text className={typography.bodySmall} style={{ color: palette.danger }}>
+                        {errorMessage}
+                      </Text>
                     </View>
-                  </View>
-                ) : null}
+                  ) : null}
 
-                <View className="flex-row gap-3">
-                  <Button className="flex-1" isDisabled={submitting} variant="ghost" onPress={closeDialogs}>
-                    取消
-                  </Button>
-                  <Button className="flex-1" isDisabled={submitting} variant="primary" onPress={() => void handleSubmit()}>
-                    {submitting ? (
-                      <>
-                        <Spinner color="default" size="sm" />
-                        <Button.Label>保存中...</Button.Label>
-                      </>
-                    ) : dialogMode === 'create' ? (
-                      '创建文件夹'
-                    ) : (
-                      '保存'
-                    )}
-                  </Button>
+                  {dialogMode === 'create' || dialogMode === 'rename' ? (
+                    <TextField isRequired isInvalid={nameTouched && nameError !== null}>
+                      <Label>文件夹名称</Label>
+                      <Input
+                        placeholder="例如：算法练习、项目资料"
+                        value={nameInput}
+                        onBlur={() => setNameTouched(true)}
+                        onChangeText={value => {
+                          setNameInput(value);
+                          setErrorMessage(null);
+                        }}
+                      />
+                      <FieldError>{nameError ?? ''}</FieldError>
+                    </TextField>
+                  ) : null}
+
+                  {dialogMode === 'create' || dialogMode === 'icon' ? (
+                    <View className="gap-3">
+                      <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+                        图标样式
+                      </Text>
+                      <View className="flex-row flex-wrap gap-2">
+                        {FOLDER_ICON_OPTIONS.map(iconOption => {
+                          const isSelected = selectedFolderIcon === iconOption.value;
+
+                          return (
+                            <Pressable
+                              key={iconOption.value}
+                              accessibilityRole="button"
+                              accessibilityLabel={`选择${iconOption.label}图标`}
+                              className="items-center rounded-[12px] border px-2 py-3"
+                              onPress={() => {
+                                setIconInput(iconOption.value);
+                                setErrorMessage(null);
+                              }}
+                              style={{
+                                borderColor: isSelected
+                                  ? withAlpha(palette.primary, 0.34)
+                                  : palette.border,
+                                backgroundColor: isSelected
+                                  ? withAlpha(palette.primary, 0.12)
+                                  : palette.surfaceAlt,
+                                width: 68,
+                              }}>
+                              <AppIcon
+                                color={isSelected ? palette.primary : palette.textMuted}
+                                name={iconOption.icon}
+                                size={18}
+                              />
+                              <Text
+                                className={`${typography.caption} mt-2`}
+                                numberOfLines={1}
+                                style={{ color: isSelected ? palette.primary : palette.textSoft }}>
+                                {iconOption.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ) : null}
                 </View>
               </View>
-            </GlassPanel>
+
+              <View
+                className="flex-row gap-3 border-t pt-4"
+                style={{ borderTopColor: withAlpha(palette.textSoft, 0.12) }}>
+                <Button className="flex-1" isDisabled={submitting} variant="ghost" onPress={closeDialogs}>
+                  取消
+                </Button>
+                <Button
+                  className="flex-1"
+                  isDisabled={
+                    submitting ||
+                    ((dialogMode === 'create' || dialogMode === 'rename') &&
+                      nameInput.trim().length === 0)
+                  }
+                  variant="primary"
+                  onPress={() => void handleSubmit()}>
+                  {submitting ? (
+                    <>
+                      <Spinner color="default" size="sm" />
+                      <Button.Label>保存中...</Button.Label>
+                    </>
+                  ) : dialogMode === 'create' ? (
+                    '创建文件夹'
+                  ) : (
+                    '保存'
+                  )}
+                </Button>
+              </View>
+            </View>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog>

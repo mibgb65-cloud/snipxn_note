@@ -110,6 +110,28 @@ function getSectionTitles(t: (text: string) => string): Record<SettingsSectionKe
   };
 }
 
+function getSectionDescriptions(t: (text: string) => string): Record<SettingsSectionKey, string> {
+  return {
+    profile: t('昵称、头像与社区展示资料'),
+    security: t('密码修改与第三方账号绑定'),
+    devices: t('查看已登录设备并管理会话'),
+    preferences: t('主题、语言与代码字号'),
+    storage: t('配额使用与存储明细'),
+    about: t('版本信息、检查更新与反馈'),
+    logout: t('清除本地凭证并退出当前账号'),
+  };
+}
+
+const SETTINGS_SECTION_ICONS: Record<SettingsSectionKey, AppIconName> = {
+  profile: 'user',
+  security: 'shield',
+  devices: 'devices',
+  preferences: 'settings',
+  storage: 'database',
+  about: 'info',
+  logout: 'log-out',
+};
+
 function getLanguageOptions(
   t: (text: string) => string,
 ): Array<{ label: string; value: AppLanguage; description: string }> {
@@ -352,23 +374,29 @@ function SectionShell({
   children: React.ReactNode;
 }) {
   const { palette } = useAppTheme();
+  const { isTablet } = useDeviceType();
   const hasHeader = Boolean(title || description);
+  const containerClassName = frameless
+    ? ''
+    : isTablet
+      ? 'rounded-[14px] border px-5 py-5'
+      : 'rounded-[12px] border px-5 py-5';
 
   return (
     <View
-      className={frameless ? '' : 'rounded-[12px] border px-5 py-5'}
+      className={containerClassName}
       style={frameless ? undefined : { borderColor: palette.border, backgroundColor: palette.surface }}>
       {hasHeader ? (
         <View className="gap-1">
           {title ? (
-            <Text className="text-lg font-semibold" style={{ color: palette.text }}>
+            <Text className={isTablet ? 'text-xl font-semibold' : 'text-lg font-semibold'} style={{ color: palette.text }}>
               {title}
             </Text>
           ) : null}
           {description ? (
-          <Text className="text-sm" style={{ color: palette.textSoft }}>
-            {description}
-          </Text>
+            <Text className="text-sm" style={{ color: palette.textSoft }}>
+              {description}
+            </Text>
           ) : null}
         </View>
       ) : null}
@@ -430,28 +458,75 @@ function SelectButton({
 
 function MenuItem({
   label,
+  description,
+  icon,
   active,
   destructive = false,
   onPress,
 }: {
   label: string;
+  description?: string;
+  icon?: AppIconName;
   active: boolean;
   destructive?: boolean;
   onPress: () => void;
 }) {
   const { palette } = useAppTheme();
+  const activeColor = destructive ? palette.danger : palette.primary;
 
   return (
     <MotionPressable
-      className="rounded-2xl px-4 py-3"
+      className="overflow-hidden rounded-[12px] border px-3 py-3"
       pressedScale={0.985}
       onPress={onPress}
-      style={{ backgroundColor: active ? palette.primarySoft : palette.surfaceAlt }}>
-      <Text
-        className="text-sm font-medium"
-        style={{ color: destructive ? palette.danger : palette.text }}>
-        {label}
-      </Text>
+      style={{
+        borderColor: active ? withAlpha(activeColor, 0.24) : 'transparent',
+        backgroundColor: active
+          ? destructive
+            ? withAlpha(palette.danger, 0.1)
+            : palette.primarySoft
+          : 'transparent',
+      }}>
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 10,
+          bottom: 10,
+          width: 3,
+          borderRadius: 3,
+          backgroundColor: active ? activeColor : 'transparent',
+        }}
+      />
+      <View className="flex-row items-center gap-3">
+        {icon ? (
+          <View
+            className="h-9 w-9 items-center justify-center rounded-[10px]"
+            style={{
+              backgroundColor: active ? withAlpha(activeColor, 0.14) : palette.surfaceAlt,
+            }}>
+            <AppIcon
+              color={active || destructive ? activeColor : palette.textSoft}
+              name={icon}
+              size={17}
+            />
+          </View>
+        ) : null}
+        <View className="min-w-0 flex-1">
+          <Text
+            className="text-sm font-semibold"
+            numberOfLines={1}
+            style={{ color: destructive ? palette.danger : active ? palette.text : palette.textSoft }}>
+            {label}
+          </Text>
+          {description ? (
+            <Text className="mt-0.5 text-xs" numberOfLines={1} style={{ color: palette.textMuted }}>
+              {description}
+            </Text>
+          ) : null}
+        </View>
+      </View>
     </MotionPressable>
   );
 }
@@ -762,7 +837,6 @@ export function SettingsScreen() {
   const [mobileSection, setMobileSection] = useState<SettingsSectionKey | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [initializing, setInitializing] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -790,11 +864,29 @@ export function SettingsScreen() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   const sectionTitles = useMemo(() => getSectionTitles(t), [t]);
+  const sectionDescriptions = useMemo(() => getSectionDescriptions(t), [t]);
   const languageOptions = useMemo(() => getLanguageOptions(t), [t]);
   const fontSizeOptions = useMemo(() => getFontSizeOptions(t), [t]);
   const profileGenderOptions = useMemo(() => getProfileGenderOptions(t), [t]);
   const linkedAccountOptions = useMemo(() => getLinkedAccountOptions(t), [t]);
   const storageLabels = useMemo(() => getStorageLabels(t), [t]);
+  const tabletMenuGroups = useMemo(
+    () => [
+      {
+        title: isEnglish ? 'Account' : '账号',
+        sections: ['profile', 'security', 'devices'] as SettingsSectionKey[],
+      },
+      {
+        title: isEnglish ? 'Workspace' : '工作区',
+        sections: ['preferences', 'storage', 'about'] as SettingsSectionKey[],
+      },
+      {
+        title: isEnglish ? 'Session' : '会话',
+        sections: ['logout'] as SettingsSectionKey[],
+      },
+    ],
+    [isEnglish],
+  );
 
   const mobileMenuItems: Array<{
     key: SettingsSectionKey;
@@ -817,6 +909,10 @@ export function SettingsScreen() {
   const storageUsed = currentUser?.storageUsed ?? 0;
   const storageLimit = currentUser?.storageLimit ?? 0;
   const storageProgress = storageLimit > 0 ? Math.min(storageUsed / storageLimit, 1) : 0;
+  const storagePercentLabel = `${(storageProgress * 100).toFixed(storageProgress >= 0.995 ? 0 : 1)}%`;
+  const boundAccountCount = linkedAccounts.length;
+  const activeSectionTitle = sectionTitles[activeSection];
+  const activeSectionDescription = sectionDescriptions[activeSection];
   const nicknameError = nicknameTouched && nickname.trim().length === 0 ? t('昵称不能为空') : null;
   const normalizedBirthday = birthday.trim();
   const birthdayError =
@@ -947,32 +1043,6 @@ export function SettingsScreen() {
       isMounted = false;
     };
   }, [fetchDevices, fetchLinkedAccounts, fetchProfile, fetchStorageBreakdown, t]);
-
-  const refreshData = async () => {
-    setRefreshing(true);
-
-    try {
-      await Promise.all([
-        fetchProfile(),
-        fetchDevices(),
-        fetchLinkedAccounts(),
-        fetchStorageBreakdown(),
-      ]);
-      setFeedback({
-        status: 'success',
-        title: t('设置已刷新'),
-        description: t('账号信息和本地偏好已经更新。'),
-      });
-    } catch (error) {
-      setFeedback({
-        status: 'danger',
-        title: t('刷新失败'),
-        description: getErrorMessage(error, t('设置刷新失败，请稍后重试。')),
-      });
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
   const handlePickAvatar = async () => {
     setFeedback(null);
@@ -1837,57 +1907,140 @@ export function SettingsScreen() {
         {isTablet ? (
           <View className="flex-1 flex-row" style={{ backgroundColor: palette.canvas }}>
             <View
-              className="w-[300px] border-r px-4 py-6"
-              style={{ borderRightColor: palette.border, backgroundColor: palette.surface }}>
-              <View
-                className="rounded-[12px] border px-4 py-4"
-                style={{
-                  borderColor: withAlpha(palette.primary, 0.18),
-                  backgroundColor: palette.surfaceAlt,
-                }}>
+              className="w-[336px] border-r"
+              style={{
+                borderRightColor: withAlpha(palette.textSoft, 0.14),
+                backgroundColor: palette.panelStrong,
+              }}>
+              <ScrollView
+                className="flex-1"
+                contentContainerStyle={settingsStyles.tabletSidebarContent}
+                showsVerticalScrollIndicator={false}>
                 <View
-                  className="mb-3 h-12 w-12 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: palette.primarySoft }}>
-                  <AppIcon color={palette.primary} name="settings" size={20} />
+                  className="rounded-[14px] border px-4 py-4"
+                  style={{
+                    borderColor: withAlpha(palette.primary, 0.18),
+                    backgroundColor: palette.surface,
+                  }}>
+                  <View className="flex-row items-center gap-3">
+                    <Avatar alt={t('用户头像')} className="h-14 w-14" color="accent" size="md">
+                      {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
+                      <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
+                    </Avatar>
+                    <View className="min-w-0 flex-1">
+                      <Text className={typography.h3} numberOfLines={1} style={{ color: palette.text }}>
+                        {nickname || currentUser?.email?.split('@')[0] || 'Snipxn'}
+                      </Text>
+                      <Text className={`${typography.caption} mt-1`} numberOfLines={1} style={{ color: palette.textSoft }}>
+                        {currentUser?.email ?? t('未获取到账号')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="mt-4">
+                    <View className="flex-row items-center justify-between">
+                      <Text className={typography.caption} style={{ color: palette.textSoft }}>
+                        {t('云空间')}
+                      </Text>
+                      <Text className={typography.caption} style={{ color: palette.text }}>
+                        {storagePercentLabel}
+                      </Text>
+                    </View>
+                    <View className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: palette.surfaceAlt }}>
+                      <View className="h-full rounded-full" style={{ width: `${storageProgress * 100}%`, backgroundColor: palette.primary }} />
+                    </View>
+                    <Text className={`${typography.caption} mt-2`} style={{ color: palette.textMuted }}>
+                      {formatBytes(storageUsed)} / {formatBytes(storageLimit)}
+                    </Text>
+                  </View>
                 </View>
-                <Text className={typography.h2} style={{ color: palette.text }}>
-                  {t('设置')}
-                </Text>
-                <Text className={`${typography.bodySmall} mt-2`} style={{ color: palette.textSoft }}>
-                  {t('管理账号、安全、界面偏好与应用状态。')}
-                </Text>
-              </View>
-              <View className="mt-6 gap-2">
-                {(Object.keys(sectionTitles) as SettingsSectionKey[]).map(section => (
-                  <MenuItem key={section} active={activeSection === section} destructive={section === 'logout'} label={sectionTitles[section]} onPress={() => setActiveSection(section)} />
-                ))}
-              </View>
-              <Button className="mt-6" isDisabled={refreshing} variant="outline" onPress={() => void refreshData()}>
-                {renderButtonContent(refreshing, t('刷新中...'), t('刷新设置'))}
-              </Button>
+
+                <View className="mt-5 gap-5">
+                  {tabletMenuGroups.map(group => (
+                    <View key={group.title} className="gap-2">
+                      <Text className={typography.caption} style={{ color: palette.textMuted }}>
+                        {group.title}
+                      </Text>
+                      <View className="gap-1">
+                        {group.sections.map(section => (
+                          <MenuItem
+                            key={section}
+                            active={activeSection === section}
+                            description={sectionDescriptions[section]}
+                            destructive={section === 'logout'}
+                            icon={SETTINGS_SECTION_ICONS[section]}
+                            label={sectionTitles[section]}
+                            onPress={() => {
+                              setActiveSection(section);
+                              setFeedback(null);
+                            }}
+                          />
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+
             </View>
 
-            <ScrollView className="flex-1" contentContainerStyle={{ padding: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              <View className="gap-5">
-                {feedback ? (
-                  <Animated.View entering={APP_FADE_IN} layout={APP_LAYOUT_TRANSITION}>
-                    <Alert status={feedback.status}>
-                      <Alert.Indicator />
-                      <Alert.Content>
-                        <Alert.Title>{feedback.title}</Alert.Title>
-                        <Alert.Description>{feedback.description}</Alert.Description>
-                      </Alert.Content>
-                    </Alert>
-                  </Animated.View>
-                ) : null}
-                <Animated.View
-                  key={`tablet-section-${activeSection}`}
-                  entering={APP_PANEL_ENTERING}
-                  layout={APP_LAYOUT_TRANSITION}>
-                  {renderSectionContent()}
-                </Animated.View>
+            <View className="min-w-0 flex-1" style={{ backgroundColor: palette.canvas }}>
+              <View
+                className="border-b px-6 py-5"
+                style={{
+                  borderBottomColor: withAlpha(palette.textSoft, 0.12),
+                  backgroundColor: palette.canvas,
+                }}>
+                <View className="flex-row items-start justify-between gap-6">
+                  <View className="min-w-0 flex-1">
+                    <Text className={typography.h1} numberOfLines={1} style={{ color: palette.text }}>
+                      {activeSectionTitle}
+                    </Text>
+                    <Text className={`${typography.bodySmall} mt-2`} style={{ color: palette.textSoft }}>
+                      {activeSectionDescription}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center gap-2">
+                    <View className="rounded-full px-3 py-2" style={{ backgroundColor: palette.surface }}>
+                      <Text className={typography.caption} style={{ color: palette.textSoft }}>
+                        {theme === 'dark' ? t('深色') : t('浅色')}
+                      </Text>
+                    </View>
+                    <View className="rounded-full px-3 py-2" style={{ backgroundColor: palette.surface }}>
+                      <Text className={typography.caption} style={{ color: palette.textSoft }}>
+                        {boundAccountCount} {isEnglish ? 'linked' : '个绑定'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
               </View>
-            </ScrollView>
+
+              <ScrollView
+                className="flex-1"
+                contentContainerStyle={settingsStyles.tabletContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}>
+                <View className="w-full gap-5" style={settingsStyles.tabletContentInner}>
+                  {feedback ? (
+                    <Animated.View entering={APP_FADE_IN} layout={APP_LAYOUT_TRANSITION}>
+                      <Alert status={feedback.status}>
+                        <Alert.Indicator />
+                        <Alert.Content>
+                          <Alert.Title>{feedback.title}</Alert.Title>
+                          <Alert.Description>{feedback.description}</Alert.Description>
+                        </Alert.Content>
+                      </Alert>
+                    </Animated.View>
+                  ) : null}
+                  <Animated.View
+                    key={`tablet-section-${activeSection}`}
+                    entering={APP_PANEL_ENTERING}
+                    layout={APP_LAYOUT_TRANSITION}>
+                    {renderSectionContent()}
+                  </Animated.View>
+                </View>
+              </ScrollView>
+            </View>
           </View>
         ) : mobileSection !== null ? (
           /* ── Mobile: section detail page ── */
@@ -2022,6 +2175,23 @@ export function SettingsScreen() {
     </View>
   );
 }
+
+const settingsStyles = StyleSheet.create({
+  tabletSidebarContent: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  tabletContent: {
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 44,
+  },
+  tabletContentInner: {
+    alignSelf: 'center',
+    maxWidth: 900,
+  },
+});
 
 const loadingStyles = StyleSheet.create({
   flex: {

@@ -1,48 +1,26 @@
-import { useFocusEffect } from '@react-navigation/native';
-import { Button, Spinner } from 'heroui-native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { Spinner } from 'heroui-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  AdaptiveLayout,
-  APP_HEADER_ENTERING,
-  APP_HEADER_EXITING,
   APP_LAYOUT_TRANSITION,
+  APP_PANEL_ENTERING,
+  APP_PANEL_EXITING,
   AppCanvas,
   AppIcon,
-  GlassPanel,
 } from '../../components/common';
 import { TabPageHeader } from '../../components/common/TabPageHeader';
 import { NoteEditorPane } from '../../components/note/NoteEditorPane';
 import { NoteList } from '../../components/note/NoteList';
 import { useDeviceType } from '../../hooks';
-import { translateLiteral, useI18n } from '../../i18n';
+import { useI18n } from '../../i18n';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useFolderStore, useNoteStore, useSyncStore, useUIStore } from '../../stores';
+import { useFolderStore, useNoteStore, useUIStore } from '../../stores';
 import { useAppTheme, withAlpha } from '../../theme';
-import { describeImportNotesResult, pickAndImportNotes } from '../../utils';
-
-function getViewLabel(
-  activeView: ReturnType<typeof useNoteStore.getState>['activeView'],
-  t: (text: string) => string,
-): string {
-  if (activeView === 'all') {
-    return t('全部笔记');
-  }
-
-  if (activeView === 'starred') {
-    return t('收藏笔记');
-  }
-
-  if (activeView === 'trash') {
-    return t('回收站');
-  }
-
-  return t('文件夹');
-}
 
 function resolvePreferredFolderId(
   preferredFolderId: string | null,
@@ -58,123 +36,6 @@ function resolvePreferredFolderId(
   }
 
   return folders.find(folder => folder.isDefault && !folder.isDeleted)?.id ?? folders.find(folder => !folder.isDeleted)?.id ?? null;
-}
-
-type WorkspaceFeedback = {
-  status: 'success' | 'warning' | 'danger' | 'accent';
-  title: string;
-  description: string;
-} | null;
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return translateLiteral(error.message);
-  }
-
-  return fallback;
-}
-
-function WorkspaceCloudStatus() {
-  const { palette, typography } = useAppTheme();
-  const { t } = useI18n();
-  const status = useSyncStore(state => state.status);
-  const message = useSyncStore(state => state.message);
-
-  const indicatorConfig =
-    status === 'syncing'
-      ? {
-          color: palette.accent,
-          icon: 'sync' as const,
-          label: t('云同步中'),
-        }
-      : status === 'success'
-        ? {
-            color: palette.success,
-            icon: 'check-circle' as const,
-            label: t('已同步到云端'),
-          }
-        : status === 'offline'
-          ? {
-              color: palette.textSoft,
-              icon: 'cloud-off' as const,
-              label: t('当前离线'),
-              helper: message ?? t('修改已保存在本地。'),
-            }
-          : status === 'error'
-            ? {
-                color: palette.danger,
-                icon: 'alert-circle' as const,
-                label: t('同步失败'),
-                helper: message ?? t('请稍后重试。'),
-              }
-            : {
-                color: palette.textMuted,
-                icon: 'sync' as const,
-                label: t('云同步待命'),
-              };
-
-  return (
-    <View
-      className="shrink-0 h-10 flex-row items-center gap-1.5 rounded-full border px-3"
-      style={{
-        borderColor: withAlpha(indicatorConfig.color, 0.16),
-        backgroundColor: withAlpha(indicatorConfig.color, 0.12),
-      }}>
-      {status === 'syncing' ? (
-        <Spinner color={indicatorConfig.color} size="sm" />
-      ) : (
-        <AppIcon color={indicatorConfig.color} name={indicatorConfig.icon} size={14} />
-      )}
-      <Text className={typography.caption} style={{ color: indicatorConfig.color }}>
-        {indicatorConfig.label}
-      </Text>
-    </View>
-  );
-}
-
-function WorkspaceSharedTopBar({
-  searchQuery,
-  onSearchQueryChange,
-}: {
-  searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
-}) {
-  const { palette, typography } = useAppTheme();
-  const { t } = useI18n();
-
-  return (
-    <View className="px-4 pb-3 pt-2">
-      <GlassPanel className="px-4 py-4" variant="strong">
-        <View className="flex-row items-center gap-3">
-          <View
-            className="min-w-0 flex-1 flex-row items-center gap-2.5 rounded-[8px] border px-3.5 py-3"
-            style={{
-              borderColor: withAlpha(palette.primary, 0.12),
-              backgroundColor: palette.panelInset,
-            }}>
-            <AppIcon color={palette.primary} name="search" size={16} />
-            <TextInput
-              autoCapitalize="none"
-              className={`${typography.bodySmall} flex-1`}
-              onChangeText={onSearchQueryChange}
-              placeholder={t('搜索标题、摘要、标签或内容')}
-              placeholderTextColor={palette.placeholder}
-              returnKeyType="search"
-              style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
-              value={searchQuery}
-            />
-          </View>
-
-          <WorkspaceCloudStatus />
-        </View>
-      </GlassPanel>
-    </View>
-  );
 }
 
 type NoteView = 'folder' | 'all' | 'starred' | 'trash';
@@ -418,9 +279,83 @@ function MobileFilterBar({
   );
 }
 
+function TabletWorkspaceHome({
+  activeView,
+  folderCount,
+  noteCount,
+  starredCount,
+}: {
+  activeView: NoteView;
+  folderCount: number;
+  noteCount: number;
+  starredCount: number;
+}) {
+  const { palette, typography } = useAppTheme();
+  const { t } = useI18n();
+  const viewLabel =
+    activeView === 'all'
+      ? t('全部笔记')
+      : activeView === 'starred'
+        ? t('收藏笔记')
+        : activeView === 'trash'
+          ? t('回收站')
+          : t('文件夹视图');
+
+  return (
+    <View
+      className="flex-1 justify-center"
+      style={{ backgroundColor: palette.canvas }}>
+      <View className="w-full max-w-[720px] self-center px-8">
+        <View className="mb-8 h-12 w-12 items-center justify-center rounded-[12px]" style={{ backgroundColor: withAlpha(palette.primary, 0.12) }}>
+          <AppIcon color={palette.primary} name="notes" size={22} />
+        </View>
+        <Text className={typography.h1} style={{ color: palette.text }}>
+          {t('工作区')}
+        </Text>
+        <Text className={`${typography.body} mt-3 max-w-[560px]`} style={{ color: palette.textSoft }}>
+          {t('当前笔记空间概览。编辑区保持空闲，直到进入某条笔记。')}
+        </Text>
+
+        <View className="mt-8 flex-row items-center">
+          {[
+            { label: t('当前视图'), value: viewLabel },
+            { label: t('笔记'), value: String(noteCount) },
+            { label: t('收藏'), value: String(starredCount) },
+            { label: t('文件夹'), value: String(folderCount) },
+          ].map((item, index) => (
+            <View
+              key={item.label}
+              className="min-w-0 flex-1"
+              style={{
+                borderLeftWidth: index === 0 ? 0 : 1,
+                borderLeftColor: withAlpha(palette.textSoft, 0.16),
+                paddingLeft: index === 0 ? 0 : 18,
+                paddingRight: 18,
+              }}>
+              <Text className={typography.caption} numberOfLines={1} style={{ color: palette.textSoft }}>
+                {item.label}
+              </Text>
+              <Text className={`${typography.h3} mt-1`} numberOfLines={1} style={{ color: palette.text }}>
+                {item.value}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View className="mt-10 h-px" style={{ backgroundColor: withAlpha(palette.textSoft, 0.14) }} />
+        <View className="mt-5 flex-row items-center gap-3">
+          <AppIcon color={palette.textSoft} name="sync" size={17} />
+          <Text className={typography.bodySmall} style={{ color: palette.textMuted }}>
+            {t('本地内容会随同步状态更新。')}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export function WorkspaceScreen() {
   const { showSidebar } = useDeviceType();
-  const { palette, typography } = useAppTheme();
   const { t } = useI18n();
   const desktopSafeAreaEdges = ['top', 'left', 'right'] as const;
   const mobileSafeAreaEdges = ['left', 'right'] as const;
@@ -443,12 +378,12 @@ export function WorkspaceScreen() {
     notes,
     activeView,
     activeFolderId,
-    searchQuery,
     setSearchQuery,
     activeTagId,
     selectedNoteId,
     fetchNotes,
     fetchTags,
+    clearSelection,
     setActiveView,
     setActiveFolderView,
     setActiveTagId,
@@ -456,29 +391,27 @@ export function WorkspaceScreen() {
     notes: state.notes,
     activeView: state.activeView,
     activeFolderId: state.activeFolderId,
-    searchQuery: state.searchQuery,
     setSearchQuery: state.setSearchQuery,
     activeTagId: state.activeTagId,
     selectedNoteId: state.selectedNoteId,
     fetchNotes: state.fetchNotes,
     fetchTags: state.fetchTags,
+    clearSelection: state.clearSelection,
     setActiveView: state.setActiveView,
     setActiveFolderView: state.setActiveFolderView,
     setActiveTagId: state.setActiveTagId,
   })));
 
-  const syncNow = useSyncStore(state => state.syncNow);
-
   const setSidebarCollapsed = useUIStore(state => state.setSidebarCollapsed);
+  const setSidebarHidden = useUIStore(state => state.setSidebarHidden);
 
-  const [importing, setImporting] = useState(false);
   const [isEditorFullScreen, setIsEditorFullScreen] = useState(false);
-  const [, setWorkspaceFeedback] = useState<WorkspaceFeedback>(null);
-  const usesInlineEditor = false;
+  const usesInlineEditor = showSidebar;
 
   // Run mode: save previous state and restore on exit
   const prevSidebarCollapsedRef = useRef(false);
   const prevFullScreenRef = useRef(false);
+  const hasResetTabletSelectionRef = useRef(false);
 
   const handleEnterRunMode = useCallback(() => {
     prevSidebarCollapsedRef.current = useUIStore.getState().sidebarCollapsed;
@@ -511,6 +444,15 @@ export function WorkspaceScreen() {
   }, [fetchFolders, fetchNotes, fetchTags]);
 
   useEffect(() => {
+    if (!showSidebar || hasResetTabletSelectionRef.current) {
+      return;
+    }
+
+    clearSelection();
+    hasResetTabletSelectionRef.current = true;
+  }, [clearSelection, showSidebar]);
+
+  useEffect(() => {
     if (activeView !== 'folder') {
       return;
     }
@@ -531,13 +473,24 @@ export function WorkspaceScreen() {
     if (activeTagId && !note.tagIds.includes(activeTagId)) return null;
     return selectedNoteId;
   }, [selectedNoteId, notes, activeTagId]);
-  const showImportButton = activeView !== 'trash';
 
   useEffect(() => {
     if (!showSidebar || !visibleSelectedNoteId) {
       setIsEditorFullScreen(false);
     }
   }, [showSidebar, visibleSelectedNoteId]);
+
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    setSidebarHidden(isFocused && showSidebar && Boolean(visibleSelectedNoteId) && isEditorFullScreen);
+  }, [isEditorFullScreen, isFocused, setSidebarHidden, showSidebar, visibleSelectedNoteId]);
+
+  useEffect(() => {
+    return () => {
+      setSidebarHidden(false);
+    };
+  }, [setSidebarHidden]);
 
   useFocusEffect(
     useCallback(() => {
@@ -547,94 +500,6 @@ export function WorkspaceScreen() {
 
       setSearchQuery('');
     }, [setSearchQuery, showSidebar]),
-  );
-
-  const currentLocationLabel = useMemo(() => {
-    if (activeView === 'folder' && activeFolderId) {
-      return folders.find(folder => folder.id === activeFolderId)?.name ?? t('未命名文件夹');
-    }
-
-    return getViewLabel(activeView, t);
-  }, [activeFolderId, activeView, folders, t]);
-
-  const handleImportNotes = async () => {
-    if (!showImportButton) {
-      return;
-    }
-
-    setImporting(true);
-    setWorkspaceFeedback(null);
-
-    try {
-      const importResult = await pickAndImportNotes();
-
-      if (!importResult) {
-        return;
-      }
-
-      const syncResult = await syncNow();
-      await Promise.all([fetchFolders(), fetchTags(), fetchNotes()]);
-
-      if (syncResult.status === 'success' || syncResult.status === 'already_syncing') {
-        setWorkspaceFeedback({
-          status: 'success',
-          title: t('导入完成'),
-          description: describeImportNotesResult(importResult),
-        });
-        return;
-      }
-
-      setWorkspaceFeedback({
-        status: 'accent',
-        title: t('导入已提交'),
-        description:
-          syncResult.status === 'offline'
-            ? t('文件已经上传，但当前处于离线状态，请稍后联网后同步本地列表。')
-            : syncResult.message ?? describeImportNotesResult(importResult),
-      });
-    } catch (error) {
-      setWorkspaceFeedback({
-        status: 'danger',
-        title: t('导入失败'),
-        description: getErrorMessage(error, t('导入笔记失败，请稍后重试。')),
-      });
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const renderWorkspaceHeader = () => (
-    <Animated.View layout={APP_LAYOUT_TRANSITION}>
-      <Animated.View entering={APP_HEADER_ENTERING} exiting={APP_HEADER_EXITING}>
-        <View className="px-4 pb-3 pt-1">
-          <GlassPanel className="px-4 py-3" highlight={palette.primary}>
-            <View className="flex-row items-center justify-between gap-3">
-              <View className="min-w-0 flex-1">
-                <Text className={typography.h3} style={{ color: palette.text }}>
-                  {t('工作区')}
-                </Text>
-                <Text className={typography.caption} style={{ color: palette.textSoft }}>
-                  {currentLocationLabel}
-                </Text>
-              </View>
-
-              {showImportButton ? (
-                <Button isDisabled={importing} size="sm" variant="outline" onPress={() => void handleImportNotes()}>
-                  {importing ? (
-                    <>
-                      <Spinner color="default" size="sm" />
-                      <Button.Label>{t('导入中...')}</Button.Label>
-                    </>
-                  ) : (
-                    t('导入笔记')
-                  )}
-                </Button>
-              ) : null}
-            </View>
-          </GlassPanel>
-        </View>
-      </Animated.View>
-    </Animated.View>
   );
 
   const handleSelectView = useCallback((view: NoteView) => {
@@ -683,56 +548,51 @@ export function WorkspaceScreen() {
   }
 
   return (
-    <AppCanvas className="flex-1">
+    <AppCanvas className="flex-1" decorative={false}>
       <SafeAreaView edges={desktopSafeAreaEdges} style={{ flex: 1 }}>
-        <Animated.View layout={APP_LAYOUT_TRANSITION} style={{ flex: 1, minHeight: 0 }}>
-          {isEditorFullScreen ? null : (
-            <Animated.View layout={APP_LAYOUT_TRANSITION}>
-              <Animated.View entering={APP_HEADER_ENTERING} exiting={APP_HEADER_EXITING}>
-                <WorkspaceSharedTopBar
-                  onSearchQueryChange={value => {
-                    setWorkspaceFeedback(null);
-                    setSearchQuery(value);
-                  }}
-                  searchQuery={searchQuery}
-                />
-              </Animated.View>
-            </Animated.View>
-          )}
-          <Animated.View layout={APP_LAYOUT_TRANSITION} style={{ flex: 1, minHeight: 0 }}>
-            <AdaptiveLayout
-              listWidth={isEditorFullScreen ? 0 : 360}
-              renderContent={() => (
-                <NoteEditorPane
-                  key={visibleSelectedNoteId ?? 'empty'}
-                  emptyMessage={t('选择一个笔记开始编辑')}
-                  isFullScreen={isEditorFullScreen}
-                  noteId={visibleSelectedNoteId}
-                  onEnterRunMode={handleEnterRunMode}
-                  onExitRunMode={handleExitRunMode}
-                  onToggleFullScreen={
-                    visibleSelectedNoteId
-                      ? () => {
-                          setIsEditorFullScreen(current => !current);
-                        }
-                      : undefined
-                  }
-                />
-              )}
-              renderList={() =>
-                isEditorFullScreen ? null : (
-                  <View className="flex-1">
-                    {renderWorkspaceHeader()}
-                    <NoteList showCreateButton={showSidebar} showSearchHeader={false} />
-                  </View>
-                )
-              }
-              renderSidebar={() => null}
-              sidebarWidth={0}
+        <Animated.View
+          key={visibleSelectedNoteId ?? 'empty-editor'}
+          entering={APP_PANEL_ENTERING}
+          exiting={APP_PANEL_EXITING}
+          layout={APP_LAYOUT_TRANSITION}
+          style={[
+            styles.tabletEditorPane,
+            {
+              paddingHorizontal: isEditorFullScreen ? 8 : 12,
+              paddingBottom: 12,
+              paddingTop: isEditorFullScreen ? 8 : 12,
+            },
+          ]}>
+          {visibleSelectedNoteId ? (
+            <NoteEditorPane
+              key={visibleSelectedNoteId}
+              isFullScreen={isEditorFullScreen}
+              noteId={visibleSelectedNoteId}
+              surfaceMode="plain"
+              onEnterRunMode={handleEnterRunMode}
+              onExitRunMode={handleExitRunMode}
+              onToggleFullScreen={() => {
+                setIsEditorFullScreen(current => !current);
+              }}
             />
-          </Animated.View>
+          ) : (
+            <TabletWorkspaceHome
+              activeView={activeView}
+              folderCount={folders.filter(folder => !folder.isDeleted).length}
+              noteCount={notes.length}
+              starredCount={notes.filter(note => note.isStarred).length}
+            />
+          )}
         </Animated.View>
       </SafeAreaView>
     </AppCanvas>
   );
 }
+
+const styles = StyleSheet.create({
+  tabletEditorPane: {
+    flex: 1,
+    minHeight: 0,
+    minWidth: 0,
+  },
+});

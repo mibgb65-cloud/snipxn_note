@@ -6,12 +6,15 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import {
   AccessibilityInfo,
   Alert,
+  LayoutAnimation,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   type StyleProp,
+  UIManager,
   type ViewStyle,
   View,
 } from 'react-native';
@@ -188,8 +191,43 @@ function SettingsScreenLazy() {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Drawer = createDrawerNavigator<MainDrawerParamList>();
-const EXPANDED_SIDEBAR_WIDTH = 320;
-const COLLAPSED_SIDEBAR_WIDTH = 92;
+const EXPANDED_SIDEBAR_WIDTH = 284;
+const COLLAPSED_SIDEBAR_WIDTH = 68;
+const SIDEBAR_WIDTH_ANIMATION_MS = 260;
+const SIDEBAR_EXPAND_CONTENT_REVEAL_MS = 210;
+const SIDEBAR_DRAWER_LAYOUT_ANIMATION = {
+  duration: SIDEBAR_WIDTH_ANIMATION_MS,
+  create: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+  },
+  delete: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
+const SIDEBAR_CONTENT_LAYOUT_ANIMATION = {
+  duration: 180,
+  create: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+  },
+  delete: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
+type SidebarMotionPhase = 'expanded' | 'collapsing' | 'collapsed' | 'expanding';
+
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
 
 function resolveCreateFolderId(
   preferredFolderId: string | null,
@@ -365,7 +403,7 @@ export function MainNavigator() {
   const insets = useSafeAreaInsets();
   const isSidebarCollapsed = useUIStore(state => state.sidebarCollapsed);
   const isSidebarHidden = useUIStore(state => state.sidebarHidden);
-  const toggleSidebar = useUIStore(state => state.toggleSidebar);
+  const setSidebarCollapsed = useUIStore(state => state.setSidebarCollapsed);
   const folders = useFolderStore(state => state.folders);
   const rememberedFolderId = useFolderStore(state => state.activeFolderId);
   const createFolder = useFolderStore(state => state.createFolder);
@@ -394,6 +432,12 @@ export function MainNavigator() {
     () => createMobileTabBarStyle(palette, tabBarBottomPadding),
     [palette, tabBarBottomPadding],
   );
+  const [drawerCollapsed, setDrawerCollapsed] = useState(isSidebarCollapsed);
+  const [sidebarMotionPhase, setSidebarMotionPhase] = useState<SidebarMotionPhase>(
+    isSidebarCollapsed ? 'collapsed' : 'expanded',
+  );
+  const [reduceMotionEnabled, setReduceMotionEnabled] = useState(false);
+  const hasInitializedSidebarMotionRef = useRef(false);
   const createMenuBackdropStyle = useAnimatedStyle(() => ({
     opacity: createMenuProgress.value,
   }));
@@ -405,14 +449,77 @@ export function MainNavigator() {
     ],
   }));
   const resolveDrawerStyle = (hidden: boolean) => ({
-    width: hidden ? 0 : isSidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,
+    width: hidden ? 0 : drawerCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,
     backgroundColor: hidden ? 'transparent' : palette.panelStrong,
-    borderRightColor: hidden ? 'transparent' : palette.borderStrong,
-    borderRightWidth: hidden ? 0 : 1,
+    borderRightColor: hidden ? 'transparent' : withAlpha(palette.textSoft, 0.12),
+    borderRightWidth: hidden ? 0 : StyleSheet.hairlineWidth,
     overflow: 'hidden' as const,
   });
 
-  const handleSidebarToggle = () => toggleSidebar();
+  const handleSidebarToggle = () => {
+    setSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(enabled => {
+        if (mounted) {
+          setReduceMotionEnabled(enabled);
+        }
+      })
+      .catch(() => {
+        // Keep motion enabled when the platform preference is unavailable.
+      });
+
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduceMotionEnabled,
+    );
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const targetPhase = isSidebarCollapsed ? 'collapsed' : 'expanded';
+
+    if (!hasInitializedSidebarMotionRef.current || reduceMotionEnabled) {
+      hasInitializedSidebarMotionRef.current = true;
+      setDrawerCollapsed(isSidebarCollapsed);
+      setSidebarMotionPhase(targetPhase);
+      return undefined;
+    }
+
+    if (isSidebarCollapsed) {
+      LayoutAnimation.configureNext(SIDEBAR_DRAWER_LAYOUT_ANIMATION);
+      setSidebarMotionPhase('collapsing');
+      setDrawerCollapsed(true);
+      timer = setTimeout(() => {
+        setSidebarMotionPhase('collapsed');
+      }, SIDEBAR_WIDTH_ANIMATION_MS);
+    } else {
+      LayoutAnimation.configureNext(SIDEBAR_DRAWER_LAYOUT_ANIMATION);
+      setSidebarMotionPhase('expanding');
+      setDrawerCollapsed(false);
+      timer = setTimeout(() => {
+        LayoutAnimation.configureNext(SIDEBAR_CONTENT_LAYOUT_ANIMATION);
+        setSidebarMotionPhase('expanded');
+      }, SIDEBAR_EXPAND_CONTENT_REVEAL_MS);
+    }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [isSidebarCollapsed, reduceMotionEnabled]);
+
+  const sidebarContentCollapsed = sidebarMotionPhase !== 'expanded';
 
   const openCreateMenu = useCallback(() => {
     if (isBusy || isCreateMenuOpen) {
@@ -571,11 +678,18 @@ export function MainNavigator() {
   if (isTablet) {
     return (
       <Drawer.Navigator
-          drawerContent={() =>
-            isSidebarHidden ? null : (
-              <Sidebar collapsed={isSidebarCollapsed} onToggleCollapse={handleSidebarToggle} />
-            )
-          }
+        drawerContent={() =>
+          isSidebarHidden ? null : (
+            <Sidebar
+              canToggleCollapse
+              collapsed={sidebarContentCollapsed}
+              compactWidth={COLLAPSED_SIDEBAR_WIDTH}
+              expandedWidth={EXPANDED_SIDEBAR_WIDTH}
+              onToggleCollapse={handleSidebarToggle}
+              workspaceListMode
+            />
+          )
+        }
         screenOptions={{
           headerShown: false,
           drawerType: 'permanent',
@@ -586,13 +700,8 @@ export function MainNavigator() {
         <Drawer.Screen
           name="Workspace"
           component={NoteStack}
-          options={({ route }) => {
-            const focusedRoute = getFocusedRouteNameFromRoute(route) ?? 'Workspace';
-            const hideSidebar = isSidebarHidden || focusedRoute === 'NoteEditor';
-
-            return {
-              drawerStyle: resolveDrawerStyle(hideSidebar),
-            };
+          options={{
+            drawerStyle: resolveDrawerStyle(isSidebarHidden),
           }}
         />
         <Drawer.Screen name="Community" component={CommunityStack} />
@@ -741,7 +850,10 @@ export function MainNavigator() {
               createMenuSheetStyle,
             ]}>
             <Pressable onPress={event => event.stopPropagation()}>
-            <GlassPanel className="px-4 py-4" highlight={palette.primary}>
+            <GlassPanel
+              className="px-4 py-4"
+              highlight={palette.primary}
+              style={{ backgroundColor: palette.surface }}>
               <SectionEyebrow>{t('新建')}</SectionEyebrow>
               <Text className={`${typography.h3} mt-2`} style={{ color: palette.text }}>
                 {t('新建内容')}
@@ -807,61 +919,89 @@ export function MainNavigator() {
           }}
           style={{ backgroundColor: palette.overlay }}>
           <Pressable
-            className="w-full max-w-[360px]"
+            className="w-full max-w-[390px]"
             onPress={event => event.stopPropagation()}>
-            <GlassPanel className="px-5 py-5" highlight={palette.primary}>
-              <SectionEyebrow>{t('文件夹')}</SectionEyebrow>
-              <Text className={`${typography.h3} mt-2`} style={{ color: palette.text }}>
-                {t('新建文件夹')}
-              </Text>
-              <Text className={`${typography.bodySmall} mt-1`} style={{ color: palette.textSoft }}>
-                {t('先给它一个清晰名字，后续整理会轻松很多。')}
-              </Text>
-
+            <GlassPanel
+              className="overflow-hidden px-0 py-0"
+              highlight={palette.primary}
+              style={{ backgroundColor: palette.surface }}>
               <View
-                className="mt-4 rounded-[14px] border px-4 py-3"
-                style={{
-                  borderColor: withAlpha(palette.primary, 0.16),
-                  backgroundColor: palette.panelInset,
-                }}>
-                <TextInput
-                  autoFocus
-                  onChangeText={setFolderName}
-                  placeholder={t('文件夹名称')}
-                  placeholderTextColor={palette.placeholder}
-                  returnKeyType="done"
-                  style={{ color: palette.text, fontSize: 15, padding: 0 }}
-                  value={folderName}
-                  onSubmitEditing={() => {
-                    void handleCreateFolder();
-                  }}
-                />
+                className="border-b px-5 py-5"
+                style={{ borderBottomColor: withAlpha(palette.textSoft, 0.14) }}>
+                <View className="flex-row items-center gap-3">
+                  <View
+                    className="h-11 w-11 items-center justify-center rounded-[12px]"
+                    style={{ backgroundColor: palette.primarySoft }}>
+                    <AppIcon color={palette.primary} name="folder" size={20} />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className={typography.h3} style={{ color: palette.text }}>
+                      {t('新建文件夹')}
+                    </Text>
+                    <Text className={`${typography.bodySmall} mt-1`} style={{ color: palette.textSoft }}>
+                      {t('先给它一个清晰名字，后续整理会轻松很多。')}
+                    </Text>
+                  </View>
+                </View>
               </View>
 
-              <View className="mt-4 flex-row gap-3">
-                <Button
-                  className="flex-1"
-                  isDisabled={creatingFolder}
-                  variant="outline"
-                  onPress={() => setFolderDialogVisible(false)}>
-                  {t('取消')}
-                </Button>
-                <Button
-                  className="flex-1"
-                  isDisabled={creatingFolder || folderName.trim().length === 0}
-                  variant="primary"
-                  onPress={() => {
-                    void handleCreateFolder();
+              <View className="px-5 py-5">
+                <View
+                  className="rounded-[14px] border px-4 py-4"
+                  style={{
+                    borderColor: withAlpha(palette.primary, 0.16),
+                    backgroundColor: palette.panelInset,
                   }}>
-                  {creatingFolder ? (
-                    <>
-                      <Spinner color="default" size="sm" />
-                      <Button.Label>{t('创建中...')}</Button.Label>
-                    </>
-                  ) : (
-                    t('创建')
-                  )}
-                </Button>
+                  <Text className={typography.caption} style={{ color: palette.textSoft }}>
+                    {t('文件夹名称')}
+                  </Text>
+                  <TextInput
+                    autoFocus
+                    onChangeText={setFolderName}
+                    placeholder={t('例如：算法练习、项目资料')}
+                    placeholderTextColor={palette.placeholder}
+                    returnKeyType="done"
+                    style={{
+                      color: palette.text,
+                      fontSize: 16,
+                      fontWeight: '700',
+                      marginTop: 8,
+                      padding: 0,
+                    }}
+                    value={folderName}
+                    onSubmitEditing={() => {
+                      void handleCreateFolder();
+                    }}
+                  />
+                </View>
+
+                <View
+                  className="mt-4 flex-row gap-3 border-t pt-4"
+                  style={{ borderTopColor: withAlpha(palette.textSoft, 0.12) }}>
+                  <Button
+                    className="flex-1"
+                    isDisabled={creatingFolder}
+                    variant="outline"
+                    onPress={() => setFolderDialogVisible(false)}>
+                    {t('取消')}
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    isDisabled={creatingFolder || folderName.trim().length === 0}
+                    variant="primary"
+                    onPress={() => {
+                      void handleCreateFolder();
+                    }}>
+                    {creatingFolder ? (
+                      <>
+                        <Spinner color="default" size="sm" />
+                        <Button.Label>{t('创建中...')}</Button.Label>
+                      </>
+                    ) : (
+                      t('创建')
+                    )}
+                  </Button>
+                </View>
               </View>
             </GlassPanel>
           </Pressable>

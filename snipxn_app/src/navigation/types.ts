@@ -33,6 +33,6 @@ export type MainTabParamList = {
 
 export type MainDrawerParamList = {
   Workspace: NavigatorScreenParams<NoteStackParamList> | undefined;
-  Community: undefined;
+  Community: NavigatorScreenParams<CommunityStackParamList> | undefined;
   Settings: undefined;
 };

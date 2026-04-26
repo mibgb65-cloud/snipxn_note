@@ -16,6 +16,7 @@ import { getCommunityErrorMessage } from './communityUtils';
 export interface CommentSectionProps {
   postId: string;
   headerComponent?: React.ReactElement | null;
+  presentation?: 'card' | 'plain';
   onPressUser: (userId: string) => void;
   onReply: (comment: CommentResponse) => void;
 }
@@ -23,6 +24,7 @@ export interface CommentSectionProps {
 export function CommentSection({
   postId,
   headerComponent = null,
+  presentation = 'card',
   onPressUser,
   onReply,
 }: CommentSectionProps) {
@@ -220,11 +222,13 @@ export function CommentSection({
           </View>
         </View>
       }
-      renderItem={({ item }) => (
+      renderItem={({ item, index }) => (
         <CommentItem
           comment={item}
           currentUserId={currentUserId}
           isLoadingReplies={loadingReplyId === item.id}
+          isLast={index === topLevelComments.length - 1}
+          presentation={presentation}
           replies={repliesByParent.get(item.id) ?? []}
           onDelete={commentId => {
             void handleDelete(commentId);

@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { Button, Spinner } from 'heroui-native';
 import { useMemo, useState } from 'react';
-import { FlatList, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDeviceType } from '../../hooks';
@@ -57,6 +57,9 @@ export function NoteList({
   emptyHint,
   headerComponent,
   forceEditorScreenNavigation = false,
+  layoutMode = 'auto',
+  itemPresentation = 'card',
+  createButtonMode = 'fab',
 }: {
   showSearchHeader?: boolean;
   showCreateButton?: boolean;
@@ -65,6 +68,9 @@ export function NoteList({
   emptyHint?: string;
   headerComponent?: React.ReactNode;
   forceEditorScreenNavigation?: boolean;
+  layoutMode?: 'auto' | 'list' | 'grid';
+  itemPresentation?: 'card' | 'row';
+  createButtonMode?: 'fab' | 'inline' | 'below';
 }) {
   const navigation = useNavigation<any>();
   const { showSidebar } = useDeviceType();
@@ -113,7 +119,8 @@ export function NoteList({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const canCreate = showCreateButton && activeView !== 'trash';
   const shouldNavigateToEditorScreen = forceEditorScreenNavigation || !showSidebar;
-  const useGridLayout = showSidebar;
+  const useGridLayout = layoutMode === 'grid' || (layoutMode === 'auto' && showSidebar);
+  const useRowPresentation = itemPresentation === 'row';
 
   const handleSelectNote = async (noteId: string) => {
     await selectNote(noteId);
@@ -175,7 +182,8 @@ export function NoteList({
   };
 
   const renderHeader = () => {
-    const hasContent = showSearchHeader || errorMessage || headerComponent;
+    const hasBelowCreateButton = canCreate && createButtonMode === 'below';
+    const hasContent = showSearchHeader || hasBelowCreateButton || errorMessage || headerComponent;
 
     if (!hasContent) {
       return null;
@@ -184,12 +192,12 @@ export function NoteList({
     return (
       <View>
         {showSearchHeader ? (
-          <View className="px-4 pb-2 pt-1">
+          <View className={useRowPresentation ? 'px-1 pb-2 pt-0' : 'px-4 pb-2 pt-1'}>
             <View
-              className="flex-row items-center gap-2.5 rounded-full border px-3.5 py-2"
+              className="flex-row items-center gap-2.5 rounded-[10px] border px-3 py-2"
               style={{
-                borderColor: withAlpha(palette.primary, 0.12),
-                backgroundColor: palette.panelInset,
+                borderColor: useRowPresentation ? withAlpha(palette.textSoft, 0.12) : withAlpha(palette.primary, 0.12),
+                backgroundColor: useRowPresentation ? 'transparent' : palette.panelInset,
               }}>
               <AppIcon color={palette.primary} name="search" size={16} />
               <TextInput
@@ -205,7 +213,51 @@ export function NoteList({
                 style={{ color: palette.text, paddingVertical: 0, lineHeight: 18 }}
                 value={searchQuery}
               />
+              {canCreate && createButtonMode === 'inline' ? (
+                <Pressable
+                  accessibilityLabel={t('新建笔记')}
+                  accessibilityRole="button"
+                  className="h-8 w-8 items-center justify-center rounded-[8px]"
+                  disabled={creating}
+                  onPress={() => {
+                    void handleCreateNote();
+                  }}
+                  style={{ backgroundColor: withAlpha(palette.primary, 0.12) }}>
+                  {creating ? (
+                    <Spinner color={palette.primary} size="sm" />
+                  ) : (
+                    <AppIcon color={palette.primary} name="plus" size={15} />
+                  )}
+                </Pressable>
+              ) : null}
             </View>
+          </View>
+        ) : null}
+        {hasBelowCreateButton ? (
+          <View className={useRowPresentation ? 'px-1 pb-3' : 'px-4 pb-3'}>
+            <Pressable
+              accessibilityLabel={t('新建笔记')}
+              accessibilityRole="button"
+              className="w-full flex-row items-center justify-center gap-2 rounded-[10px] border px-3 py-3"
+              disabled={creating}
+              onPress={() => {
+                void handleCreateNote();
+              }}
+              style={{
+                borderColor: withAlpha(palette.primary, 0.2),
+                backgroundColor: withAlpha(palette.primary, 0.1),
+              }}>
+              {creating ? (
+                <Spinner color={palette.primary} size="sm" />
+              ) : (
+                <AppIcon color={palette.primary} name="plus" size={16} strokeWidth={2.1} />
+              )}
+              <Text
+                className={typography.bodySmall}
+                style={{ color: palette.primary, fontWeight: '800' }}>
+                {t('新建笔记')}
+              </Text>
+            </Pressable>
           </View>
         ) : null}
         {headerComponent ?? null}
@@ -265,7 +317,7 @@ export function NoteList({
         columnWrapperStyle={useGridLayout ? { paddingHorizontal: 8 } : undefined}
         contentContainerStyle={{
           flexGrow: notes.length === 0 ? 1 : 0,
-          paddingBottom: canCreate
+          paddingBottom: canCreate && createButtonMode === 'fab'
             ? listBottomPaddingWithCreate
             : LIST_BOTTOM_PADDING,
         }}
@@ -283,7 +335,7 @@ export function NoteList({
         refreshing={refreshing}
         removeClippedSubviews
         renderItem={({ item }) => (
-          <View className={useGridLayout ? 'flex-1 px-2' : 'px-4'}>
+          <View className={useGridLayout ? 'flex-1 px-2' : useRowPresentation ? 'px-1' : 'px-4'}>
             <NoteListItem
               compactLayout={useGridLayout}
               isSelected={selectedNoteId === item.id}
@@ -291,6 +343,7 @@ export function NoteList({
               onPress={() => {
                 void handleSelectNote(item.id);
               }}
+              presentation={itemPresentation}
             />
           </View>
         )}
@@ -299,7 +352,7 @@ export function NoteList({
         windowSize={5}
       />
 
-      {canCreate ? (
+      {canCreate && createButtonMode === 'fab' ? (
         <View
           className="absolute right-6 rounded-full"
           style={{

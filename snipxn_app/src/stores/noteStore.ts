@@ -39,6 +39,7 @@ export interface NoteState {
   restoreNote: (id: string) => Promise<void>;
   permanentDeleteNote: (id: string) => Promise<void>;
   toggleStar: (id: string) => Promise<void>;
+  clearSelection: () => void;
   setActiveView: (view: NoteView) => void;
   setActiveFolderView: (folderId: string | null) => void;
   setSearchQuery: (query: string) => void;
@@ -454,6 +455,9 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       set({ saving: false });
       throw error;
     }
+  },
+  clearSelection: () => {
+    set({ currentNote: null, selectedNoteId: null });
   },
   setActiveView: view => {
     set({ activeView: view });

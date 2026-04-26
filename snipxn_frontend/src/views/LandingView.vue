@@ -15,6 +15,7 @@
         <a href="#features" class="topbar-nav-link">{{ t('landing.featureEyebrow') }}</a>
         <a href="#workflow" class="topbar-nav-link">{{ t('landing.workflowEyebrow') }}</a>
         <a href="#download" class="topbar-nav-link">{{ t('landing.downloadEyebrow') }}</a>
+        <router-link to="/changelog" class="topbar-nav-link">{{ t('landing.changelog') }}</router-link>
       </nav>
 
       <div class="topbar-actions">
@@ -249,6 +250,10 @@
                 </div>
               </a>
               <span class="download-requirement">{{ t('landing.downloadRequirement') }}</span>
+              <router-link to="/changelog" class="download-changelog-link">
+                <i class="pi pi-list-check" aria-hidden="true" />
+                {{ t('landing.changelogHint') }}
+              </router-link>
             </div>
           </div>
 
@@ -302,6 +307,7 @@
         <nav class="footer-links">
           <a href="#features">{{ t('landing.featureEyebrow') }}</a>
           <a href="#download">{{ t('landing.downloadEyebrow') }}</a>
+          <router-link to="/changelog">{{ t('landing.changelog') }}</router-link>
           <a href="#" @click.prevent="openAuth()">{{ t('landing.enterAppCompact') }}</a>
           <a href="/workspace">{{ t('landing.enterWorkspaceCompact') }}</a>
         </nav>
@@ -416,7 +422,7 @@ function scrollToFeatures() {
 }
 
 // ── Download & QR ──
-const apkDownloadUrl = '/downloads/snipxn-v1.3.1.apk';
+const apkDownloadUrl = '/downloads/snipxn-v1.3.2.apk';
 const qrCanvas = ref(null);
 
 onMounted(async () => {
@@ -1317,6 +1323,22 @@ onMounted(async () => {
   opacity: 0.78;
 }
 
+.download-changelog-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 180ms, opacity 180ms;
+}
+
+.download-changelog-link:hover {
+  color: var(--app-support, var(--primary-color));
+  opacity: 0.86;
+}
+
 .download-qr-area {
   display: flex;
   justify-content: center;
@@ -1668,6 +1690,7 @@ onMounted(async () => {
   .feature-card,
   .workflow-card,
   .download-btn,
+  .download-changelog-link,
   .topbar-nav-link,
   .footer-links a {
     transition: none;

@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Alert, Avatar, Button, Spinner } from 'heroui-native';
+import { Alert, Avatar, Spinner } from 'heroui-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
@@ -21,7 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import * as postApi from '../../api/post';
-import { AppCanvas, GlassPanel, IconBadge, SectionEyebrow } from '../../components/common';
+import { AppCanvas } from '../../components/common';
 import { TabPageHeader } from '../../components/common/TabPageHeader';
 import { prefetchImages } from '../../utils/imageCache';
 import { AppIcon } from '../../components/common/AppIcon';
@@ -43,14 +43,12 @@ import { useDeviceType } from '../../hooks';
 import type { CommunityStackParamList } from '../../navigation/types';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useCommunityStore } from '../../stores';
+import { useCommunityStore, type CommunityFeedTab } from '../../stores';
 import { useAppTheme, withAlpha } from '../../theme';
 import type { PostListItemResponse, UserProfileResponse } from '../../types';
 
 const SEARCH_FIELDS = ['title', 'summary', 'authorNickname', 'language'] as const;
 const PAGE_SIZE = 20;
-
-type FeedTab = 'latest' | 'hot';
 
 type FeedbackState = {
   status: 'accent' | 'warning' | 'danger';
@@ -212,12 +210,12 @@ function FeedSlidingTabs({
   activeTab,
   onChange,
 }: {
-  activeTab: FeedTab;
-  onChange: (tab: FeedTab) => void;
+  activeTab: CommunityFeedTab;
+  onChange: (tab: CommunityFeedTab) => void;
 }) {
   const { palette } = useAppTheme();
   const { t } = useI18n();
-  const [tabLayouts, setTabLayouts] = useState<Partial<Record<FeedTab, { x: number; width: number }>>>({});
+  const [tabLayouts, setTabLayouts] = useState<Partial<Record<CommunityFeedTab, { x: number; width: number }>>>({});
   const indicatorX = useSharedValue(0);
   const indicatorWidth = useSharedValue(0);
 
@@ -239,7 +237,7 @@ function FeedSlidingTabs({
   }));
 
   const handleLayout =
-    (tab: FeedTab) =>
+    (tab: CommunityFeedTab) =>
     (event: LayoutChangeEvent): void => {
       const { x, width } = event.nativeEvent.layout;
 
@@ -340,11 +338,13 @@ function FeedSearchField({
 function RecommendedUserCard({
   user,
   isFollowing,
+  isLast,
   onPress,
   onToggleFollow,
 }: {
   user: UserProfileResponse;
   isFollowing: boolean;
+  isLast: boolean;
   onPress: () => void;
   onToggleFollow: () => void;
 }) {
@@ -354,40 +354,58 @@ function RecommendedUserCard({
   const bioText = user.bio?.trim() || t('这个人还没有写简介。');
 
   return (
-        <View
-          className="rounded-[10px] border px-3.5 py-3"
-          style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
-          <View className="flex-row items-center gap-3">
-            <View className="min-w-0 flex-1">
-              <MotionPressable
-                accessibilityRole="button"
-                className="flex-row items-center gap-3"
-                onPress={onPress}
-                style={{ width: '100%' }}>
-                <Avatar alt={`${user.nickname} 的头像`} color="accent" size="sm">
-                  {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
-                  <Avatar.Fallback>{getUserAvatarFallback(user.nickname)}</Avatar.Fallback>
-                </Avatar>
-
-                <View className="min-w-0 flex-1 gap-0.5">
-                  <Text className={typography.body} numberOfLines={1} style={{ color: palette.text }}>
-                    {user.nickname}
-                  </Text>
-                  <Text
-                    className={typography.bodySmall}
-                    numberOfLines={1}
-                    style={{ color: palette.textSoft }}>
-                    {bioText}
-                  </Text>
-                </View>
-              </MotionPressable>
-            </View>
-
-            <Button size="sm" variant={isFollowing ? 'outline' : 'primary'} onPress={onToggleFollow}>
-              {isFollowing ? t('已关注') : t('关注')}
-            </Button>
+    <View
+      className="py-3"
+      style={{
+        borderBottomColor: withAlpha(palette.textSoft, 0.14),
+        borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+      }}>
+      <View className="flex-row items-center gap-2.5">
+        <Pressable
+          accessibilityRole="button"
+          className="min-w-0 flex-1 flex-row items-center gap-3"
+          onPress={onPress}>
+          <View style={{ flexShrink: 0 }}>
+            <Avatar alt={`${user.nickname} 的头像`} color="accent" size="sm">
+              {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
+              <Avatar.Fallback>{getUserAvatarFallback(user.nickname)}</Avatar.Fallback>
+            </Avatar>
           </View>
-        </View>
+
+          <View className="min-w-0 flex-1 gap-0.5">
+            <Text
+              className={typography.bodySmall}
+              numberOfLines={1}
+              style={{ color: palette.text, fontWeight: '700' }}>
+              {user.nickname || t('未命名用户')}
+            </Text>
+            <Text
+              className={typography.caption}
+              numberOfLines={2}
+              style={{ color: palette.textSoft }}>
+              {bioText}
+            </Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          accessibilityLabel={isFollowing ? t('已关注') : t('关注')}
+          accessibilityRole="button"
+          className="items-center justify-center rounded-full border px-3 py-1.5"
+          onPress={onToggleFollow}
+          style={{
+            minWidth: 58,
+            borderColor: isFollowing ? withAlpha(palette.textSoft, 0.18) : withAlpha(palette.primary, 0.22),
+            backgroundColor: isFollowing ? 'transparent' : withAlpha(palette.primary, 0.1),
+          }}>
+          <Text
+            className={typography.caption}
+            style={{ color: isFollowing ? palette.textSoft : palette.primary, fontWeight: '700' }}>
+            {isFollowing ? t('已关注') : t('关注')}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -405,6 +423,10 @@ export function FeedScreen() {
     hotPosts,
     recommendedUsers,
     followingIds,
+    activeTab,
+    searchQuery,
+    setActiveTab,
+    setSearchQuery,
     fetchRecommended,
     fetchFollowingIds,
     follow,
@@ -418,6 +440,10 @@ export function FeedScreen() {
     hotPosts: Array.isArray(state.hotPosts) ? state.hotPosts : [],
     recommendedUsers: Array.isArray(state.recommendedUsers) ? state.recommendedUsers : [],
     followingIds: Array.isArray(state.followingIds) ? state.followingIds : [],
+    activeTab: state.feedTab,
+    searchQuery: state.feedSearchQuery,
+    setActiveTab: state.setFeedTab,
+    setSearchQuery: state.setFeedSearchQuery,
     fetchRecommended: state.fetchRecommended,
     fetchFollowingIds: state.fetchFollowingIds,
     follow: state.follow,
@@ -428,7 +454,6 @@ export function FeedScreen() {
     uncollectPost: state.uncollectPost,
   })));
 
-  const [activeTab, setActiveTab] = useState<FeedTab>('latest');
   const [refreshing, setRefreshing] = useState(false);
   const [loadingFeed, setLoadingFeed] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -436,7 +461,6 @@ export function FeedScreen() {
   const [hotPage, setHotPage] = useState(1);
   const [latestHasMore, setLatestHasMore] = useState(true);
   const [hotHasMore, setHotHasMore] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   const currentPosts = activeTab === 'latest' ? posts : hotPosts;
@@ -448,7 +472,7 @@ export function FeedScreen() {
   const hasMore = activeTab === 'latest' ? latestHasMore : hotHasMore;
 
   const loadFeedPage = useCallback(
-    async (tab: FeedTab, nextPage: number, options?: { background?: boolean }) => {
+    async (tab: CommunityFeedTab, nextPage: number, options?: { background?: boolean }) => {
       const background = options?.background ?? false;
 
       if (!background) {
@@ -685,9 +709,6 @@ export function FeedScreen() {
     );
   };
 
-  const activeTabDescription =
-    activeTab === 'latest' ? t('实时更新的最新分享') : t('当前最受欢迎的内容');
-
   const tabSwitcher = (
     <FeedSlidingTabs
       activeTab={activeTab}
@@ -705,74 +726,20 @@ export function FeedScreen() {
         <View className="flex-1 px-4 pb-4 pt-4">
           <Animated.View layout={APP_LAYOUT_TRANSITION}>
             {isTablet ? (
-              <Animated.View
-                entering={APP_HEADER_ENTERING}
-                exiting={APP_HEADER_EXITING}
-                className="mb-4">
-                <GlassPanel className="px-5 py-5" highlight={palette.primary} variant="strong">
-                  <View className="gap-4">
-                    <View className="flex-row items-start gap-4">
-                      <IconBadge
-                        backgroundColor={withAlpha(palette.primary, 0.12)}
-                        color={palette.primary}
-                        icon="community"
-                        iconSize={20}
-                        round
-                        size={48}
-                      />
-                      <View className="min-w-0 flex-1">
-                        <View className="flex-row items-start justify-between gap-4">
-                          <View className="min-w-0 flex-1">
-                            <SectionEyebrow>{t('社区')}</SectionEyebrow>
-                            <Text className={typography.h1} style={{ color: palette.text }}>
-                              {t('社区')}
-                            </Text>
-                            <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
-                              {activeTabDescription}
-                            </Text>
-                          </View>
-
-                          <View className="w-[320px] gap-3">
-                            <MotionPressable
-                              accessibilityLabel={t('发布帖子')}
-                              accessibilityRole="button"
-                              className="flex-row items-center justify-center gap-2 rounded-full border px-4 py-3"
-                              pressedScale={0.985}
-                              style={{
-                                borderColor: withAlpha(palette.primary, 0.24),
-                                backgroundColor: palette.primarySoft,
-                              }}
-                              onPress={openCreatePostScreen}>
-                              <AppIcon color={palette.primary} name="edit-3" size={17} />
-                              <Text
-                                className={typography.bodySmall}
-                                style={[styles.composerButtonLabel, { color: palette.primary }]}>
-                                {t('发布帖子')}
-                              </Text>
-                            </MotionPressable>
-                            {tabSwitcher}
-                            <FeedSearchField
-                              placeholder={t('搜索标题、摘要、标签或作者')}
-                              searchQuery={searchQuery}
-                              onChangeText={setSearchQuery}
-                            />
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-
-                    {feedback ? (
-                      <Alert status={feedback.status}>
-                        <Alert.Indicator />
-                        <Alert.Content>
-                          <Alert.Title>{feedback.title}</Alert.Title>
-                          <Alert.Description>{feedback.description}</Alert.Description>
-                        </Alert.Content>
-                      </Alert>
-                    ) : null}
-                  </View>
-                </GlassPanel>
-              </Animated.View>
+              feedback ? (
+                <Animated.View
+                  entering={APP_HEADER_ENTERING}
+                  exiting={APP_HEADER_EXITING}
+                  className="mb-3">
+                  <Alert status={feedback.status}>
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>{feedback.title}</Alert.Title>
+                      <Alert.Description>{feedback.description}</Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                </Animated.View>
+              ) : null
             ) : (
               <Animated.View
                 entering={APP_HEADER_ENTERING}
@@ -828,33 +795,41 @@ export function FeedScreen() {
               <Animated.View layout={APP_LAYOUT_TRANSITION}>
                 <Animated.View
                   entering={APP_CARD_ENTERING}
-                  className="w-[300px] gap-4 rounded-[12px] border px-4 py-4"
-                  style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
-                  <View className="flex-row items-center gap-3">
-                  <View
-                    className="h-11 w-11 items-center justify-center rounded-2xl"
-                    style={{ backgroundColor: palette.primarySoft }}>
-                    <AppIcon color={palette.primary} name="user" size={18} />
+                  className="w-[286px] px-1 py-1">
+                  <View className="px-1 pb-3">
+                    <View className="flex-row items-center justify-between gap-3">
+                      <View className="min-w-0 flex-1">
+                        <Text className={typography.h3} style={{ color: palette.text }}>
+                          {t('推荐关注')}
+                        </Text>
+                        <Text className={typography.caption} numberOfLines={2} style={{ color: palette.textSoft }}>
+                          {t('活跃创作者和近期互动较多的用户')}
+                        </Text>
+                      </View>
+                      <View
+                        className="h-9 w-9 items-center justify-center rounded-[9px]"
+                        style={{ backgroundColor: withAlpha(palette.primary, 0.1) }}>
+                        <AppIcon color={palette.primary} name="user" size={16} />
+                      </View>
+                    </View>
                   </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className={typography.h3} style={{ color: palette.text }}>
-                      {t('推荐用户')}
-                    </Text>
-                    <Text className={typography.bodySmall} numberOfLines={2} style={{ color: palette.textSoft }}>
-                      {t('关注活跃创作者，快速建立技术圈层')}
-                    </Text>
-                  </View>
-                </View>
 
                   <ScrollView showsVerticalScrollIndicator={false}>
-                    <View className="gap-3 pb-4">
-                      {recommendedUsers.map(user => {
+                    <View
+                      className="overflow-hidden rounded-[10px] px-3"
+                      style={{
+                        backgroundColor: withAlpha(palette.surface, 0.72),
+                        borderColor: withAlpha(palette.textSoft, 0.1),
+                        borderWidth: StyleSheet.hairlineWidth,
+                      }}>
+                      {recommendedUsers.map((user, index) => {
                         const isFollowing = followingIds.includes(user.id) || user.isFollowing === true;
 
                         return (
                           <RecommendedUserCard
                             key={user.id}
                             isFollowing={isFollowing}
+                            isLast={index === recommendedUsers.length - 1}
                             user={user}
                             onPress={() => navigation.navigate('UserProfile', { userId: user.id })}
                             onToggleFollow={() => {
@@ -864,7 +839,7 @@ export function FeedScreen() {
                         );
                       })}
                       {recommendedUsers.length === 0 ? (
-                        <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+                        <Text className={`${typography.bodySmall} py-4`} style={{ color: palette.textSoft }}>
                           {t('暂无推荐用户。')}
                         </Text>
                       ) : null}

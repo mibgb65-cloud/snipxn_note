@@ -89,6 +89,15 @@
             </div>
 
             <Button
+              icon="pi pi-list-check"
+              :label="t('settings.changelog')"
+              severity="secondary"
+              text
+              class="settings-page-link-button"
+              @click="router.push('/changelog')"
+            />
+
+            <Button
               icon="pi pi-arrow-left"
               :label="t('settings.backToWorkspace')"
               severity="secondary"
@@ -633,6 +642,10 @@ watch(
   padding-right: 0.5rem;
   margin-right: 0.25rem;
   border-right: 1px solid var(--app-border);
+}
+
+.settings-page-link-button {
+  color: var(--primary-color);
 }
 
 .settings-page-body {

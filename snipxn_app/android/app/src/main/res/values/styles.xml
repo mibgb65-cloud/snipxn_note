@@ -4,7 +4,9 @@
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
         <item name="android:windowBackground">@color/app_window_background</item>
         <item name="android:statusBarColor">@color/app_window_background</item>
-        <item name="android:navigationBarColor">@color/app_window_background</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
     <style name="BootTheme" parent="Theme.BootSplash">

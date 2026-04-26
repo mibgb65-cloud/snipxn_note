@@ -34,17 +34,20 @@ export function PostCard({
   const extraTagCount = Math.max(post.tags.length - visibleTags.length, 0);
 
   return (
-        <View
+        <Pressable
+          accessibilityRole="button"
           className="overflow-hidden rounded-[20px] border px-4 py-4"
-          style={{
+          onPress={onPress}
+          style={({ pressed }) => ({
             borderColor: palette.border,
             backgroundColor: palette.surface,
+            opacity: pressed ? 0.92 : 1,
             shadowColor: palette.shadow,
             shadowOpacity: 0.1,
             shadowRadius: 14,
             shadowOffset: { width: 0, height: 10 },
             elevation: 6,
-          }}>
+          })}>
           <View className="flex-row items-center justify-between gap-3">
           <Pressable
             accessibilityRole="button"
@@ -76,7 +79,7 @@ export function PostCard({
           </View>
         </View>
 
-        <Pressable accessibilityRole="button" className="mt-4 gap-3" onPress={onPress}>
+        <View className="mt-4 gap-3">
           <Text className={typography.h3} numberOfLines={2} style={{ color: palette.text }}>
             {post.title}
           </Text>
@@ -100,7 +103,7 @@ export function PostCard({
               </Chip>
             ) : null}
           </View>
-        </Pressable>
+        </View>
 
         <View
           className="mt-4 flex-row flex-wrap items-center gap-2 border-t pt-4"
@@ -128,6 +131,6 @@ export function PostCard({
             onPress={onPressComment}
           />
           </View>
-        </View>
+        </Pressable>
   );
 }

@@ -20,9 +20,10 @@ export function NoteEditorScreen({ route, navigation }: Props) {
   const { t } = useI18n();
 
   const currentNote = useNoteStore(state => state.currentNote);
-  const setSidebarHidden = useUIStore(state => state.setSidebarHidden);
+  const setSidebarCollapsed = useUIStore(state => state.setSidebarCollapsed);
 
   const editorRef = useRef<NoteEditorPaneHandle | null>(null);
+  const previousSidebarCollapsedRef = useRef(false);
 
   const note = currentNote?.id === noteId ? currentNote : null;
 
@@ -47,12 +48,13 @@ export function NoteEditorScreen({ route, navigation }: Props) {
       return;
     }
 
-    setSidebarHidden(true);
+    previousSidebarCollapsedRef.current = useUIStore.getState().sidebarCollapsed;
+    setSidebarCollapsed(true);
 
     return () => {
-      setSidebarHidden(false);
+      setSidebarCollapsed(previousSidebarCollapsedRef.current);
     };
-  }, [setSidebarHidden, showSidebar]);
+  }, [setSidebarCollapsed, showSidebar]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {

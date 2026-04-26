@@ -321,14 +321,18 @@ export interface CommentListParams {
 
 export interface CommentResponse {
   id: string;
+  postId?: string;
   userId: string;
   content: string;
   parentId: string | null;
+  replyToUserId?: string | null;
+  replyToNickname?: string | null;
   likeCount: number;
   createdAt: string;
   authorNickname: string;
   authorAvatar: string | null;
   isLiked: boolean;
+  liked?: boolean;
   replyCount?: number;
 }
 
@@ -442,5 +446,4 @@ export interface PageResult<T> {
   total: number;
   list: T[];
 }
-
 

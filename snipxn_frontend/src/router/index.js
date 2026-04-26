@@ -19,6 +19,11 @@ const router = createRouter({
       component: () => import('../views/RegisterView.vue')
     },
     {
+      path: '/changelog',
+      name: 'changelog',
+      component: () => import('../views/ChangelogView.vue')
+    },
+    {
       path: '/workspace',
       name: 'workspace',
       component: () => import('../views/MainView.vue'),

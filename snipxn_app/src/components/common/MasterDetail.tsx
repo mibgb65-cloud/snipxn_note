@@ -33,6 +33,14 @@ export function MasterDetail({
     );
   }
 
+  if (masterWidth <= 0) {
+    return (
+      <Animated.View layout={APP_LAYOUT_TRANSITION} style={{ flex: 1, minWidth: 0 }}>
+        {renderDetail()}
+      </Animated.View>
+    );
+  }
+
   const resolvedMasterWidth = showMasterDetail
     ? masterWidth
     : Math.min(masterWidth, NARROW_MASTER_MAX_WIDTH);

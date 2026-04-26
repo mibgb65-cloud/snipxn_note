@@ -45,6 +45,7 @@ type FeedbackState = {
 } | null;
 
 function CommentComposer({
+  plain = false,
   value,
   replyTarget,
   submitting,
@@ -52,6 +53,7 @@ function CommentComposer({
   onCancelReply,
   onSubmit,
 }: {
+  plain?: boolean;
   value: string;
   replyTarget: CommentResponse | null;
   submitting: boolean;
@@ -64,8 +66,11 @@ function CommentComposer({
 
   return (
     <View
-      className="gap-3 border-t px-4 pb-4 pt-3"
-      style={{ borderTopColor: palette.border, backgroundColor: palette.surface }}>
+      className={plain ? 'gap-3 border-t pb-1 pt-3' : 'gap-3 border-t px-4 pb-4 pt-3'}
+      style={{
+        borderTopColor: plain ? withAlpha(palette.textSoft, 0.14) : palette.border,
+        backgroundColor: plain ? 'transparent' : palette.surface,
+      }}>
       {replyTarget ? (
         <View
           className="flex-row items-center justify-between gap-3 rounded-2xl px-3 py-2"
@@ -130,6 +135,7 @@ function PostArticle({
   const { palette, theme, typography } = useAppTheme();
   const { isEnglish, t } = useI18n();
   const avatarUri = resolveCommunityAssetUrl(post.authorAvatar);
+  const plainArticleLayout = isTabletLayout;
 
   const markdownStyle = useMemo(
     () => ({
@@ -201,15 +207,15 @@ function PostArticle({
 
   return (
     <View
-      className="gap-4 rounded-[20px] border px-5 py-4"
+      className={plainArticleLayout ? 'gap-5 px-1 py-2' : 'gap-4 rounded-[20px] border px-5 py-4'}
       style={{
-        borderColor: palette.border,
-        backgroundColor: palette.surface,
-        shadowColor: palette.shadow,
-        shadowOpacity: 0.08,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 10 },
-        elevation: 5,
+        borderColor: plainArticleLayout ? 'transparent' : palette.border,
+        backgroundColor: plainArticleLayout ? 'transparent' : palette.surface,
+        shadowColor: plainArticleLayout ? 'transparent' : palette.shadow,
+        shadowOpacity: plainArticleLayout ? 0 : 0.08,
+        shadowRadius: plainArticleLayout ? 0 : 14,
+        shadowOffset: { width: 0, height: plainArticleLayout ? 0 : 10 },
+        elevation: plainArticleLayout ? 0 : 5,
       }}>
       <View className="flex-row items-center justify-between gap-3">
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
@@ -264,7 +270,9 @@ function PostArticle({
         ))}
       </View>
 
-      <View className="flex-row flex-wrap gap-2 border-t pt-4" style={{ borderTopColor: palette.border }}>
+      <View
+        className="flex-row flex-wrap gap-2 border-t pt-4"
+        style={{ borderTopColor: plainArticleLayout ? withAlpha(palette.textSoft, 0.16) : palette.border }}>
         <CommunityActionPill
           active={post.isLiked}
           activeIcon="heart-filled"
@@ -509,6 +517,36 @@ export function PostDetailScreen({ route, navigation }: Props) {
 
   const avatarUri = post ? resolveCommunityAssetUrl(post.authorAvatar) : null;
 
+  const handleBackPress = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.navigate('Feed');
+  };
+
+  const tabletHeader = post ? (
+    <View className="mb-3 flex-row items-center gap-3">
+      <Pressable
+        accessibilityLabel={t('返回')}
+        accessibilityRole="button"
+        className="h-10 w-10 items-center justify-center rounded-full"
+        onPress={handleBackPress}
+        style={{ backgroundColor: withAlpha(palette.textSoft, 0.1) }}>
+        <AppIcon color={palette.text} name="arrow-left" size={18} />
+      </Pressable>
+      <View className="min-w-0 flex-1">
+        <Text className={typography.h3} numberOfLines={1} style={{ color: palette.text }}>
+          {t('帖子详情')}
+        </Text>
+        <Text className={typography.caption} numberOfLines={1} style={{ color: palette.textSoft }}>
+          {post.title}
+        </Text>
+      </View>
+    </View>
+  ) : null;
+
   const mobileHeader = post ? (
     <View
       className="gap-2.5 border-b px-4 pb-3 pt-1"
@@ -517,7 +555,7 @@ export function PostDetailScreen({ route, navigation }: Props) {
         <Pressable
           className="h-9 w-9 items-center justify-center rounded-full"
           style={{ backgroundColor: palette.surfaceAlt }}
-          onPress={() => navigation.goBack()}>
+          onPress={handleBackPress}>
           <AppIcon color={palette.text} name="arrow-left" size={18} />
         </Pressable>
         <Text className={typography.h3} style={{ color: palette.text }}>
@@ -677,32 +715,39 @@ export function PostDetailScreen({ route, navigation }: Props) {
             </View>
           ) : post ? (
             isTablet ? (
-              <View className="flex-1 flex-row gap-4 px-4 pb-4 pt-2">
-                <View className="flex-[3]">
-                  <ScrollView showsVerticalScrollIndicator={false}>
-                    {article}
-                  </ScrollView>
-                </View>
-                <View
-                  className="flex-[2] rounded-[12px] border"
-                  style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
-                  <View className="min-h-0 flex-1 px-4 pt-4">
-                    <CommentSection
-                      postId={post.id}
-                      onPressUser={userId => navigation.navigate('UserProfile', { userId })}
-                      onReply={comment => setReplyTarget(comment)}
+              <View className="flex-1 px-4 pb-4 pt-2">
+                {tabletHeader}
+                <View className="min-h-0 flex-1 flex-row">
+                  <View className="min-h-0 flex-[3] pr-5">
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                      {article}
+                    </ScrollView>
+                  </View>
+                  <View
+                    className="w-px"
+                    style={{ backgroundColor: withAlpha(palette.textSoft, 0.14) }}
+                  />
+                  <View className="min-h-0 flex-[2] pl-5">
+                    <View className="min-h-0 flex-1">
+                      <CommentSection
+                        postId={post.id}
+                        presentation="plain"
+                        onPressUser={userId => navigation.navigate('UserProfile', { userId })}
+                        onReply={comment => setReplyTarget(comment)}
+                      />
+                    </View>
+                    <CommentComposer
+                      plain
+                      replyTarget={replyTarget}
+                      submitting={submittingComment}
+                      value={commentInput}
+                      onCancelReply={() => setReplyTarget(null)}
+                      onChange={setCommentInput}
+                      onSubmit={() => {
+                        void handleSubmitComment();
+                      }}
                     />
                   </View>
-                  <CommentComposer
-                    replyTarget={replyTarget}
-                    submitting={submittingComment}
-                    value={commentInput}
-                    onCancelReply={() => setReplyTarget(null)}
-                    onChange={setCommentInput}
-                    onSubmit={() => {
-                      void handleSubmitComment();
-                    }}
-                  />
                 </View>
               </View>
             ) : (

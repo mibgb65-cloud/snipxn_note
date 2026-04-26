@@ -9,9 +9,7 @@ import { useAppTheme, withAlpha } from '../../theme';
 import type { Note } from '../../types';
 import type { AppLanguage } from '../../utils/preferences';
 import { formatRelativeTime } from '../../utils/time';
-import {
-  MotionPressable,
-} from '../common/AppMotion';
+import { MotionPressable } from '../common/AppMotion';
 import { GlassPanel, IconBadge } from '../common/AppChrome';
 import { AppIcon } from '../common/AppIcon';
 
@@ -20,6 +18,7 @@ export interface NoteListItemProps {
   isSelected: boolean;
   onPress: () => void;
   compactLayout?: boolean;
+  presentation?: 'card' | 'row';
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -132,6 +131,7 @@ export function NoteListItem({
   isSelected,
   onPress,
   compactLayout = false,
+  presentation = 'card',
 }: NoteListItemProps) {
   const { palette, typography } = useAppTheme();
   const { language, t } = useI18n();
@@ -231,10 +231,60 @@ export function NoteListItem({
   };
 
   const isTrashView = activeView === 'trash';
+  const useRowPresentation = presentation === 'row';
 
   return (
     <>
-      <View className={compactLayout ? 'flex-1' : ''}>
+      {useRowPresentation ? (
+        <View>
+          <MotionPressable
+            accessibilityRole="button"
+            className="rounded-[10px] px-3 py-3"
+            onLongPress={() => {
+              setErrorMessage(null);
+              setIsMenuOpen(true);
+            }}
+            onPress={onPress}
+            style={{
+              backgroundColor: isSelected ? withAlpha(palette.primary, 0.1) : 'transparent',
+            }}>
+            <View className="flex-row gap-2.5">
+              <View
+                className="mt-1 h-8 w-1 rounded-full"
+                style={{ backgroundColor: isSelected ? palette.primary : 'transparent' }}
+              />
+              <View className="min-w-0 flex-1">
+                <View className="flex-row items-center gap-2">
+                  <Text
+                    className={`${typography.body} min-w-0 flex-1`}
+                    numberOfLines={1}
+                    style={{ color: isSelected ? palette.text : palette.textMuted }}>
+                    {note.title}
+                  </Text>
+                  {note.isStarred ? <AppIcon color="#F59E0B" name="star-filled" size={14} /> : null}
+                  <Text className={typography.caption} style={{ color: palette.textSoft }}>
+                    {noteTypeLabel}
+                  </Text>
+                </View>
+                <Text
+                  className={`${typography.caption} mt-1`}
+                  numberOfLines={1}
+                  style={{ color: palette.textSoft }}>
+                  {note.summary?.trim() || t('暂无摘要')}
+                </Text>
+                <Text
+                  className={`${typography.caption} mt-1.5`}
+                  numberOfLines={1}
+                  style={{ color: note.syncStatus === 'synced' ? palette.textSoft : palette.primary }}>
+                  {syncMetaLabel}
+                </Text>
+              </View>
+            </View>
+          </MotionPressable>
+          <View className="ml-3 h-px" style={{ backgroundColor: withAlpha(palette.textSoft, 0.1) }} />
+        </View>
+      ) : (
+        <View className={compactLayout ? 'flex-1' : ''}>
           <MotionPressable
             accessibilityRole="button"
             className={`${compactLayout ? 'mb-4 flex-1 rounded-[14px]' : 'mb-3 rounded-[10px]'} border px-4 py-4`}
@@ -254,59 +304,60 @@ export function NoteListItem({
               elevation: isSelected ? 10 : 5,
             }}>
             <View className="gap-3">
-            <View className="flex-row items-start gap-3">
-              <IconBadge
-                backgroundColor={isSelected ? withAlpha(palette.primary, 0.18) : palette.panelInset}
-                color={isSelected ? palette.primary : palette.textMuted}
-                icon="notes"
-                iconSize={19}
-                size={44}
-              />
-              <View className="min-w-0 flex-1 gap-2">
-                <View className="flex-row items-start gap-3">
-                  <Text
-                    className={`${typography.h3} min-w-0 flex-1`}
-                    numberOfLines={compactLayout ? 2 : 1}
-                    style={{ color: palette.text }}>
-                    {note.title}
-                  </Text>
-                  <View className="flex-row items-center gap-2">
-                    {note.isStarred ? <AppIcon color="#F59E0B" name="star-filled" size={16} /> : null}
-                    <View
-                      className="shrink-0 rounded-[8px] border px-2.5 py-1"
-                      style={{
-                        borderColor: withAlpha(palette.primary, 0.18),
-                        backgroundColor: isSelected ? withAlpha(palette.primary, 0.14) : palette.panelInset,
-                      }}>
-                      <Text className={typography.caption} style={{ color: palette.primary }}>
-                        {noteTypeLabel}
-                      </Text>
+              <View className="flex-row items-start gap-3">
+                <IconBadge
+                  backgroundColor={isSelected ? withAlpha(palette.primary, 0.18) : palette.panelInset}
+                  color={isSelected ? palette.primary : palette.textMuted}
+                  icon="notes"
+                  iconSize={19}
+                  size={44}
+                />
+                <View className="min-w-0 flex-1 gap-2">
+                  <View className="flex-row items-start gap-3">
+                    <Text
+                      className={`${typography.h3} min-w-0 flex-1`}
+                      numberOfLines={compactLayout ? 2 : 1}
+                      style={{ color: palette.text }}>
+                      {note.title}
+                    </Text>
+                    <View className="flex-row items-center gap-2">
+                      {note.isStarred ? <AppIcon color="#F59E0B" name="star-filled" size={16} /> : null}
+                      <View
+                        className="shrink-0 rounded-[8px] border px-2.5 py-1"
+                        style={{
+                          borderColor: withAlpha(palette.primary, 0.18),
+                          backgroundColor: isSelected ? withAlpha(palette.primary, 0.14) : palette.panelInset,
+                        }}>
+                        <Text className={typography.caption} style={{ color: palette.primary }}>
+                          {noteTypeLabel}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
 
+                  <Text
+                    className={typography.bodySmall}
+                    numberOfLines={compactLayout ? 3 : 2}
+                    style={{ color: palette.textSoft }}>
+                    {note.summary?.trim() || t('暂无摘要')}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center justify-between gap-3">
+                <Text className={typography.caption} style={{ color: palette.textSoft }}>
+                  {fileSizeLabel}
+                </Text>
                 <Text
-                  className={typography.bodySmall}
-                  numberOfLines={compactLayout ? 3 : 2}
-                  style={{ color: palette.textSoft }}>
-                  {note.summary?.trim() || t('暂无摘要')}
+                  className={typography.caption}
+                  style={{ color: note.syncStatus === 'synced' ? palette.textSoft : palette.primary }}>
+                  {syncMetaLabel}
                 </Text>
               </View>
             </View>
-
-            <View className="flex-row items-center justify-between gap-3">
-              <Text className={typography.caption} style={{ color: palette.textSoft }}>
-                {fileSizeLabel}
-              </Text>
-              <Text
-                className={typography.caption}
-                style={{ color: note.syncStatus === 'synced' ? palette.textSoft : palette.primary }}>
-                {syncMetaLabel}
-              </Text>
-            </View>
-            </View>
           </MotionPressable>
-      </View>
+        </View>
+      )}
 
       <Dialog
         isOpen={isMenuOpen}

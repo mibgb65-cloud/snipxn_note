@@ -38,6 +38,7 @@ export interface NoteEditorPaneProps {
   onEnterRunMode?: () => void;
   onExitRunMode?: () => void;
   preferCompactLayout?: boolean;
+  surfaceMode?: 'panel' | 'plain';
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -153,6 +154,7 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
       onEnterRunMode,
       onExitRunMode,
       preferCompactLayout = false,
+      surfaceMode = 'panel',
     },
     ref,
   ) {
@@ -546,8 +548,8 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
       );
     }
 
-    return (
-      <GlassPanel className="relative flex-1 px-4 py-3" variant="strong">
+    const editorPaneContent = (
+      <>
         <NoteToolbar
           content={editorContent}
           isAiBusy={isAiBusy}
@@ -715,6 +717,20 @@ export const NoteEditorPane = forwardRef<NoteEditorPaneHandle, NoteEditorPanePro
             </Dialog.Portal>
           </Dialog>
         ) : null}
+      </>
+    );
+
+    if (surfaceMode === 'plain') {
+      return (
+        <View className="relative flex-1 px-1 py-1">
+          {editorPaneContent}
+        </View>
+      );
+    }
+
+    return (
+      <GlassPanel className="relative flex-1 px-4 py-3" variant="strong">
+        {editorPaneContent}
       </GlassPanel>
     );
   },

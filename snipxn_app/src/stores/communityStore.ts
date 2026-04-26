@@ -14,6 +14,8 @@ import type {
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 
+export type CommunityFeedTab = 'latest' | 'hot';
+
 export interface CommunityState {
   posts: PostListItemResponse[];
   hotPosts: PostListItemResponse[];
@@ -21,7 +23,11 @@ export interface CommunityState {
   comments: CommentResponse[];
   recommendedUsers: UserProfileResponse[];
   followingIds: string[];
+  feedTab: CommunityFeedTab;
+  feedSearchQuery: string;
   loading: boolean;
+  setFeedTab: (tab: CommunityFeedTab) => void;
+  setFeedSearchQuery: (query: string) => void;
   fetchPosts: (page?: number) => Promise<void>;
   fetchHotPosts: (page?: number) => Promise<void>;
   fetchPostDetail: (id: string) => Promise<void>;
@@ -50,10 +56,20 @@ const initialCommunityState = {
   comments: [],
   recommendedUsers: [],
   followingIds: [],
+  feedTab: 'latest',
+  feedSearchQuery: '',
   loading: false,
 } satisfies Pick<
   CommunityState,
-  'posts' | 'hotPosts' | 'currentPost' | 'comments' | 'recommendedUsers' | 'followingIds' | 'loading'
+  | 'posts'
+  | 'hotPosts'
+  | 'currentPost'
+  | 'comments'
+  | 'recommendedUsers'
+  | 'followingIds'
+  | 'feedTab'
+  | 'feedSearchQuery'
+  | 'loading'
 >;
 
 type PostDraft = PostListItemResponse | PostDetailResponse;
@@ -211,6 +227,25 @@ function updateCommentCollection(
   return comments.map(comment => (comment.id === commentId ? updater(comment) : comment));
 }
 
+function updateParentReplyCount(
+  comments: CommentResponse[],
+  parentId: string | null | undefined,
+  delta: number,
+): CommentResponse[] {
+  if (!parentId) {
+    return comments;
+  }
+
+  return comments.map(comment =>
+    comment.id === parentId
+      ? {
+          ...comment,
+          replyCount: Math.max((comment.replyCount ?? 0) + delta, 0),
+        }
+      : comment,
+  );
+}
+
 function mergeReplies(
   comments: CommentResponse[],
   parentId: string,
@@ -293,6 +328,12 @@ function setFollowingState(
 
 export const useCommunityStore = create<CommunityState>((set, get) => ({
   ...initialCommunityState,
+  setFeedTab: feedTab => {
+    set({ feedTab });
+  },
+  setFeedSearchQuery: feedSearchQuery => {
+    set({ feedSearchQuery });
+  },
   fetchPosts: async (page = DEFAULT_PAGE) => {
     set({ loading: true });
 
@@ -514,7 +555,11 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
       });
 
       set(state => ({
-        comments: insertCommentAfterParent(state.comments, createdComment),
+        comments: updateParentReplyCount(
+          insertCommentAfterParent(state.comments, createdComment),
+          createdComment.parentId,
+          1,
+        ),
         posts: updatePostCollection(state.posts, postId, post => updateCommentCount(post, 1)),
         hotPosts: updatePostCollection(state.hotPosts, postId, post => updateCommentCount(post, 1)),
         currentPost: updateCurrentPost(state.currentPost, postId, post => updateCommentCount(post, 1)),
@@ -532,15 +577,21 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
       await commentApi.deleteComment(postId, commentId);
 
       set(state => {
+        const deletedComment = state.comments.find(comment => comment.id === commentId);
         const removedCommentIds = new Set(
           state.comments
             .filter(comment => comment.id === commentId || comment.parentId === commentId)
             .map(comment => comment.id),
         );
         const removedCount = removedCommentIds.size;
+        const remainingComments = state.comments.filter(comment => !removedCommentIds.has(comment.id));
+        const comments =
+          deletedComment?.parentId
+            ? updateParentReplyCount(remainingComments, deletedComment.parentId, -1)
+            : remainingComments;
 
         return {
-          comments: state.comments.filter(comment => !removedCommentIds.has(comment.id)),
+          comments,
           posts: updatePostCollection(state.posts, postId, post => updateCommentCount(post, -removedCount)),
           hotPosts: updatePostCollection(state.hotPosts, postId, post => updateCommentCount(post, -removedCount)),
           currentPost: updateCurrentPost(state.currentPost, postId, post => updateCommentCount(post, -removedCount)),

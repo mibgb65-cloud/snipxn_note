@@ -4,7 +4,6 @@
       <div class="settings-nav-hero">
         <span class="settings-nav-kicker">{{ t('settings.heroKicker') }}</span>
         <h2 class="settings-nav-title">{{ t('settings.title') }}</h2>
-        <p class="settings-description">{{ t('settings.quickHint') }}</p>
       </div>
 
       <div class="settings-nav-list">
@@ -42,6 +41,7 @@
           v-if="activeSection === 'profile'"
           :profile="userStore.profile"
           :saving="userStore.savingProfile"
+          :avatar-uploading="uploadingAvatar"
           @submit="handleProfileSave"
           @upload-avatar="handleAvatarUpload"
         />
@@ -77,9 +77,15 @@
         </section>
 
         <StorageBar
-          v-else
+          v-else-if="activeSection === 'storage'"
           :breakdown="userStore.storageBreakdown"
           :loading="userStore.loadingStorageBreakdown"
+        />
+
+        <FeedbackForm
+          v-else-if="activeSection === 'feedback'"
+          :submitting="submittingFeedback"
+          @submit="handleFeedbackSubmit"
         />
       </div>
     </main>
@@ -135,6 +141,8 @@ import ProfileForm from './ProfileForm.vue';
 import AccountSecurityForm from './AccountSecurityForm.vue';
 import DeviceList from './DeviceList.vue';
 import StorageBar from './StorageBar.vue';
+import FeedbackForm from './FeedbackForm.vue';
+import { submitFeedback } from '../../api/feedback';
 
 const props = defineProps({
   initialSection: {
@@ -154,6 +162,8 @@ const confirmDialogVisible = ref(false);
 const confirmSubmitting = ref(false);
 const confirmDialogMode = ref('');
 const confirmDialogTarget = ref(null);
+const submittingFeedback = ref(false);
+const uploadingAvatar = ref(false);
 
 const sections = computed(() => buildSettingsSections(t));
 const activeSectionMeta = computed(() => (
@@ -247,6 +257,8 @@ async function handleProfileSave(payload) {
 }
 
 async function handleAvatarUpload(file) {
+  uploadingAvatar.value = true;
+
   try {
     await userStore.uploadAvatar(file);
     toast.add({
@@ -257,6 +269,8 @@ async function handleAvatarUpload(file) {
     });
   } catch (error) {
     showError(error);
+  } finally {
+    uploadingAvatar.value = false;
   }
 }
 
@@ -272,6 +286,28 @@ async function handlePasswordSave(payload) {
     await userStore.fetchDevices();
   } catch (error) {
     showError(error);
+  }
+}
+
+async function handleFeedbackSubmit(payload) {
+  submittingFeedback.value = true;
+
+  try {
+    const { reset, ...requestPayload } = payload;
+    const response = await submitFeedback(requestPayload);
+    reset?.();
+    toast.add({
+      severity: 'success',
+      summary: t('common.success'),
+      detail: response?.data?.confirmationEmailQueued
+        ? t('feedback.submitSuccessWithEmail')
+        : t('feedback.submitSuccess'),
+      life: 2500,
+    });
+  } catch (error) {
+    showError(error);
+  } finally {
+    submittingFeedback.value = false;
   }
 }
 
@@ -368,9 +404,13 @@ async function handleConfirmDialogAction() {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .settings-nav-hero {
+  flex-shrink: 0;
   padding: 1rem;
   border: 1px solid var(--app-border);
   border-radius: 1rem;
@@ -408,7 +448,6 @@ async function handleConfirmDialogAction() {
   font-size: 1.2rem;
 }
 
-.settings-description,
 .settings-content-description,
 .settings-confirm-message {
   margin: 0;
@@ -417,6 +456,7 @@ async function handleConfirmDialogAction() {
 }
 
 .settings-nav-list {
+  min-height: 0;
   display: grid;
   gap: 0.75rem;
 }
@@ -592,10 +632,19 @@ async function handleConfirmDialogAction() {
   .settings-nav {
     border-right: 0;
     border-bottom: 1px solid var(--app-border);
+    max-height: min(22rem, 42dvh);
   }
 
   .settings-nav-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .settings-nav {
+    max-height: none;
+    overflow-y: visible;
+    overscroll-behavior: auto;
   }
 }
 

@@ -42,5 +42,11 @@ export function buildSettingsSections(t) {
       icon: 'pi pi-database',
       description: t('settings.storageDescription'),
     },
+    {
+      id: 'feedback',
+      label: t('settings.feedback'),
+      icon: 'pi pi-comment',
+      description: t('settings.feedbackDescription'),
+    },
   ];
 }

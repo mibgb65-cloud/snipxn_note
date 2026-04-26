@@ -68,6 +68,7 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/public/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/follow/user/*/profile").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/feedbacks").permitAll()
                 // 其余所有接口需要认证
                 .anyRequest().authenticated()
             )

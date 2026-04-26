@@ -416,7 +416,7 @@ function scrollToFeatures() {
 }
 
 // ── Download & QR ──
-const apkDownloadUrl = '/downloads/snipxn-v1.3.0.apk';
+const apkDownloadUrl = '/downloads/snipxn-v1.3.1.apk';
 const qrCanvas = ref(null);
 
 onMounted(async () => {

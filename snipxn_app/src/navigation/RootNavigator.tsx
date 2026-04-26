@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Linking, StyleSheet, View } from 'react-nativ
 import BootSplash from 'react-native-bootsplash';
 
 import * as userApi from '../api/user';
+import { OnboardingHomeTransition } from '../components/common';
 import { parseOAuthCallbackUrl, type OAuthCallbackParams } from '../config/oauth';
 import { SetupProfileScreen } from '../screens';
 import { useAuthStore } from '../stores';
@@ -27,9 +28,13 @@ export function RootNavigator() {
   const { navigationTheme, palette } = useAppTheme();
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const isNewUser = useAuthStore(state => state.isNewUser);
+  const user = useAuthStore(state => state.user);
 
   const [oauthProcessing, setOauthProcessing] = useState(false);
+  const [homeTransitionVisible, setHomeTransitionVisible] = useState(false);
+  const [homeTransitionKey, setHomeTransitionKey] = useState(0);
   const processingRef = useRef(false);
+  const previousAuthStateRef = useRef({ isAuthenticated, isNewUser });
 
   const handleOAuthCallback = useCallback(async (params: OAuthCallbackParams) => {
     if (processingRef.current) {
@@ -67,31 +72,57 @@ export function RootNavigator() {
     function handleUrl(event: { url: string }) {
       const params = parseOAuthCallbackUrl(event.url);
       if (params) {
-        void handleOAuthCallback(params);
+        handleOAuthCallback(params).catch(error => {
+          console.warn('Failed to handle OAuth callback URL.', error);
+        });
       }
     }
 
     const subscription = Linking.addEventListener('url', handleUrl);
 
-    void Linking.getInitialURL().then(url => {
-      if (url) {
-        const params = parseOAuthCallbackUrl(url);
-        if (params) {
-          void handleOAuthCallback(params);
+    Linking.getInitialURL()
+      .then(url => {
+        if (url) {
+          const params = parseOAuthCallbackUrl(url);
+          if (params) {
+            return handleOAuthCallback(params);
+          }
         }
-      }
-    });
+
+        return undefined;
+      })
+      .catch(error => {
+        console.warn('Failed to read the initial OAuth callback URL.', error);
+      });
 
     return () => {
       subscription.remove();
     };
   }, [handleOAuthCallback]);
 
+  useEffect(() => {
+    const previous = previousAuthStateRef.current;
+    const completedOnboarding =
+      previous.isAuthenticated &&
+      previous.isNewUser &&
+      isAuthenticated &&
+      !isNewUser;
+
+    if (completedOnboarding) {
+      setHomeTransitionKey(value => value + 1);
+      setHomeTransitionVisible(true);
+    }
+
+    previousAuthStateRef.current = { isAuthenticated, isNewUser };
+  }, [isAuthenticated, isNewUser]);
+
   return (
     <NavigationContainer
       theme={navigationTheme}
       onReady={() => {
-        void BootSplash.hide({ fade: true });
+        BootSplash.hide({ fade: true }).catch(error => {
+          console.warn('Failed to hide the native splash screen.', error);
+        });
       }}>
       {!isAuthenticated ? (
         <AuthStack />
@@ -100,6 +131,13 @@ export function RootNavigator() {
       ) : (
         <MainNavigator />
       )}
+      {homeTransitionVisible ? (
+        <OnboardingHomeTransition
+          key={homeTransitionKey}
+          displayName={user?.nickname}
+          onFinish={() => setHomeTransitionVisible(false)}
+        />
+      ) : null}
       {oauthProcessing ? (
         <View style={[styles.overlay, { backgroundColor: palette.canvas }]}>
           <ActivityIndicator size="large" color={palette.primary} />

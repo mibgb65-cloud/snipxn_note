@@ -2,6 +2,7 @@ import './src/global.css';
 
 import { HeroUINativeProvider } from 'heroui-native';
 import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -14,7 +15,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { configureGoogleSignIn } from './src/services/googleSignIn';
 import { useAppUpdateStore, useAuthStore, useSyncStore } from './src/stores';
-import { ThemeProvider } from './src/theme';
+import { ThemeProvider, useAppTheme } from './src/theme';
 
 const APP_READY_MAX_WAIT_MS = 4000;
 
@@ -37,6 +38,7 @@ function delay(ms: number): Promise<void> {
 }
 
 function AppContent() {
+  const { palette } = useAppTheme();
   const hydrateLanguage = useI18nStore(state => state.hydrateLanguage);
   const restoreSession = useAuthStore(state => state.restoreSession);
   const { syncNow, setOffline } = useSyncStore(useShallow(state => ({
@@ -114,13 +116,22 @@ function AppContent() {
 
   return (
     <HeroUINativeProvider>
-      {appReady && launchFinished ? (
-        <RootNavigator />
-      ) : (
-        <LaunchExperience ready={appReady} onFinish={handleLaunchFinish} />
-      )}
+      <View style={[styles.rootSurface, { backgroundColor: palette.canvas }]}>
+        {appReady ? <RootNavigator /> : null}
+        {!launchFinished ? (
+          <View style={StyleSheet.absoluteFill}>
+            <LaunchExperience ready={appReady} onFinish={handleLaunchFinish} />
+          </View>
+        ) : null}
+      </View>
     </HeroUINativeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  rootSurface: {
+    flex: 1,
+  },
+});
 
 export default App;

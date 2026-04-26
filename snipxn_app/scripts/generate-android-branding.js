@@ -132,6 +132,7 @@ async function main() {
 <resources>
     <color name="ic_launcher_background">${COLORS.slate900}</color>
     <color name="bootsplash_background">${COLORS.bootsplash}</color>
+    <color name="app_window_background">#F7FBFC</color>
 </resources>
 `,
   );

@@ -4,17 +4,20 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
+  AccessibilityInfo,
   Alert,
   Modal,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  type StyleProp,
+  type ViewStyle,
   View,
 } from 'react-native';
 import Animated, {
   Easing,
+  FadeInDown,
   interpolate,
   runOnJS,
   type SharedValue,
@@ -26,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassPanel, SectionEyebrow } from '../components/common';
 import { AppIcon, type AppIconName } from '../components/common/AppIcon';
+import { TabPageHeader } from '../components/common/TabPageHeader';
 import { Sidebar } from '../components/sidebar/Sidebar';
 import { useDeviceType } from '../hooks';
 import { translateLiteral, useI18n } from '../i18n';
@@ -46,15 +50,137 @@ import type { MainDrawerParamList, MainTabParamList } from './types';
 const LazySettingsScreen = React.lazy(() =>
   import('../screens/settings/SettingsScreen').then(m => ({ default: m.SettingsScreen })),
 );
+const SETTINGS_FALLBACK_ROWS = Array.from({ length: 6 }, (_, index) => index);
+
+function SettingsFallbackBlock({
+  className,
+  color,
+  style,
+}: {
+  className?: string;
+  color: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View
+      className={className}
+      style={[styles.settingsFallbackBlock, { backgroundColor: color }, style]}
+    />
+  );
+}
+
+function SettingsScreenFallback() {
+  const { isTablet } = useDeviceType();
+  const { palette } = useAppTheme();
+  const { t } = useI18n();
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const blockColor = withAlpha(palette.primary, 0.12);
+  const mutedBlockColor = withAlpha(palette.textSoft, 0.14);
+  const enteringFor = (index: number) =>
+    reducedMotion
+      ? undefined
+      : FadeInDown.duration(240)
+          .delay(50 + index * 45)
+          .easing(Easing.out(Easing.cubic));
+
+  useEffect(() => {
+    let mounted = true;
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(enabled => {
+        if (mounted) {
+          setReducedMotion(enabled);
+        }
+      })
+      .catch(() => {
+        // Keep the default lightweight entrance if the platform query fails.
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
+      {!isTablet ? <TabPageHeader title={t('我的')} /> : null}
+      <View
+        className={isTablet ? 'flex-1 flex-row px-6 py-6' : 'flex-1 px-5 py-5'}
+        style={isTablet ? styles.settingsTabletFallback : undefined}>
+        {isTablet ? (
+          <Animated.View
+            className="mr-5 w-[280px] rounded-[12px] border px-4 py-4"
+            entering={enteringFor(0)}
+            style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+            <SettingsFallbackBlock className="h-12 w-12 rounded-2xl" color={blockColor} />
+            <SettingsFallbackBlock className="mt-5 h-5 w-24 rounded-full" color={mutedBlockColor} />
+            <SettingsFallbackBlock className="mt-3 h-3 w-48 rounded-full" color={mutedBlockColor} />
+            <View className="mt-6 gap-3">
+              {SETTINGS_FALLBACK_ROWS.map(index => (
+                <SettingsFallbackBlock
+                  key={`settings-fallback-sidebar-${index}`}
+                  className="h-10 rounded-2xl"
+                  color={mutedBlockColor}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        ) : null}
+
+        <View className="min-w-0 flex-1">
+          <Animated.View
+            className="rounded-[12px] border px-4 py-4"
+            entering={enteringFor(0)}
+            style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+            <View className="flex-row items-center gap-4">
+              <SettingsFallbackBlock className="h-14 w-14 rounded-full" color={blockColor} />
+              <View className="min-w-0 flex-1 gap-3">
+                <SettingsFallbackBlock className="h-4 w-40 rounded-full" color={mutedBlockColor} />
+                <SettingsFallbackBlock className="h-3 w-56 rounded-full" color={mutedBlockColor} />
+              </View>
+            </View>
+          </Animated.View>
+          <Animated.View
+            className="mt-5 overflow-hidden rounded-[12px] border"
+            entering={enteringFor(1)}
+            style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+            {SETTINGS_FALLBACK_ROWS.map(index => (
+              <View
+                key={`settings-fallback-row-${index}`}
+                className="flex-row items-center px-4 py-4"
+                style={[
+                  index > 0 ? styles.settingsFallbackRowDivider : undefined,
+                  { borderTopColor: palette.border },
+                ]}>
+                <SettingsFallbackBlock
+                  className="h-9 w-9 rounded-xl"
+                  color={index % 2 === 0 ? blockColor : mutedBlockColor}
+                />
+                <View className="ml-3 min-w-0 flex-1 gap-2">
+                  <SettingsFallbackBlock
+                    className="h-3.5 rounded-full"
+                    color={mutedBlockColor}
+                    style={index % 2 === 0 ? styles.settingsFallbackLineShort : styles.settingsFallbackLineMedium}
+                  />
+                  <SettingsFallbackBlock
+                    className="h-2.5 rounded-full"
+                    color={mutedBlockColor}
+                    style={index % 3 === 0 ? styles.settingsFallbackLineLong : styles.settingsFallbackLineDefault}
+                  />
+                </View>
+                <SettingsFallbackBlock className="h-4 w-4 rounded-full" color={mutedBlockColor} />
+              </View>
+            ))}
+          </Animated.View>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 function SettingsScreenLazy() {
   return (
-    <Suspense
-      fallback={
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator />
-        </View>
-      }>
+    <Suspense fallback={<SettingsScreenFallback />}>
       <LazySettingsScreen />
     </Suspense>
   );
@@ -574,7 +700,10 @@ export function MainNavigator() {
           component={CommunityStack}
           options={({ route }) => {
             const focusedRoute = getFocusedRouteNameFromRoute(route);
-            const isNested = focusedRoute === 'PostDetail' || focusedRoute === 'UserProfile';
+            const isNested =
+              focusedRoute === 'CreatePost' ||
+              focusedRoute === 'PostDetail' ||
+              focusedRoute === 'UserProfile';
             return {
               title: t('社区'),
               ...(isNested && {
@@ -741,3 +870,27 @@ export function MainNavigator() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  settingsFallbackBlock: {
+    opacity: 0.88,
+  },
+  settingsFallbackRowDivider: {
+    borderTopWidth: 1,
+  },
+  settingsFallbackLineShort: {
+    width: '42%',
+  },
+  settingsFallbackLineMedium: {
+    width: '54%',
+  },
+  settingsFallbackLineDefault: {
+    width: '52%',
+  },
+  settingsFallbackLineLong: {
+    width: '68%',
+  },
+  settingsTabletFallback: {
+    paddingTop: 24,
+  },
+});

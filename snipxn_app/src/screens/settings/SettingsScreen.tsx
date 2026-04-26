@@ -10,15 +10,21 @@ import {
   TextArea,
   TextField,
 } from 'heroui-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AccessibilityInfo,
   Alert as RNAlert,
+  BackHandler,
   KeyboardAvoidingView,
   Linking,
   Platform,
   ScrollView,
+  StyleSheet,
   Text,
+  type StyleProp,
+  type ViewStyle,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { getBuildNumber, getVersion } from 'react-native-device-info';
 import {
@@ -26,9 +32,17 @@ import {
   type Asset,
   type ImagePickerResponse,
 } from 'react-native-image-picker';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeInDown,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { API_BASE_URL } from '../../api/axios';
 import { AppIcon, type AppIconName } from '../../components/common/AppIcon';
@@ -329,29 +343,36 @@ function formatJoinedAtLabel(
 function SectionShell({
   title,
   description,
+  frameless = false,
   children,
 }: {
-  title: string;
+  title?: string;
   description?: string;
+  frameless?: boolean;
   children: React.ReactNode;
 }) {
   const { palette } = useAppTheme();
+  const hasHeader = Boolean(title || description);
 
   return (
     <View
-      className="rounded-[12px] border px-5 py-5"
-      style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
-      <View className="gap-1">
-        <Text className="text-lg font-semibold" style={{ color: palette.text }}>
-          {title}
-        </Text>
-        {description ? (
+      className={frameless ? '' : 'rounded-[12px] border px-5 py-5'}
+      style={frameless ? undefined : { borderColor: palette.border, backgroundColor: palette.surface }}>
+      {hasHeader ? (
+        <View className="gap-1">
+          {title ? (
+            <Text className="text-lg font-semibold" style={{ color: palette.text }}>
+              {title}
+            </Text>
+          ) : null}
+          {description ? (
           <Text className="text-sm" style={{ color: palette.textSoft }}>
             {description}
           </Text>
-        ) : null}
-      </View>
-      <View className="mt-5 gap-4">{children}</View>
+          ) : null}
+        </View>
+      ) : null}
+      <View className={`${hasHeader ? 'mt-5 ' : ''}gap-4`}>{children}</View>
     </View>
   );
 }
@@ -446,6 +467,251 @@ function renderButtonContent(isLoading: boolean, loadingLabel: string, idleLabel
   }
 
   return <Button.Label>{idleLabel}</Button.Label>;
+}
+
+const SETTINGS_LOADING_FULL_SAFE_AREA_EDGES = ['top', 'left', 'right'] as const;
+const SETTINGS_LOADING_HORIZONTAL_SAFE_AREA_EDGES = ['left', 'right'] as const;
+const SETTINGS_LOADING_ROWS = Array.from({ length: 6 }, (_, index) => index);
+
+function SettingsLoadingBlock({
+  className,
+  color,
+  style,
+}: {
+  className?: string;
+  color: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View
+      className={className}
+      style={[loadingStyles.skeletonBlock, { backgroundColor: color }, style]}
+    />
+  );
+}
+
+function SettingsLoadingState() {
+  const { isTablet } = useDeviceType();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const { palette, typography } = useAppTheme();
+  const { t } = useI18n();
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const railProgress = useSharedValue(0);
+
+  const loadingBlockColor = withAlpha(palette.primary, 0.12);
+  const loadingBlockMutedColor = withAlpha(palette.textSoft, 0.14);
+  const tabBarBottomPadding = Math.max(insets.bottom, MOBILE_TAB_BAR_MIN_BOTTOM_PADDING);
+  const railWidth = Math.max(180, Math.min(width - (isTablet ? 420 : 72), isTablet ? 420 : 280));
+  const enteringFor = (index: number) =>
+    reducedMotion
+      ? undefined
+      : FadeInDown.duration(260)
+          .delay(70 + index * 55)
+          .easing(Easing.out(Easing.cubic));
+
+  useEffect(() => {
+    let mounted = true;
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(enabled => {
+        if (!mounted) {
+          return;
+        }
+
+        setReducedMotion(enabled);
+
+        if (enabled) {
+          railProgress.value = 0.66;
+          return;
+        }
+
+        railProgress.value = withRepeat(
+          withTiming(1, {
+            duration: 1180,
+            easing: Easing.inOut(Easing.cubic),
+          }),
+          -1,
+          true,
+        );
+      })
+      .catch(() => {
+        if (!mounted) {
+          return;
+        }
+
+        railProgress.value = withRepeat(
+          withTiming(1, {
+            duration: 1180,
+            easing: Easing.inOut(Easing.cubic),
+          }),
+          -1,
+          true,
+        );
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [railProgress]);
+
+  const railAnimatedStyle = useAnimatedStyle(() => ({
+    width: reducedMotion
+      ? railWidth * 0.66
+      : interpolate(railProgress.value, [0, 1], [railWidth * 0.22, railWidth]),
+  }));
+
+  const renderLoadingRow = (index: number) => (
+    <Animated.View
+      key={`settings-loading-row-${index}`}
+      className="flex-row items-center px-4 py-4"
+      entering={enteringFor(index + 3)}
+      style={[
+        index > 0 ? loadingStyles.loadingRowDivider : undefined,
+        { borderTopColor: palette.border },
+      ]}>
+      <SettingsLoadingBlock
+        className="h-9 w-9 rounded-xl"
+        color={index % 2 === 0 ? loadingBlockColor : loadingBlockMutedColor}
+      />
+      <View className="ml-3 min-w-0 flex-1 gap-2">
+        <SettingsLoadingBlock
+          className="h-3.5 rounded-full"
+          color={loadingBlockMutedColor}
+          style={index % 2 === 0 ? loadingStyles.textLineCompact : loadingStyles.textLineMedium}
+        />
+        <SettingsLoadingBlock
+          className="h-2.5 rounded-full"
+          color={loadingBlockMutedColor}
+          style={index % 3 === 0 ? loadingStyles.textLineLong : loadingStyles.textLineDefault}
+        />
+      </View>
+      <SettingsLoadingBlock className="h-4 w-4 rounded-full" color={loadingBlockMutedColor} />
+    </Animated.View>
+  );
+
+  const loadingSummary = (
+    <Animated.View
+      className="rounded-[12px] border px-4 py-4"
+      entering={enteringFor(0)}
+      style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+      <View className="flex-row items-center gap-4">
+        <SettingsLoadingBlock className="h-14 w-14 rounded-full" color={loadingBlockColor} />
+        <View className="min-w-0 flex-1 gap-3">
+          <SettingsLoadingBlock className="h-4 w-40 rounded-full" color={loadingBlockMutedColor} />
+          <SettingsLoadingBlock className="h-3 w-56 rounded-full" color={loadingBlockMutedColor} />
+        </View>
+      </View>
+      <View className="mt-5">
+        <Text className={typography.bodySmall} style={{ color: palette.textSoft }}>
+          {t('正在同步账号资料与偏好设置。')}
+        </Text>
+        <View
+          className="mt-3 h-1 overflow-hidden rounded-full"
+          style={{ width: railWidth, backgroundColor: loadingBlockMutedColor }}>
+          <Animated.View
+            className="h-1 rounded-full"
+            style={[{ backgroundColor: palette.primary }, railAnimatedStyle]}
+          />
+        </View>
+      </View>
+    </Animated.View>
+  );
+
+  if (isTablet) {
+    return (
+      <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
+        <SafeAreaView edges={SETTINGS_LOADING_FULL_SAFE_AREA_EDGES} style={loadingStyles.flex}>
+          <View className="flex-1 flex-row" style={{ backgroundColor: palette.canvas }}>
+            <View
+              className="w-[300px] border-r px-4 py-6"
+              style={{ borderRightColor: palette.border, backgroundColor: palette.surface }}>
+              <Animated.View
+                className="rounded-[12px] border px-4 py-4"
+                entering={enteringFor(0)}
+                style={{
+                  borderColor: withAlpha(palette.primary, 0.18),
+                  backgroundColor: palette.surfaceAlt,
+                }}>
+                <SettingsLoadingBlock className="h-12 w-12 rounded-2xl" color={loadingBlockColor} />
+                <SettingsLoadingBlock
+                  className="mt-5 h-5 w-24 rounded-full"
+                  color={loadingBlockMutedColor}
+                />
+                <SettingsLoadingBlock
+                  className="mt-3 h-3 w-48 rounded-full"
+                  color={loadingBlockMutedColor}
+                />
+                <SettingsLoadingBlock
+                  className="mt-2 h-3 w-36 rounded-full"
+                  color={loadingBlockMutedColor}
+                />
+              </Animated.View>
+              <View className="mt-6 gap-2">
+                {SETTINGS_LOADING_ROWS.map(index => (
+                  <Animated.View
+                    key={`settings-loading-sidebar-${index}`}
+                    className="rounded-2xl px-4 py-3"
+                    entering={enteringFor(index + 1)}
+                    style={{ backgroundColor: palette.surfaceAlt }}>
+                    <SettingsLoadingBlock
+                      className="h-3.5 rounded-full"
+                      color={loadingBlockMutedColor}
+                      style={
+                        index % 2 === 0
+                          ? loadingStyles.sidebarLineWide
+                          : loadingStyles.sidebarLineNarrow
+                      }
+                    />
+                  </Animated.View>
+                ))}
+              </View>
+            </View>
+
+            <ScrollView
+              className="flex-1"
+              contentContainerStyle={loadingStyles.tabletLoadingContent}
+              showsVerticalScrollIndicator={false}>
+              <View className="gap-5">
+                {loadingSummary}
+                <Animated.View
+                  className="rounded-[12px] border overflow-hidden"
+                  entering={enteringFor(2)}
+                  style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+                  {SETTINGS_LOADING_ROWS.slice(0, 4).map(renderLoadingRow)}
+                </Animated.View>
+              </View>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
+      <TabPageHeader title={t('我的')} />
+      <SafeAreaView edges={SETTINGS_LOADING_HORIZONTAL_SAFE_AREA_EDGES} style={loadingStyles.flex}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={[
+            loadingStyles.mobileLoadingContent,
+            { paddingBottom: 40 + tabBarBottomPadding },
+          ]}
+          showsVerticalScrollIndicator={false}>
+          <View className="gap-5">
+            {loadingSummary}
+            <Animated.View
+              className="rounded-[12px] border overflow-hidden"
+              entering={enteringFor(2)}
+              style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
+              {SETTINGS_LOADING_ROWS.map(renderLoadingRow)}
+            </Animated.View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
 }
 
 export function SettingsScreen() {
@@ -585,6 +851,11 @@ export function SettingsScreen() {
     () => createMobileTabBarStyle(palette, tabBarBottomPadding),
     [palette, tabBarBottomPadding],
   );
+  const useFramelessSectionShell = !isTablet && mobileSection !== null;
+  const closeMobileSection = useCallback(() => {
+    setMobileSection(null);
+    setFeedback(null);
+  }, []);
 
   useEffect(() => {
     if (isTablet) {
@@ -599,6 +870,23 @@ export function SettingsScreen() {
       navigation.setOptions({ tabBarStyle: mobileTabBarStyle });
     };
   }, [isTablet, mobileSection, mobileTabBarStyle, navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isTablet || mobileSection === null) {
+        return undefined;
+      }
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        closeMobileSection();
+        return true;
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    }, [closeMobileSection, isTablet, mobileSection]),
+  );
 
   useEffect(() => {
     if (!currentUser) {
@@ -1040,171 +1328,248 @@ export function SettingsScreen() {
   };
 
   const renderProfileSection = () => (
-    <SectionShell title={t('个人资料')} description={t('这些资料会同步到社区主页、账号设置和侧边栏展示。')}>
-      <View className={`gap-5 ${isTablet ? 'flex-row items-start' : ''}`}>
-        <MotionPressable
-          className="items-center gap-3"
-          disabled={uploadingAvatar}
-          onPress={() => void handlePickAvatar()}>
-          <View className="relative">
-            <Avatar alt={t('用户头像')} className="h-24 w-24" color="accent" size="lg">
-              {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
-              <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
-            </Avatar>
-            {uploadingAvatar ? (
-              <View className="absolute inset-0 items-center justify-center rounded-full bg-background/70">
-                <Spinner color="default" size="sm" />
+    <SectionShell frameless={useFramelessSectionShell}>
+      <View className="gap-5">
+        <View className={`gap-5 ${isTablet ? 'flex-row items-stretch' : ''}`}>
+          <View
+            className={`${isTablet ? 'w-[260px]' : ''} justify-between rounded-[14px] border px-4 py-4`}
+            style={{
+              borderColor: withAlpha(palette.primary, 0.18),
+              backgroundColor: palette.surfaceAlt,
+            }}>
+            <View className={isTablet ? 'items-center' : 'flex-row items-center gap-4'}>
+              <MotionPressable
+                className="items-center gap-2"
+                disabled={uploadingAvatar}
+                pressedScale={0.985}
+                onPress={() => void handlePickAvatar()}>
+                <View className="relative">
+                  <Avatar alt={t('用户头像')} className="h-24 w-24" color="accent" size="lg">
+                    {avatarUri ? <Avatar.Image source={{ uri: avatarUri }} /> : null}
+                    <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
+                  </Avatar>
+                  {uploadingAvatar ? (
+                    <View className="absolute inset-0 items-center justify-center rounded-full bg-background/70">
+                      <Spinner color="default" size="sm" />
+                    </View>
+                  ) : (
+                    <View
+                      className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full border"
+                      style={{
+                        borderColor: palette.surface,
+                        backgroundColor: palette.primary,
+                      }}>
+                      <AppIcon color="#FFFFFF" name="edit-3" size={14} />
+                    </View>
+                  )}
+                </View>
+                <Text className="text-xs font-semibold" style={{ color: palette.primary }}>
+                  {uploadingAvatar ? t('正在上传头像...') : (isEnglish ? 'Change avatar' : '更换头像')}
+                </Text>
+              </MotionPressable>
+
+              <View className={`${isTablet ? 'mt-4 items-center' : 'min-w-0 flex-1'} gap-1`}>
+                <Text
+                  className={`${typography.h3} ${isTablet ? 'text-center' : ''}`}
+                  numberOfLines={1}
+                  style={{ color: palette.text }}>
+                  {nickname.trim() || currentUser?.email?.split('@')[0] || t('未设置昵称')}
+                </Text>
+                <Text
+                  className={`${typography.bodySmall} ${isTablet ? 'text-center' : ''}`}
+                  numberOfLines={2}
+                  style={{ color: palette.textSoft }}>
+                  {currentUser?.email ?? t('未获取到邮箱')}
+                </Text>
               </View>
-            ) : null}
+            </View>
+
+            <View className="mt-4 gap-2">
+              <View
+                className="flex-row items-center gap-2 rounded-full px-3 py-2"
+                style={{ backgroundColor: withAlpha(palette.primary, 0.1) }}>
+                <AppIcon color={palette.primary} name="user" size={14} />
+                <Text className={typography.caption} style={{ color: palette.primary }}>
+                  {t('社区展示身份')}
+                </Text>
+              </View>
+              {joinedAtLabel ? (
+                <Text className={typography.caption} style={{ color: palette.textSoft }}>
+                  {`${t('加入时间：')}${joinedAtLabel}`}
+                </Text>
+              ) : null}
+            </View>
           </View>
-          <Text className="text-xs text-primary">
-            {uploadingAvatar ? t('正在上传头像...') : (isEnglish ? 'Tap to change avatar' : '点击更换头像')}
-          </Text>
-        </MotionPressable>
 
-        <View className="min-w-0 flex-1 gap-4">
-          <View className="rounded-2xl bg-background px-4 py-3">
-            <Text className="text-sm text-foreground/60">{t('登录邮箱')}</Text>
-            <Text className="mt-1 text-sm text-foreground">
-              {currentUser?.email ?? t('未获取到邮箱')}
-            </Text>
-            {joinedAtLabel ? (
-              <Text className="mt-2 text-xs text-foreground/50">{`${t('加入时间：')}${joinedAtLabel}`}</Text>
-            ) : null}
-          </View>
-
-          <TextField isRequired isInvalid={nicknameError !== null}>
-            <Label>{t('昵称')}</Label>
-            <Input
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder={t('请输入昵称')}
-              textContentType="nickname"
-              value={nickname}
-              onBlur={() => setNicknameTouched(true)}
-              onChangeText={value => {
-                setNickname(value);
-                setFeedback(null);
-              }}
-            />
-            <FieldError>{nicknameError ?? ''}</FieldError>
-          </TextField>
-
-          <TextField>
-            <Label>{t('简介')}</Label>
-            <TextArea
-              numberOfLines={4}
-              placeholder={t('一句话介绍自己')}
-              value={bio}
-              onChangeText={value => {
-                setBio(value);
-                setFeedback(null);
-              }}
-            />
-          </TextField>
-
-          <View className="gap-3 rounded-2xl bg-background px-4 py-4">
-            <Text className="text-sm font-semibold text-foreground">{t('公开资料')}</Text>
-            <View className={`${isTablet ? 'flex-row gap-2' : 'gap-2'}`}>
-              {profileGenderOptions.map(option => (
-                <View key={option.value} className={isTablet ? 'flex-1' : ''}>
-                  <SelectButton
-                    active={gender === option.value}
-                    description={option.description}
-                    label={option.label}
-                    onPress={() => {
-                      setGender(option.value);
+          <View className="min-w-0 flex-1 gap-4">
+            <View className={`${isTablet ? 'flex-row gap-3' : 'gap-4'}`}>
+              <View className={isTablet ? 'flex-1' : ''}>
+                <TextField isRequired isInvalid={nicknameError !== null}>
+                  <Label>{t('昵称')}</Label>
+                  <Input
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder={t('请输入昵称')}
+                    textContentType="nickname"
+                    value={nickname}
+                    onBlur={() => setNicknameTouched(true)}
+                    onChangeText={value => {
+                      setNickname(value);
                       setFeedback(null);
                     }}
                   />
-                </View>
-              ))}
+                  <FieldError>{nicknameError ?? ''}</FieldError>
+                </TextField>
+              </View>
+
+              <View className={isTablet ? 'flex-1' : ''}>
+                <TextField isInvalid={birthdayError !== null}>
+                  <Label>{t('生日')}</Label>
+                  <Input
+                    autoCapitalize="none"
+                    placeholder="YYYY-MM-DD"
+                    value={birthday}
+                    onBlur={() => setBirthdayTouched(true)}
+                    onChangeText={value => {
+                      setBirthday(value);
+                      setFeedback(null);
+                    }}
+                  />
+                  <FieldError>{birthdayError ?? ''}</FieldError>
+                </TextField>
+              </View>
             </View>
 
-            <TextField isInvalid={birthdayError !== null}>
-              <Label>{t('生日')}</Label>
-              <Input
-                autoCapitalize="none"
-                placeholder="YYYY-MM-DD"
-                value={birthday}
-                onBlur={() => setBirthdayTouched(true)}
-                onChangeText={value => {
-                  setBirthday(value);
-                  setFeedback(null);
-                }}
-              />
-              <FieldError>{birthdayError ?? ''}</FieldError>
-            </TextField>
-
             <TextField>
-              <Label>{t('所在地区')}</Label>
-              <Input
-                placeholder={isEnglish ? 'e.g. Shanghai' : '例如 Shanghai'}
-                value={location}
-                onChangeText={value => {
-                  setLocation(value);
-                  setFeedback(null);
-                }}
-              />
-            </TextField>
-
-            <TextField>
-              <Label>{t('公司 / 学校')}</Label>
-              <Input
-                placeholder={isEnglish ? 'e.g. Snipxn Lab' : '例如 Snipxn Lab'}
-                value={company}
-                onChangeText={value => {
-                  setCompany(value);
-                  setFeedback(null);
-                }}
-              />
-            </TextField>
-
-            <TextField>
-              <Label>{t('GitHub 用户名')}</Label>
-              <Input
-                autoCapitalize="none"
-                placeholder={isEnglish ? 'e.g. alice-dev' : '例如 alice-dev'}
-                value={github}
-                onChangeText={value => {
-                  setGithub(value);
-                  setFeedback(null);
-                }}
-              />
-            </TextField>
-
-            <TextField>
-              <Label>{t('个人网站')}</Label>
-              <Input
-                autoCapitalize="none"
-                placeholder="https://example.com"
-                value={website}
-                onChangeText={value => {
-                  setWebsite(value);
-                  setFeedback(null);
-                }}
-              />
-            </TextField>
-
-            <TextField>
-              <Label>{t('技术栈')}</Label>
+              <Label>{t('简介')}</Label>
               <TextArea
                 numberOfLines={4}
-                placeholder={
-                  isEnglish
-                    ? 'e.g. Java, Spring Boot, Vue, PostgreSQL'
-                    : '例如 Java, Spring Boot, Vue, PostgreSQL'
-                }
-                value={techStack}
+                placeholder={t('一句话介绍自己')}
+                value={bio}
                 onChangeText={value => {
-                  setTechStack(value);
+                  setBio(value);
                   setFeedback(null);
                 }}
               />
             </TextField>
           </View>
+        </View>
 
-          <Button isDisabled={savingProfile || uploadingAvatar} variant="primary" onPress={() => void handleSaveProfile()}>
+        <Separator />
+
+        <View className="gap-4">
+          <View className="flex-row items-start gap-3">
+            <View
+              className="h-10 w-10 items-center justify-center rounded-xl"
+              style={{ backgroundColor: palette.primarySoft }}>
+              <AppIcon color={palette.primary} name="community" size={18} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-semibold" style={{ color: palette.text }}>
+                {t('公开资料')}
+              </Text>
+              <Text className="mt-1 text-xs" style={{ color: palette.textSoft }}>
+                {t('这些信息会出现在社区个人主页，可按需留空。')}
+              </Text>
+            </View>
+          </View>
+
+          <View className={`${isTablet ? 'flex-row gap-2' : 'gap-2'}`}>
+            {profileGenderOptions.map(option => (
+              <View key={option.value} className={isTablet ? 'flex-1' : ''}>
+                <SelectButton
+                  active={gender === option.value}
+                  description={option.description}
+                  label={option.label}
+                  onPress={() => {
+                    setGender(option.value);
+                    setFeedback(null);
+                  }}
+                />
+              </View>
+            ))}
+          </View>
+
+          <View className={`${isTablet ? 'flex-row gap-4' : 'gap-4'}`}>
+            <View className={`${isTablet ? 'flex-1' : ''} gap-4`}>
+              <TextField>
+                <Label>{t('所在地区')}</Label>
+                <Input
+                  placeholder={isEnglish ? 'e.g. Shanghai' : '例如 Shanghai'}
+                  value={location}
+                  onChangeText={value => {
+                    setLocation(value);
+                    setFeedback(null);
+                  }}
+                />
+              </TextField>
+
+              <TextField>
+                <Label>{t('公司 / 学校')}</Label>
+                <Input
+                  placeholder={isEnglish ? 'e.g. Snipxn Lab' : '例如 Snipxn Lab'}
+                  value={company}
+                  onChangeText={value => {
+                    setCompany(value);
+                    setFeedback(null);
+                  }}
+                />
+              </TextField>
+            </View>
+
+            <View className={`${isTablet ? 'flex-1' : ''} gap-4`}>
+              <TextField>
+                <Label>{t('GitHub 用户名')}</Label>
+                <Input
+                  autoCapitalize="none"
+                  placeholder={isEnglish ? 'e.g. alice-dev' : '例如 alice-dev'}
+                  value={github}
+                  onChangeText={value => {
+                    setGithub(value);
+                    setFeedback(null);
+                  }}
+                />
+              </TextField>
+
+              <TextField>
+                <Label>{t('个人网站')}</Label>
+                <Input
+                  autoCapitalize="none"
+                  placeholder="https://example.com"
+                  value={website}
+                  onChangeText={value => {
+                    setWebsite(value);
+                    setFeedback(null);
+                  }}
+                />
+              </TextField>
+            </View>
+          </View>
+
+          <TextField>
+            <Label>{t('技术栈')}</Label>
+            <TextArea
+              numberOfLines={3}
+              placeholder={
+                isEnglish
+                  ? 'e.g. Java, Spring Boot, Vue, PostgreSQL'
+                  : '例如 Java, Spring Boot, Vue, PostgreSQL'
+              }
+              value={techStack}
+              onChangeText={value => {
+                setTechStack(value);
+                setFeedback(null);
+              }}
+            />
+          </TextField>
+        </View>
+
+        <View className={`${isTablet ? 'items-end' : ''}`}>
+          <Button
+            className={isTablet ? 'min-w-[180px]' : ''}
+            isDisabled={savingProfile || uploadingAvatar}
+            variant="primary"
+            onPress={() => void handleSaveProfile()}>
             {renderButtonContent(savingProfile, t('保存中...'), t('保存资料'))}
           </Button>
         </View>
@@ -1213,7 +1578,7 @@ export function SettingsScreen() {
   );
 
   const renderSecuritySection = () => (
-    <SectionShell title={t('账号安全')} description={isEnglish ? 'Change your password, review linked sign-in methods, and manage third-party access.' : '修改密码、查看绑定方式，并管理第三方登录入口。'}>
+    <SectionShell frameless={useFramelessSectionShell} title={t('账号安全')} description={isEnglish ? 'Change your password, review linked sign-in methods, and manage third-party access.' : '修改密码、查看绑定方式，并管理第三方登录入口。'}>
       <View className="gap-3 rounded-2xl bg-background px-4 py-4">
         <Text className="text-sm font-semibold text-foreground">{t('修改密码')}</Text>
         <TextField isInvalid={passwordError !== null}>
@@ -1280,7 +1645,7 @@ export function SettingsScreen() {
   );
 
   const renderDevicesSection = () => (
-    <SectionShell title={t('设备管理')} description={isEnglish ? 'Review signed-in devices and revoke other sessions when needed.' : '查看已登录设备，并按需撤销其他会话。'}>
+    <SectionShell frameless={useFramelessSectionShell} title={t('设备管理')} description={isEnglish ? 'Review signed-in devices and revoke other sessions when needed.' : '查看已登录设备，并按需撤销其他会话。'}>
       <View className="flex-row items-center justify-between gap-3">
         <Text className="text-sm font-semibold text-foreground">{t('已登录设备')}</Text>
         <Button isDisabled={processingDeviceId === '__others__' || devices.length === 0} variant="outline" onPress={() => void handleRevokeOtherDevices()}>
@@ -1321,7 +1686,7 @@ export function SettingsScreen() {
   );
 
   const renderPreferencesSection = () => (
-    <SectionShell title={t('偏好设置')} description={isEnglish ? 'Theme changes apply immediately. Language and code font size are saved locally.' : '主题即时生效，语言和代码字号会持久化到本地。'}>
+    <SectionShell frameless={useFramelessSectionShell} title={t('偏好设置')} description={isEnglish ? 'Theme changes apply immediately. Language and code font size are saved locally.' : '主题即时生效，语言和代码字号会持久化到本地。'}>
       <View className="gap-3 rounded-2xl bg-background px-4 py-4">
         <Text className="text-sm font-semibold text-foreground">{t('主题')}</Text>
         <Text className="text-xs text-foreground/60">
@@ -1360,7 +1725,7 @@ export function SettingsScreen() {
   );
 
   const renderStorageSection = () => (
-    <SectionShell title={t('存储空间')} description={t('展示当前账号配额与后端返回的使用明细。')}>
+    <SectionShell frameless={useFramelessSectionShell} title={t('存储空间')} description={t('展示当前账号配额与后端返回的使用明细。')}>
       <View className="rounded-2xl bg-background px-4 py-4">
         <View className="flex-row items-center justify-between gap-3">
           <Text className="text-sm font-semibold text-foreground">{t('总览')}</Text>
@@ -1388,7 +1753,7 @@ export function SettingsScreen() {
 
   const renderAboutSection = () => (
     <View className="gap-5">
-      <SectionShell title={t('关于')} description={t('查看版本信息与更新状态。')}>
+      <SectionShell frameless={useFramelessSectionShell} title={t('关于')} description={t('查看版本信息与更新状态。')}>
         <InfoRow label={t('应用版本')} value={currentVersionLabel} />
         {latestVersionLabel ? <InfoRow label={t('远程版本')} value={latestVersionLabel} /> : null}
         {latestVersionInfo?.releaseNotes ? (
@@ -1402,7 +1767,7 @@ export function SettingsScreen() {
         </Button>
       </SectionShell>
 
-      <SectionShell title={t('反馈')} description={t('反馈会直接提交到 Snipxn 后台，便于后续跟进。')}>
+      <SectionShell frameless={useFramelessSectionShell} title={t('反馈')} description={t('反馈会直接提交到 Snipxn 后台，便于后续跟进。')}>
         <TextField>
           <Label>{t('反馈内容')}</Label>
           <TextArea
@@ -1429,7 +1794,7 @@ export function SettingsScreen() {
   );
 
   const renderLogoutSection = () => (
-    <SectionShell title={t('退出登录')} description={t('退出后会清除本地凭证，并重置本地数据库。')}>
+    <SectionShell frameless={useFramelessSectionShell} title={t('退出登录')} description={t('退出后会清除本地凭证，并重置本地数据库。')}>
       <Text className="text-sm text-foreground/65">{t('这会同时清空离线缓存、同步元数据和当前登录态。重新进入应用后需要再次登录。')}</Text>
       <Button variant="danger" onPress={() => void logout()}>
         <Button.Label>{t('退出登录')}</Button.Label>
@@ -1459,18 +1824,7 @@ export function SettingsScreen() {
   };
 
   if (initializing) {
-    return (
-      <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
-        <SafeAreaView edges={fullSafeAreaEdges} style={{ flex: 1 }}>
-          <View className="flex-1 items-center justify-center gap-3 px-6">
-            <Spinner color="default" size="lg" />
-            <Text className={typography.body} style={{ color: palette.textSoft }}>
-              {t('正在加载设置...')}
-            </Text>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
+    return <SettingsLoadingState />;
   }
 
   return (
@@ -1542,20 +1896,24 @@ export function SettingsScreen() {
             entering={APP_PANEL_ENTERING}
             layout={APP_LAYOUT_TRANSITION}
             style={{ flex: 1, minHeight: 0 }}>
+            <View
+              className="flex-row items-center gap-3 border-b px-4 py-3"
+              style={{ borderBottomColor: palette.border, backgroundColor: palette.surface }}>
+              <MotionPressable
+                accessibilityLabel={t('返回我的页面')}
+                accessibilityRole="button"
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: palette.surfaceAlt }}
+                onPress={closeMobileSection}>
+                <AppIcon color={palette.text} name="arrow-left" size={20} />
+              </MotionPressable>
+              <Text className={`${typography.h3} min-w-0 flex-1`} numberOfLines={1} style={{ color: palette.text }}>
+                {sectionTitles[mobileSection]}
+              </Text>
+            </View>
+
             <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View className="gap-5">
-                <View className="flex-row items-center gap-3">
-                  <MotionPressable
-                    className="h-10 w-10 items-center justify-center rounded-full"
-                    style={{ backgroundColor: palette.surfaceAlt }}
-                    onPress={() => { setMobileSection(null); setFeedback(null); }}>
-                    <AppIcon color={palette.text} name="arrow-left" size={20} />
-                  </MotionPressable>
-                  <Text className={typography.h3} style={{ color: palette.text }}>
-                    {sectionTitles[mobileSection]}
-                  </Text>
-                </View>
-
                 {feedback ? (
                   <Animated.View entering={APP_FADE_IN} layout={APP_LAYOUT_TRANSITION}>
                     <Alert status={feedback.status}>
@@ -1664,3 +2022,40 @@ export function SettingsScreen() {
     </View>
   );
 }
+
+const loadingStyles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  skeletonBlock: {
+    opacity: 0.88,
+  },
+  loadingRowDivider: {
+    borderTopWidth: 1,
+  },
+  tabletLoadingContent: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+  mobileLoadingContent: {
+    padding: 20,
+  },
+  textLineCompact: {
+    width: '42%',
+  },
+  textLineMedium: {
+    width: '54%',
+  },
+  textLineDefault: {
+    width: '52%',
+  },
+  textLineLong: {
+    width: '68%',
+  },
+  sidebarLineNarrow: {
+    width: '44%',
+  },
+  sidebarLineWide: {
+    width: '62%',
+  },
+});

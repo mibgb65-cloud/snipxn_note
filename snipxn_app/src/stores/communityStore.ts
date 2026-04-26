@@ -25,7 +25,7 @@ export interface CommunityState {
   fetchPosts: (page?: number) => Promise<void>;
   fetchHotPosts: (page?: number) => Promise<void>;
   fetchPostDetail: (id: string) => Promise<void>;
-  createPost: (req: CreatePostRequest) => Promise<void>;
+  createPost: (req: CreatePostRequest) => Promise<PostDetailResponse>;
   deletePost: (id: string) => Promise<void>;
   likePost: (id: string) => Promise<void>;
   unlikePost: (id: string) => Promise<void>;
@@ -149,8 +149,23 @@ function mergePaginatedComments(
 }
 
 function toListItem(post: PostDetailResponse): PostListItemResponse {
-  const { content: _content, originNoteId: _originNoteId, updatedAt: _updatedAt, ...listItem } = post;
-  return listItem;
+  return {
+    id: post.id,
+    userId: post.userId,
+    title: post.title,
+    summary: post.summary,
+    language: post.language,
+    tags: post.tags,
+    viewCount: post.viewCount,
+    likeCount: post.likeCount,
+    collectCount: post.collectCount,
+    commentCount: post.commentCount,
+    createdAt: post.createdAt,
+    authorNickname: post.authorNickname,
+    authorAvatar: post.authorAvatar,
+    isLiked: post.isLiked,
+    isCollected: post.isCollected,
+  };
 }
 
 function updatePostCollection(
@@ -338,6 +353,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         currentPost: createdPost,
         loading: false,
       }));
+
+      return createdPost;
     } catch (error) {
       set({ loading: false });
       throw error;
@@ -639,4 +656,3 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 export function resetCommunityStore(): void {
   useCommunityStore.setState(initialCommunityState);
 }
-

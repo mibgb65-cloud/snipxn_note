@@ -59,14 +59,21 @@ function CommentComposer({
   onCancelReply: () => void;
   onSubmit: () => void;
 }) {
-  const { typography } = useAppTheme();
+  const { palette, typography } = useAppTheme();
   const { isEnglish, t } = useI18n();
 
   return (
-    <View className="gap-3 border-t border-default-200 bg-background px-4 pb-4 pt-3">
+    <View
+      className="gap-3 border-t px-4 pb-4 pt-3"
+      style={{ borderTopColor: palette.border, backgroundColor: palette.surface }}>
       {replyTarget ? (
-        <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-content1 px-3 py-2">
-          <Text className={`${typography.bodySmall} min-w-0 flex-1 text-foreground/70`} numberOfLines={1}>
+        <View
+          className="flex-row items-center justify-between gap-3 rounded-2xl px-3 py-2"
+          style={{ backgroundColor: palette.panelInset }}>
+          <Text
+            className={`${typography.bodySmall} min-w-0 flex-1`}
+            numberOfLines={1}
+            style={{ color: palette.textSoft }}>
             {isEnglish ? `${t('正在回复')} ${replyTarget.authorNickname}` : `正在回复 ${replyTarget.authorNickname}`}
           </Text>
           <Button size="sm" variant="ghost" onPress={onCancelReply}>
@@ -76,11 +83,12 @@ function CommentComposer({
       ) : null}
       <View className="flex-row items-end gap-3">
         <TextInput
-          className="min-h-[48px] flex-1 rounded-2xl bg-content1 px-4 py-3 text-foreground"
+          className="min-h-[48px] flex-1 rounded-2xl px-4 py-3"
           editable={!submitting}
           multiline
           placeholder={replyTarget ? (isEnglish ? `Reply to ${replyTarget.authorNickname}` : `回复 ${replyTarget.authorNickname}`) : t('写下你的评论...')}
-          placeholderTextColor="rgba(120,120,120,0.7)"
+          placeholderTextColor={palette.placeholder}
+          style={{ backgroundColor: palette.panelInset, color: palette.text }}
           value={value}
           onChangeText={onChange}
         />
@@ -637,12 +645,12 @@ export function PostDetailScreen({ route, navigation }: Props) {
   ) : null;
 
   return (
-    <View className="flex-1 bg-background">
-      <SafeAreaView edges={safeAreaEdges} style={{ flex: 1 }}>
+    <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
+      <SafeAreaView edges={safeAreaEdges} style={{ flex: 1, backgroundColor: palette.canvas }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1">
-        <View className="flex-1 bg-background">
+        <View className="flex-1" style={{ backgroundColor: palette.canvas }}>
           {feedback ? (
             <View className="px-4 pt-4">
               <View
@@ -675,7 +683,9 @@ export function PostDetailScreen({ route, navigation }: Props) {
                     {article}
                   </ScrollView>
                 </View>
-                <View className="flex-[2] rounded-[12px] bg-content1">
+                <View
+                  className="flex-[2] rounded-[12px] border"
+                  style={{ borderColor: palette.border, backgroundColor: palette.surface }}>
                   <View className="min-h-0 flex-1 px-4 pt-4">
                     <CommentSection
                       postId={post.id}

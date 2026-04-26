@@ -18,6 +18,7 @@ export type SearchStackParamList = {
 
 export type CommunityStackParamList = {
   Feed: undefined;
+  CreatePost: undefined;
   PostDetail: { postId: string };
   UserProfile: { userId: string };
 };

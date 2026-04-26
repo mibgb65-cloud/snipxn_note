@@ -2,9 +2,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { FeedScreen } from '../screens';
+import { CreatePostScreen, FeedScreen } from '../screens';
 
 import {
+  CREATE_POST_STACK_SCREEN_OPTIONS,
   ROOT_STACK_SCREEN_OPTIONS,
   SUBPAGE_STACK_SCREEN_OPTIONS,
 } from './stackTransitions';
@@ -47,6 +48,11 @@ export function CommunityStack() {
   return (
     <Stack.Navigator screenOptions={ROOT_STACK_SCREEN_OPTIONS}>
       <Stack.Screen name="Feed" component={FeedScreen} />
+      <Stack.Screen
+        name="CreatePost"
+        component={CreatePostScreen}
+        options={CREATE_POST_STACK_SCREEN_OPTIONS}
+      />
       <Stack.Screen
         name="PostDetail"
         component={PostDetailScreenLazy}

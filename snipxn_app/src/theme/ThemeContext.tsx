@@ -1,6 +1,6 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useColorScheme, useWindowDimensions } from 'react-native';
+import { View, useColorScheme, useWindowDimensions } from 'react-native';
 import { Uniwind } from 'uniwind';
 
 import {
@@ -102,11 +102,12 @@ async function persistThemePreference(preference: ThemePreference): Promise<void
 export function ThemeProvider({ children }: React.PropsWithChildren) {
   const systemColorScheme = useColorScheme();
   const { width, height } = useWindowDimensions();
-  const [themePreferenceState, setThemePreferenceState] = useState<ThemePreference>('system');
+  const [themePreferenceState, setThemePreferenceState] = useState<ThemePreference | null>(null);
 
   const systemTheme: ThemeMode = systemColorScheme === 'dark' ? 'dark' : 'light';
+  const resolvedThemePreference = themePreferenceState ?? 'system';
   const theme: ThemeMode =
-    themePreferenceState === 'system' ? systemTheme : themePreferenceState;
+    resolvedThemePreference === 'system' ? systemTheme : resolvedThemePreference;
   const isTablet = Math.min(width, height) >= TABLET_BREAKPOINT;
   const typography = createTypography(isTablet);
   const palette = appPalettes[theme];
@@ -121,9 +122,13 @@ export function ThemeProvider({ children }: React.PropsWithChildren) {
 
         if (isMounted && isThemePreference(storedTheme)) {
           setThemePreferenceState(storedTheme);
+        } else if (isMounted) {
+          setThemePreferenceState('system');
         }
       } catch {
-        // Ignore storage failures and fall back to system theme.
+        if (isMounted) {
+          setThemePreferenceState('system');
+        }
       }
     };
 
@@ -140,6 +145,10 @@ export function ThemeProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    if (themePreferenceState === null) {
+      return;
+    }
+
     Uniwind.setTheme(themePreferenceState === 'system' ? 'system' : theme);
   }, [theme, themePreferenceState]);
 
@@ -155,11 +164,22 @@ export function ThemeProvider({ children }: React.PropsWithChildren) {
     setThemePreference(nextTheme);
   };
 
+  if (themePreferenceState === null) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: appPalettes[systemTheme].canvas,
+        }}
+      />
+    );
+  }
+
   return (
     <ThemeContext.Provider
       value={{
         theme,
-        themePreference: themePreferenceState,
+        themePreference: resolvedThemePreference,
         setThemePreference,
         toggleTheme,
         isTablet,

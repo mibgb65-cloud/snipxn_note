@@ -18,6 +18,12 @@ export const SUBPAGE_STACK_SCREEN_OPTIONS: NativeStackNavigationOptions = {
   gestureEnabled: true,
 };
 
+export const CREATE_POST_STACK_SCREEN_OPTIONS: NativeStackNavigationOptions = {
+  ...SUBPAGE_STACK_SCREEN_OPTIONS,
+  animation: Platform.OS === 'android' ? 'fade_from_bottom' : 'slide_from_bottom',
+  gestureDirection: Platform.OS === 'ios' ? 'vertical' : 'horizontal',
+};
+
 export const EDITOR_STACK_SCREEN_OPTIONS: NativeStackNavigationOptions = {
   ...SUBPAGE_STACK_SCREEN_OPTIONS,
   animation: Platform.OS === 'android' ? 'slide_from_right' : 'default',

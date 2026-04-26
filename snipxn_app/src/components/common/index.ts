@@ -5,3 +5,4 @@ export * from './AppLogo';
 export * from './AppMotion';
 export * from './LaunchExperience';
 export * from './MasterDetail';
+export * from './OnboardingHomeTransition';

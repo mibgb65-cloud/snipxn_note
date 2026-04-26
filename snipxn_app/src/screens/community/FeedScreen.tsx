@@ -7,13 +7,18 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
   type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import * as postApi from '../../api/post';
 import { AppCanvas, GlassPanel, IconBadge, SectionEyebrow } from '../../components/common';
@@ -552,6 +557,11 @@ export function FeedScreen() {
     }
   }, [activeTab, loadFeedPage, loadSidebarData]);
 
+  const openCreatePostScreen = useCallback(() => {
+    setFeedback(null);
+    navigation.navigate('CreatePost');
+  }, [navigation]);
+
   const handleLoadMore = useCallback(async () => {
     if (loadingMore || loadingFeed || !hasMore) {
       return;
@@ -723,6 +733,23 @@ export function FeedScreen() {
                           </View>
 
                           <View className="w-[320px] gap-3">
+                            <MotionPressable
+                              accessibilityLabel={t('发布帖子')}
+                              accessibilityRole="button"
+                              className="flex-row items-center justify-center gap-2 rounded-full border px-4 py-3"
+                              pressedScale={0.985}
+                              style={{
+                                borderColor: withAlpha(palette.primary, 0.24),
+                                backgroundColor: palette.primarySoft,
+                              }}
+                              onPress={openCreatePostScreen}>
+                              <AppIcon color={palette.primary} name="edit-3" size={17} />
+                              <Text
+                                className={typography.bodySmall}
+                                style={[styles.composerButtonLabel, { color: palette.primary }]}>
+                                {t('发布帖子')}
+                              </Text>
+                            </MotionPressable>
                             {tabSwitcher}
                             <FeedSearchField
                               placeholder={t('搜索标题、摘要、标签或作者')}
@@ -867,8 +894,47 @@ export function FeedScreen() {
               windowSize={5}
             />
           )}
+
+          {!isTablet ? (
+            <MotionPressable
+              accessibilityLabel={t('发布帖子')}
+              accessibilityRole="button"
+              className="absolute right-5 flex-row items-center gap-2 rounded-full px-4 py-3"
+              pressedScale={0.96}
+              style={[
+                styles.mobileComposerButton,
+                {
+                  bottom: 68 + Math.max(insets.bottom, 10) + 14,
+                  borderColor: withAlpha(palette.primary, 0.24),
+                  backgroundColor: palette.primarySoft,
+                  shadowColor: palette.shadow,
+                },
+              ]}
+              onPress={openCreatePostScreen}>
+              <AppIcon color={palette.primary} name="edit-3" size={18} strokeWidth={2.2} />
+              <Text
+                className={typography.bodySmall}
+                style={[styles.composerButtonLabel, { color: palette.primary }]}>
+                {t('发帖')}
+              </Text>
+            </MotionPressable>
+          ) : null}
         </View>
       </SafeAreaView>
     </AppCanvas>
   );
 }
+
+const styles = StyleSheet.create({
+  composerButtonLabel: {
+    fontWeight: '800',
+  },
+  mobileComposerButton: {
+    borderWidth: 1,
+    elevation: 16,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    zIndex: 20,
+  },
+});

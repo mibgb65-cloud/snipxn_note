@@ -44,17 +44,109 @@
     <main class="landing-main">
       <!-- ── Hero ── -->
       <section class="hero-section">
-        <div class="hero-glow hero-glow-1" />
-        <div class="hero-glow hero-glow-2" />
+        <div class="hero-visual-scene" aria-hidden="true">
+          <div class="hero-scene-grid" />
 
-        <div class="hero-inner animate-fade-in-up">
+          <div class="hero-preview hero-preview-main">
+            <div class="preview-shell">
+              <div class="preview-topbar">
+                <div class="preview-dots">
+                  <span class="preview-dot preview-dot-red" />
+                  <span class="preview-dot preview-dot-yellow" />
+                  <span class="preview-dot preview-dot-green" />
+                </div>
+                <span class="preview-topbar-title">{{ t('app.name') }} — {{ t('workspace.title') }}</span>
+                <span class="preview-topbar-badge">{{ t('auth.featureSync') }}</span>
+              </div>
+
+              <div class="preview-body">
+                <section class="preview-col preview-sidebar-col">
+                  <div class="preview-col-label">{{ t('landing.previewSidebar') }}</div>
+                  <div class="preview-folder">
+                    <i class="pi pi-inbox" />
+                    {{ t('landing.previewFolderInbox') }}
+                  </div>
+                  <div class="preview-folder preview-folder-active">
+                    <i class="pi pi-briefcase" />
+                    {{ t('landing.previewFolderWork') }}
+                  </div>
+                  <div class="preview-folder">
+                    <i class="pi pi-user" />
+                    {{ t('landing.previewFolderPersonal') }}
+                  </div>
+                  <div class="preview-tags">
+                    <span class="preview-tag">#API</span>
+                    <span class="preview-tag">#Markdown</span>
+                  </div>
+                </section>
+
+                <section class="preview-col preview-list-col">
+                  <div class="preview-col-label">{{ t('landing.previewList') }}</div>
+                  <article class="preview-note preview-note-active">
+                    <div class="preview-note-title">{{ t('landing.previewNoteTitle') }}</div>
+                    <div class="preview-note-body">{{ t('landing.previewNoteBody') }}</div>
+                    <span class="preview-note-lang">{{ t('landing.previewLangMarkdown') }}</span>
+                  </article>
+                  <article class="preview-note">
+                    <div class="preview-note-title">{{ t('landing.previewSnippetTitle') }}</div>
+                    <div class="preview-note-body">{{ t('landing.previewSnippetBody') }}</div>
+                    <span class="preview-note-lang">{{ t('landing.previewLangJavascript') }}</span>
+                  </article>
+                </section>
+
+                <section class="preview-col preview-editor-col">
+                  <div class="preview-col-label">{{ t('landing.previewEditor') }}</div>
+                  <div class="preview-editor-title">{{ t('landing.previewNoteTitle') }}</div>
+                  <div class="preview-code">
+                    <div class="preview-code-line">
+                      <span class="preview-line-num">1</span>
+                      <span class="preview-code-heading">{{ t('landing.previewCodeLine1') }}</span>
+                    </div>
+                    <div class="preview-code-line">
+                      <span class="preview-line-num">2</span>
+                      <span class="preview-code-text">{{ t('landing.previewCodeLine2') }}</span>
+                    </div>
+                    <div class="preview-code-line">
+                      <span class="preview-line-num">3</span>
+                      <span class="preview-code-text">{{ t('landing.previewCodeLine3') }}</span>
+                    </div>
+                    <div class="preview-code-line">
+                      <span class="preview-line-num">4</span>
+                      <span class="preview-code-text">{{ t('landing.previewCodeLine4') }}</span>
+                    </div>
+                    <div class="preview-cursor" />
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-phone-preview">
+            <div class="hero-phone-notch" />
+            <div class="hero-phone-screen">
+              <img :src="logoUrl" alt="" width="30" height="30" class="hero-phone-logo">
+              <span class="hero-phone-name">{{ t('app.name') }}</span>
+              <div class="hero-phone-status">
+                <span>{{ t('landing.downloadVersion') }}</span>
+                <i class="pi pi-check-circle" />
+              </div>
+              <div class="hero-phone-list">
+                <span>{{ t('landing.downloadFeature1') }}</span>
+                <span>{{ t('landing.downloadFeature2') }}</span>
+                <span>{{ t('landing.downloadFeature3') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-content animate-fade-in-up">
           <div class="hero-badges">
             <span class="hero-badge hero-badge-primary">
-              <i class="pi pi-sparkles" />
+              <i class="pi pi-code" />
               {{ t('landing.kicker') }}
             </span>
             <span class="hero-badge hero-badge-accent">
-              {{ hasToken ? t('landing.enterWorkspaceCompact') : t('landing.enterAppCompact') }}
+              {{ t('landing.downloadVersion') }}
             </span>
           </div>
 
@@ -78,88 +170,6 @@
               @click="scrollToFeatures"
             />
           </div>
-
-          <div class="hero-metrics">
-            <article v-for="metric in heroMetrics" :key="metric.id" class="hero-metric">
-              <div class="hero-metric-value">{{ metric.value }}</div>
-              <div class="hero-metric-label">{{ metric.label }}</div>
-            </article>
-          </div>
-        </div>
-
-        <!-- Workspace Preview -->
-        <div class="hero-preview animate-fade-in-up delay-200">
-          <div class="preview-shell">
-            <div class="preview-topbar">
-              <div class="preview-dots">
-                <span class="preview-dot preview-dot-red" />
-                <span class="preview-dot preview-dot-yellow" />
-                <span class="preview-dot preview-dot-green" />
-              </div>
-              <span class="preview-topbar-title">{{ t('app.name') }} — {{ t('workspace.title') }}</span>
-              <span class="preview-topbar-badge">{{ t('auth.featureSync') }}</span>
-            </div>
-
-            <div class="preview-body">
-              <section class="preview-col preview-sidebar-col">
-                <div class="preview-col-label">{{ t('landing.previewSidebar') }}</div>
-                <div class="preview-folder">
-                  <i class="pi pi-inbox" />
-                  {{ t('landing.previewFolderInbox') }}
-                </div>
-                <div class="preview-folder preview-folder-active">
-                  <i class="pi pi-briefcase" />
-                  {{ t('landing.previewFolderWork') }}
-                </div>
-                <div class="preview-folder">
-                  <i class="pi pi-user" />
-                  {{ t('landing.previewFolderPersonal') }}
-                </div>
-                <div class="preview-tags">
-                  <span class="preview-tag">#API</span>
-                  <span class="preview-tag">#Markdown</span>
-                </div>
-              </section>
-
-              <section class="preview-col preview-list-col">
-                <div class="preview-col-label">{{ t('landing.previewList') }}</div>
-                <article class="preview-note preview-note-active">
-                  <div class="preview-note-title">{{ t('landing.previewNoteTitle') }}</div>
-                  <div class="preview-note-body">{{ t('landing.previewNoteBody') }}</div>
-                  <span class="preview-note-lang">{{ t('landing.previewLangMarkdown') }}</span>
-                </article>
-                <article class="preview-note">
-                  <div class="preview-note-title">{{ t('landing.previewSnippetTitle') }}</div>
-                  <div class="preview-note-body">{{ t('landing.previewSnippetBody') }}</div>
-                  <span class="preview-note-lang">{{ t('landing.previewLangJavascript') }}</span>
-                </article>
-              </section>
-
-              <section class="preview-col preview-editor-col">
-                <div class="preview-col-label">{{ t('landing.previewEditor') }}</div>
-                <div class="preview-editor-title">{{ t('landing.previewNoteTitle') }}</div>
-                <div class="preview-code">
-                  <div class="preview-code-line">
-                    <span class="preview-line-num">1</span>
-                    <span class="preview-code-heading">{{ t('landing.previewCodeLine1') }}</span>
-                  </div>
-                  <div class="preview-code-line">
-                    <span class="preview-line-num">2</span>
-                    <span class="preview-code-text">{{ t('landing.previewCodeLine2') }}</span>
-                  </div>
-                  <div class="preview-code-line">
-                    <span class="preview-line-num">3</span>
-                    <span class="preview-code-text">{{ t('landing.previewCodeLine3') }}</span>
-                  </div>
-                  <div class="preview-code-line">
-                    <span class="preview-line-num">4</span>
-                    <span class="preview-code-text">{{ t('landing.previewCodeLine4') }}</span>
-                  </div>
-                  <div class="preview-cursor" />
-                </div>
-              </section>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -172,8 +182,14 @@
         </div>
 
         <div class="features-grid">
-          <article v-for="(feat, i) in featureCards" :key="feat.id" class="feature-card animate-fade-in-up" :class="`delay-${(i + 1) * 100}`">
-            <div class="feature-card-icon" :style="{ background: feat.iconBg }">
+          <article
+            v-for="(feat, i) in featureCards"
+            :key="feat.id"
+            class="feature-card animate-fade-in-up"
+            :class="`delay-${(i + 1) * 100}`"
+            :style="{ '--feature-accent': feat.accent, '--feature-bg': feat.iconBg }"
+          >
+            <div class="feature-card-icon">
               <i :class="feat.icon" />
             </div>
             <h3 class="feature-card-title">{{ feat.title }}</h3>
@@ -189,10 +205,6 @@
             <span class="section-kicker">{{ t('landing.workflowEyebrow') }}</span>
             <h2 class="section-title">{{ t('landing.workflowTitle') }}</h2>
             <p class="section-body">{{ t('landing.workflowBody') }}</p>
-            <blockquote class="workflow-quote">
-              <i class="pi pi-quote-left workflow-quote-icon" />
-              {{ t('landing.quote') }}
-            </blockquote>
           </div>
 
           <div class="workflow-cards">
@@ -256,7 +268,6 @@
 
       <!-- ── Final CTA ── -->
       <section class="cta-section">
-        <div class="cta-glow" />
         <div class="cta-card animate-fade-in-up">
           <div class="cta-copy">
             <span class="section-kicker">{{ t('landing.ctaEyebrow') }}</span>
@@ -353,17 +364,12 @@ function openAuth() {
   router.push({ query: { auth: 'true' } });
 }
 
-const heroMetrics = computed(() => ([
-  { id: 'editor', value: t('landing.metricEditorValue'), label: t('landing.metricEditor') },
-  { id: 'sync', value: t('landing.metricSyncValue'), label: t('landing.metricSync') },
-  { id: 'offline', value: t('landing.metricOfflineValue'), label: t('landing.metricOffline') },
-]));
-
 const featureCards = computed(() => ([
   {
     id: 'notes',
     icon: 'pi pi-file-edit',
     iconBg: 'color-mix(in srgb, var(--primary-color) 12%, transparent)',
+    accent: 'var(--primary-color)',
     title: t('landing.featureNotesTitle'),
     body: t('landing.featureNotesBody'),
   },
@@ -371,6 +377,7 @@ const featureCards = computed(() => ([
     id: 'folders',
     icon: 'pi pi-folder',
     iconBg: 'color-mix(in srgb, var(--app-cta, #f97316) 12%, transparent)',
+    accent: 'var(--app-cta-strong, #ea580c)',
     title: t('landing.featureFoldersTitle'),
     body: t('landing.featureFoldersBody'),
   },
@@ -378,6 +385,7 @@ const featureCards = computed(() => ([
     id: 'session',
     icon: 'pi pi-shield',
     iconBg: 'color-mix(in srgb, #8b5cf6 12%, transparent)',
+    accent: '#8b5cf6',
     title: t('landing.featureSessionTitle'),
     body: t('landing.featureSessionBody'),
   },
@@ -429,11 +437,18 @@ onMounted(async () => {
    Page Shell
    ═══════════════════════════════════════════════ */
 .landing-page {
+  --landing-heading-color: color-mix(in srgb, var(--text-color) 78%, var(--primary-color) 22%);
+  --landing-title-color: color-mix(in srgb, var(--text-color) 72%, var(--primary-color) 28%);
+  --landing-copy-color: color-mix(in srgb, var(--text-color-secondary) 82%, var(--app-support) 18%);
+  --landing-muted-color: color-mix(in srgb, var(--text-color-secondary) 76%, var(--primary-color) 24%);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   color: var(--text-color);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--app-panel-inset, var(--surface-ground)) 82%, transparent) 0%, transparent 34rem),
+    var(--surface-ground);
   overflow-x: hidden;
 }
 
@@ -444,13 +459,13 @@ onMounted(async () => {
   position: sticky;
   top: 1rem;
   z-index: 40;
-  width: min(1280px, calc(100% - 3rem));
+  width: min(1440px, calc(100% - 2rem));
   margin: 1rem auto 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.72rem 1rem;
+  gap: clamp(1rem, 2vw, 2.25rem);
+  padding: 0.72rem clamp(1rem, 1.7vw, 1.5rem);
   border: 1px solid color-mix(in srgb, var(--app-border) 84%, transparent);
   border-radius: 1rem;
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 78%, transparent);
@@ -460,9 +475,11 @@ onMounted(async () => {
 }
 
 .topbar-brand {
+  flex: 1 1 0;
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  min-width: 0;
 }
 
 .topbar-brand-icon {
@@ -498,9 +515,10 @@ onMounted(async () => {
 }
 
 .topbar-nav {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.45rem;
 }
 
 .topbar-nav-link {
@@ -519,9 +537,12 @@ onMounted(async () => {
 }
 
 .topbar-actions {
+  flex: 1 1 0;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.6rem;
+  min-width: 0;
 }
 
 .topbar-controls {
@@ -548,8 +569,9 @@ onMounted(async () => {
 }
 
 .landing-main > section {
-  width: min(1280px, calc(100% - 3rem));
+  width: 100%;
   margin: 0 auto;
+  padding-inline: max(1.5rem, calc((100% - 1280px) / 2));
 }
 
 /* ═══════════════════════════════════════════════
@@ -578,16 +600,16 @@ onMounted(async () => {
   font-weight: 750;
   letter-spacing: -0.035em;
   line-height: 1.15;
-  color: var(--text-color);
+  color: var(--landing-heading-color);
 }
 
 .section-body {
   margin: 0.85rem 0 0;
   font-size: 0.95rem;
   line-height: 1.75;
-  color: var(--text-color-secondary);
+  color: var(--landing-copy-color);
   font-weight: 400;
-  opacity: 0.82;
+  opacity: 0.9;
 }
 
 .card-title {
@@ -595,16 +617,16 @@ onMounted(async () => {
   font-size: 0.95rem;
   font-weight: 650;
   letter-spacing: -0.015em;
-  color: var(--text-color);
+  color: var(--landing-title-color);
 }
 
 .card-body {
   margin: 0.4rem 0 0;
   font-size: 0.85rem;
   line-height: 1.7;
-  color: var(--text-color-secondary);
+  color: var(--landing-muted-color);
   font-weight: 400;
-  opacity: 0.75;
+  opacity: 0.82;
 }
 
 /* ═══════════════════════════════════════════════
@@ -612,43 +634,55 @@ onMounted(async () => {
    ═══════════════════════════════════════════════ */
 .hero-section {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
-  padding: 4.75rem 0 3rem;
+  min-height: clamp(640px, 78svh, 800px);
+  padding-block: clamp(3.75rem, 9vh, 6.5rem) 4rem;
+  padding-inline: 0;
+  overflow: hidden;
+  isolation: isolate;
 }
 
-.hero-glow {
+.hero-section::before {
+  content: "";
   position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.18;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 98%, transparent) 40%, color-mix(in srgb, var(--surface-ground) 86%, transparent) 58%, transparent 82%),
+    linear-gradient(180deg, transparent 72%, var(--surface-ground) 100%);
   pointer-events: none;
 }
 
-.hero-glow-1 {
-  width: 420px;
-  height: 420px;
-  top: -80px;
-  left: -120px;
-  background: color-mix(in srgb, var(--app-support) 60%, var(--primary-color));
+.hero-visual-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-.hero-glow-2 {
-  width: 320px;
-  height: 320px;
-  bottom: 60px;
-  right: -60px;
-  background: color-mix(in srgb, var(--app-cta, #f97316) 82%, var(--primary-color));
-  opacity: 0.12;
+.hero-scene-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--primary-color) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--app-cta, #f97316) 8%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 38%, #000 90%, transparent 100%);
+  opacity: 0.36;
 }
 
-.hero-inner {
+.hero-content {
   position: relative;
+  z-index: 2;
+  width: min(1280px, calc(100% - 3rem));
+  min-height: clamp(520px, 62svh, 650px);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  max-width: 52rem;
+  justify-content: center;
+  gap: 1.45rem;
+  max-width: 42rem;
+  margin-left: max(1.5rem, calc((100% - 1280px) / 2));
 }
 
 .hero-badges {
@@ -686,21 +720,22 @@ onMounted(async () => {
 .hero-title {
   margin: 0;
   font-family: var(--font-display, var(--font-sans));
-  font-size: clamp(2.6rem, 6vw, 4.2rem);
+  max-width: 42rem;
+  font-size: clamp(2.85rem, 5.2vw, 4.85rem);
   font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
   color: var(--text-color);
 }
 
 .hero-subtitle {
   margin: 0;
-  max-width: 38rem;
-  font-size: 1.02rem;
+  max-width: 41rem;
+  font-size: clamp(1rem, 1.4vw, 1.16rem);
   line-height: 1.75;
   color: var(--text-color-secondary);
   font-weight: 400;
-  opacity: 0.8;
+  opacity: 0.86;
 }
 
 .hero-actions {
@@ -718,49 +753,30 @@ onMounted(async () => {
   color: var(--text-color-secondary) !important;
 }
 
-.hero-metrics {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.hero-metric {
-  padding: 0.85rem 1.1rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 94%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: var(--app-shadow-soft);
-  min-width: 8.5rem;
-}
-
-.hero-metric-value {
-  font-family: var(--font-display, var(--font-sans));
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--primary-color);
-}
-
-.hero-metric-label {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--text-color-secondary);
-  font-weight: 450;
-  opacity: 0.7;
-}
-
 /* ── Preview ── */
 .hero-preview {
   position: relative;
 }
 
+.hero-preview-main {
+  position: absolute;
+  top: clamp(6.5rem, 13vh, 9rem);
+  right: max(-4rem, calc((100% - 1280px) / 2 - 8rem));
+  width: min(820px, 66vw);
+  transform: perspective(1200px) rotateX(1deg) rotateY(-4deg) rotateZ(0.5deg);
+  transform-origin: right center;
+  opacity: 0.86;
+}
+
 .preview-shell {
-  border-radius: 1rem;
+  border-radius: 1.1rem;
   border: 1px solid color-mix(in srgb, var(--primary-color) 12%, var(--app-border));
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
   overflow: hidden;
-  box-shadow: var(--app-shadow);
+  box-shadow:
+    0 36px 120px -58px color-mix(in srgb, var(--primary-color) 38%, #020617),
+    0 18px 56px -34px color-mix(in srgb, var(--app-cta, #f97316) 36%, #020617),
+    var(--app-shadow);
 }
 
 .preview-topbar {
@@ -972,6 +988,81 @@ onMounted(async () => {
   animation: blink 1.1s step-end infinite;
 }
 
+.hero-phone-preview {
+  position: absolute;
+  display: none;
+  right: max(2rem, calc((100% - 1280px) / 2 + 1.5rem));
+  bottom: 4.8rem;
+  width: 218px;
+  padding: 0.8rem;
+  border-radius: 1.8rem;
+  border: 1px solid color-mix(in srgb, var(--app-cta, #f97316) 28%, var(--app-border));
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
+  box-shadow: 0 32px 90px -44px color-mix(in srgb, var(--app-cta, #f97316) 50%, #020617);
+  transform: rotate(2deg);
+}
+
+.hero-phone-notch {
+  width: 72px;
+  height: 6px;
+  margin: 0 auto 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-border) 78%, transparent);
+}
+
+.hero-phone-screen {
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.58rem;
+  padding: 1rem 0.75rem 0.85rem;
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--primary-color) 10%, var(--app-panel-inset, var(--surface-hover))), var(--app-panel-raised, var(--surface-card)));
+}
+
+.hero-phone-logo {
+  filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--primary-color) 22%, transparent));
+}
+
+.hero-phone-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.hero-phone-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  color: var(--app-cta-strong, #ea580c);
+  background: color-mix(in srgb, var(--app-cta, #f97316) 12%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.hero-phone-list {
+  width: 100%;
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.hero-phone-list span {
+  display: block;
+  padding: 0.62rem 0.72rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 88%, transparent);
+  color: var(--text-color-secondary);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
@@ -981,32 +1072,45 @@ onMounted(async () => {
    Features
    ═══════════════════════════════════════════════ */
 .features-section {
-  padding: 5.5rem 0;
+  padding-block: 6rem;
   border-top: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 38%, transparent);
 }
 
 .features-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: 1.1rem;
 }
 
 .feature-card {
-  padding: 1.5rem;
-  border-radius: 0.75rem;
+  position: relative;
+  min-height: 14rem;
+  padding: 1.6rem;
+  border-radius: 0.5rem;
   border: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-hover)) 92%, transparent);
   box-shadow: var(--app-shadow-soft);
+  overflow: hidden;
   transition:
     transform var(--motion-duration-sm, 220ms) var(--motion-ease-standard, ease),
     box-shadow var(--motion-duration-sm, 220ms) var(--motion-ease-standard, ease),
     border-color var(--motion-duration-sm, 220ms);
 }
 
+.feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--feature-accent, var(--primary-color));
+  opacity: 0.85;
+}
+
 .feature-card:hover {
   transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--primary-color) 25%, var(--app-border));
-  box-shadow: 0 24px 42px -34px color-mix(in srgb, var(--primary-color) 28%, #020617);
+  border-color: color-mix(in srgb, var(--feature-accent, var(--primary-color)) 28%, var(--app-border));
+  box-shadow: 0 24px 42px -34px color-mix(in srgb, var(--feature-accent, var(--primary-color)) 34%, #020617);
 }
 
 .feature-card-icon {
@@ -1016,7 +1120,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   border-radius: 0.5rem;
-  color: var(--primary-color);
+  background: var(--feature-bg, color-mix(in srgb, var(--primary-color) 12%, transparent));
+  color: var(--feature-accent, var(--primary-color));
   font-size: 1.1rem;
 }
 
@@ -1025,16 +1130,16 @@ onMounted(async () => {
   font-size: 0.98rem;
   font-weight: 650;
   letter-spacing: -0.015em;
-  color: var(--text-color);
+  color: color-mix(in srgb, var(--landing-title-color) 86%, var(--feature-accent, var(--primary-color)) 14%);
 }
 
 .feature-card-body {
   margin: 0.45rem 0 0;
   font-size: 0.85rem;
   line-height: 1.7;
-  color: var(--text-color-secondary);
+  color: var(--landing-muted-color);
   font-weight: 400;
-  opacity: 0.75;
+  opacity: 0.82;
 }
 
 .workflow-card {
@@ -1070,7 +1175,7 @@ onMounted(async () => {
    Workflow
    ═══════════════════════════════════════════════ */
 .workflow-section {
-  padding: 5.5rem 0;
+  padding-block: 6rem;
   border-top: 1px solid var(--app-border);
 }
 
@@ -1086,27 +1191,6 @@ onMounted(async () => {
   top: 5rem;
 }
 
-.workflow-quote {
-  margin: 1.5rem 0 0;
-  padding: 1rem 1.25rem;
-  border-left: 3px solid color-mix(in srgb, var(--primary-color) 50%, var(--app-cta, #f97316));
-  border-radius: 0 0.75rem 0.75rem 0;
-  background: color-mix(in srgb, var(--primary-color) 4%, transparent);
-  font-size: 0.88rem;
-  line-height: 1.75;
-  color: var(--text-color-secondary);
-  font-weight: 400;
-  font-style: italic;
-  position: relative;
-}
-
-.workflow-quote-icon {
-  color: var(--app-cta, #f97316);
-  opacity: 0.3;
-  font-size: 0.9rem;
-  margin-right: 0.35rem;
-}
-
 .workflow-cards {
   display: flex;
   flex-direction: column;
@@ -1117,8 +1201,11 @@ onMounted(async () => {
    Download
    ═══════════════════════════════════════════════ */
 .download-section {
-  padding: 5.5rem 0;
+  padding-block: 6rem;
   border-top: 1px solid var(--app-border);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 7%, transparent), color-mix(in srgb, var(--app-cta, #f97316) 6%, transparent)),
+    color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 28%, transparent);
 }
 
 .download-layout {
@@ -1145,12 +1232,12 @@ onMounted(async () => {
   align-items: center;
   gap: 0.65rem;
   font-size: 0.9rem;
-  color: var(--text-color-secondary);
+  color: var(--landing-muted-color);
 }
 
 .download-feature span {
   font-weight: 450;
-  opacity: 0.78;
+  opacity: 0.86;
 }
 
 .download-feature .pi {
@@ -1186,7 +1273,7 @@ onMounted(async () => {
     color-mix(in srgb, var(--primary-color) 14%, var(--app-panel-raised, var(--surface-card))),
     color-mix(in srgb, var(--app-support) 8%, var(--app-panel-raised, var(--surface-card)))
   );
-  color: var(--text-color);
+  color: var(--landing-heading-color);
   text-decoration: none;
   font-weight: 600;
   transition:
@@ -1220,14 +1307,14 @@ onMounted(async () => {
 
 .download-btn-meta {
   font-size: 0.72rem;
-  color: var(--text-color-secondary);
+  color: var(--landing-muted-color);
   font-weight: 500;
 }
 
 .download-requirement {
   font-size: 0.78rem;
-  color: var(--text-color-secondary);
-  opacity: 0.7;
+  color: var(--landing-muted-color);
+  opacity: 0.78;
 }
 
 .download-qr-area {
@@ -1272,6 +1359,7 @@ onMounted(async () => {
   font-weight: 800;
   font-size: 1rem;
   letter-spacing: -0.03em;
+  color: var(--landing-title-color);
 }
 
 .download-qr-code {
@@ -1284,7 +1372,7 @@ onMounted(async () => {
 .download-qr-label {
   font-size: 0.76rem;
   font-weight: 600;
-  color: var(--text-color-secondary);
+  color: var(--landing-muted-color);
   letter-spacing: 0.04em;
 }
 
@@ -1293,22 +1381,8 @@ onMounted(async () => {
    ═══════════════════════════════════════════════ */
 .cta-section {
   position: relative;
-  padding: 5.5rem 0 3rem;
+  padding-block: 5.5rem 3.5rem;
   border-top: 1px solid var(--app-border);
-}
-
-.cta-glow {
-  position: absolute;
-  width: 500px;
-  height: 300px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--app-support) 40%, var(--primary-color));
-  filter: blur(120px);
-  opacity: 0.08;
-  pointer-events: none;
 }
 
 .cta-card {
@@ -1318,7 +1392,7 @@ onMounted(async () => {
   gap: 2rem;
   align-items: center;
   padding: 2.5rem;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
   background: linear-gradient(
     160deg,
@@ -1335,16 +1409,16 @@ onMounted(async () => {
   font-weight: 750;
   letter-spacing: -0.035em;
   line-height: 1.15;
-  color: var(--text-color);
+  color: var(--landing-heading-color);
 }
 
 .cta-body {
   margin: 0.65rem 0 0;
   font-size: 0.9rem;
   line-height: 1.7;
-  color: var(--text-color-secondary);
+  color: var(--landing-copy-color);
   font-weight: 400;
-  opacity: 0.78;
+  opacity: 0.9;
 }
 
 .cta-actions {
@@ -1372,7 +1446,7 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 94%, transparent);
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: var(--text-color-secondary);
+  color: var(--landing-muted-color);
 }
 
 /* ═══════════════════════════════════════════════
@@ -1457,6 +1531,21 @@ onMounted(async () => {
 @media (max-width: 1100px) {
   .topbar-nav { display: none; }
 
+  .hero-content {
+    max-width: 43rem;
+  }
+
+  .hero-preview-main {
+    top: 8rem;
+    right: -8rem;
+    width: 760px;
+    opacity: 0.68;
+  }
+
+  .hero-phone-preview {
+    display: none;
+  }
+
   .preview-body {
     grid-template-columns: 160px 200px minmax(0, 1fr);
   }
@@ -1489,8 +1578,28 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
-  .hero-metrics {
-    flex-direction: column;
+  .hero-section {
+    min-height: 760px;
+  }
+
+  .hero-section::before {
+    background:
+      linear-gradient(180deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 92%, transparent) 52%, var(--surface-ground) 100%),
+      linear-gradient(90deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 70%, transparent) 100%);
+  }
+
+  .hero-content {
+    width: calc(100% - 3rem);
+    min-height: 560px;
+    margin-inline: 1.5rem;
+  }
+
+  .hero-preview-main {
+    top: 24rem;
+    right: -18rem;
+    width: 720px;
+    opacity: 0.34;
+    transform: perspective(1200px) rotateX(0deg) rotateY(-5deg);
   }
 
   .preview-body {
@@ -1504,7 +1613,11 @@ onMounted(async () => {
 
 @media (max-width: 640px) {
   .landing-main > section {
-    width: calc(100% - 1.5rem);
+    padding-inline: 0.75rem;
+  }
+
+  .landing-main > .hero-section {
+    padding-inline: 0;
   }
 
   .landing-topbar {
@@ -1520,7 +1633,8 @@ onMounted(async () => {
   }
 
   .hero-section {
-    padding: 2.5rem 0 2rem;
+    min-height: 740px;
+    padding-block: 2.5rem 2rem;
   }
 
   .hero-title {
@@ -1542,6 +1656,21 @@ onMounted(async () => {
   .footer-inner {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .preview-cursor {
+    animation: none;
+  }
+
+  .feature-card,
+  .workflow-card,
+  .download-btn,
+  .topbar-nav-link,
+  .footer-links a {
+    transition: none;
   }
 }
 </style>

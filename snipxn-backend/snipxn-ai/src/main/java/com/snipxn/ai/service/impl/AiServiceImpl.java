@@ -13,7 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
@@ -24,16 +26,22 @@ public class AiServiceImpl implements AiService {
     private final ObjectMapper objectMapper;
     private final String model;
     private final int maxTokens;
+    private final boolean thinkingEnabled;
+    private final String reasoningEffort;
 
     public AiServiceImpl(
             ObjectMapper objectMapper,
             @Value("${snipxn.ai.deepseek-url}") String deepseekUrl,
             @Value("${snipxn.ai.api-key}") String apiKey,
-            @Value("${snipxn.ai.model:deepseek-chat}") String model,
-            @Value("${snipxn.ai.max-tokens:2048}") int maxTokens) {
+            @Value("${snipxn.ai.model:deepseek-v4-flash}") String model,
+            @Value("${snipxn.ai.max-tokens:2048}") int maxTokens,
+            @Value("${snipxn.ai.thinking-enabled:false}") boolean thinkingEnabled,
+            @Value("${snipxn.ai.reasoning-effort:high}") String reasoningEffort) {
         this.objectMapper = objectMapper;
         this.model = model;
         this.maxTokens = maxTokens;
+        this.thinkingEnabled = thinkingEnabled;
+        this.reasoningEffort = normalizeReasoningEffort(reasoningEffort);
         this.restClient = RestClient.builder()
                 .baseUrl(deepseekUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
@@ -80,14 +88,18 @@ public class AiServiceImpl implements AiService {
 
     @SuppressWarnings("unchecked")
     private AiResponse callChatCompletions(String systemPrompt, String userPrompt) {
-        Map<String, Object> body = Map.of(
-                "model", model,
-                "max_tokens", maxTokens,
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", userPrompt)
-                )
-        );
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("max_tokens", maxTokens);
+        body.put("stream", false);
+        body.put("thinking", Map.of("type", thinkingEnabled ? "enabled" : "disabled"));
+        if (thinkingEnabled) {
+            body.put("reasoning_effort", reasoningEffort);
+        }
+        body.put("messages", List.of(
+                Map.of("role", "system", "content", systemPrompt),
+                Map.of("role", "user", "content", userPrompt)
+        ));
 
         try {
             String jsonBody = objectMapper.writeValueAsString(body);
@@ -122,7 +134,10 @@ public class AiServiceImpl implements AiService {
         }
 
         Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-        String content = message != null ? (String) message.get("content") : "";
+        String content = "";
+        if (message != null && message.get("content") instanceof String messageContent) {
+            content = messageContent;
+        }
 
         String responseModel = (String) result.get("model");
 
@@ -137,5 +152,21 @@ public class AiServiceImpl implements AiService {
                 .model(responseModel)
                 .totalTokens(totalTokens)
                 .build();
+    }
+
+    private String normalizeReasoningEffort(String value) {
+        if (value == null || value.isBlank()) {
+            return "high";
+        }
+
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "low", "medium", "high" -> normalized;
+            case "max", "xhigh" -> "max";
+            default -> {
+                log.warn("Unsupported DeepSeek reasoning_effort '{}', fallback to 'high'", value);
+                yield "high";
+            }
+        };
     }
 }

@@ -322,7 +322,10 @@ npm run ios
 | `JUDGE0_API_KEY` | ▶️ Judge0 API Key | 🔶 可选 |
 | `DEEPSEEK_URL` | 🧠 DeepSeek 服务地址 | 🔶 可选 |
 | `DEEPSEEK_API_KEY` | 🧠 DeepSeek API Key | 🔶 可选 |
-| `DEEPSEEK_MODEL` | 🧠 DeepSeek 模型名 | 🔶 可选 |
+| `DEEPSEEK_MODEL` | 🧠 DeepSeek 模型名，默认 `deepseek-v4-flash` | 🔶 可选 |
+| `DEEPSEEK_MAX_TOKENS` | 🧠 DeepSeek 最大输出 token 数 | 🔶 可选 |
+| `DEEPSEEK_THINKING_ENABLED` | 🧠 是否启用 DeepSeek thinking 模式 | 🔶 可选 |
+| `DEEPSEEK_REASONING_EFFORT` | 🧠 推理强度：`low`、`medium`、`high`、`max` | 🔶 可选 |
 | `JAVA_OPTS` | ☕ JVM 运行参数 | ❌ 否 |
 
 ## 🔌 可选集成说明

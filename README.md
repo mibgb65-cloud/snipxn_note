@@ -322,7 +322,10 @@ The root `.env.production` file is the deployment template used by `docker-compo
 | `JUDGE0_API_KEY` | ▶️ Judge0 API key | 🔶 Optional |
 | `DEEPSEEK_URL` | 🧠 DeepSeek base URL | 🔶 Optional |
 | `DEEPSEEK_API_KEY` | 🧠 DeepSeek API key | 🔶 Optional |
-| `DEEPSEEK_MODEL` | 🧠 DeepSeek model name | 🔶 Optional |
+| `DEEPSEEK_MODEL` | 🧠 DeepSeek model name, default `deepseek-v4-flash` | 🔶 Optional |
+| `DEEPSEEK_MAX_TOKENS` | 🧠 DeepSeek max output tokens | 🔶 Optional |
+| `DEEPSEEK_THINKING_ENABLED` | 🧠 Enable DeepSeek thinking mode | 🔶 Optional |
+| `DEEPSEEK_REASONING_EFFORT` | 🧠 Thinking effort: `low`, `medium`, `high`, `max` | 🔶 Optional |
 | `JAVA_OPTS` | ☕ JVM runtime options | ❌ No |
 
 ## 🔌 Optional Integrations

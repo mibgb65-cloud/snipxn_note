@@ -60,8 +60,10 @@ snipxn:
   ai:
     deepseek-url: ${DEEPSEEK_URL:https://api.deepseek.com}
     api-key: ${DEEPSEEK_API_KEY:}
-    model: ${DEEPSEEK_MODEL:deepseek-chat}
+    model: ${DEEPSEEK_MODEL:deepseek-v4-flash}
     max-tokens: ${DEEPSEEK_MAX_TOKENS:2048}
+    thinking-enabled: ${DEEPSEEK_THINKING_ENABLED:false}
+    reasoning-effort: ${DEEPSEEK_REASONING_EFFORT:high}
 
 management:
   endpoints:

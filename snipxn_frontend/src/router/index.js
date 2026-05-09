@@ -24,6 +24,18 @@ const router = createRouter({
       component: () => import('../views/ChangelogView.vue')
     },
     {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('../views/LegalView.vue'),
+      meta: { legalType: 'terms' }
+    },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('../views/LegalView.vue'),
+      meta: { legalType: 'privacy' }
+    },
+    {
       path: '/workspace',
       name: 'workspace',
       component: () => import('../views/MainView.vue'),

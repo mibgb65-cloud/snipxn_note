@@ -15,7 +15,7 @@
         <div class="setup-copy">
           <h1 class="setup-title">{{ t('setupProfile.title') }}</h1>
           <p class="setup-body">
-            {{ t('setupProfile.subtitlePrefix') }}<button type="button" class="setup-inline-link" @click="showLegalToast('privacy')">{{ t('auth.privacyPolicy') }}</button>{{ t('setupProfile.subtitleSuffix') }}
+            {{ t('setupProfile.subtitlePrefix') }}<router-link to="/privacy" class="setup-inline-link">{{ t('auth.privacyPolicy') }}</router-link>{{ t('setupProfile.subtitleSuffix') }}
           </p>
         </div>
 
@@ -52,7 +52,7 @@
           </div>
 
           <p class="setup-consent">
-            {{ t('setupProfile.consentPrefix') }}<button type="button" class="setup-inline-link" @click="showLegalToast('terms')">{{ t('auth.termsOfService') }}</button>{{ t('setupProfile.consentMiddle') }}<button type="button" class="setup-inline-link" @click="showLegalToast('privacy')">{{ t('auth.privacyPolicy') }}</button>{{ t('setupProfile.consentSuffix') }}
+            {{ t('setupProfile.consentPrefix') }}<router-link to="/terms" class="setup-inline-link">{{ t('auth.termsOfService') }}</router-link>{{ t('setupProfile.consentMiddle') }}<router-link to="/privacy" class="setup-inline-link">{{ t('auth.privacyPolicy') }}</router-link>{{ t('setupProfile.consentSuffix') }}
           </p>
 
           <Button
@@ -144,16 +144,6 @@ function formatDateInput(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-function showLegalToast(type) {
-  const isTerms = type === 'terms';
-  toast.add({
-    severity: 'info',
-    summary: isTerms ? t('auth.termsOfService') : t('auth.privacyPolicy'),
-    detail: isTerms ? t('auth.termsComingSoon') : t('auth.privacyComingSoon'),
-    life: 2400,
-  });
 }
 
 async function handleSubmit() {

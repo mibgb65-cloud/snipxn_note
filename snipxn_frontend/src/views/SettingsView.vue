@@ -1,5 +1,8 @@
 <template>
-  <div class="settings-page-shell animate-fade-in">
+  <div
+    class="settings-page-shell animate-fade-in"
+    :class="{ 'settings-page-shell-dark': themeMode === 'dark' }"
+  >
     <div class="settings-page-frame">
       <header class="settings-page-topbar animate-fade-in-up delay-100">
         <div class="settings-page-brand">
@@ -360,6 +363,17 @@ watch(
 
 <style scoped>
 .settings-page-shell {
+  --settings-bg: #f3fbf8;
+  --settings-frame: rgba(255, 255, 255, 0.96);
+  --settings-panel: rgba(255, 255, 255, 0.96);
+  --settings-panel-soft: rgba(244, 250, 248, 0.92);
+  --settings-panel-inset: rgba(239, 247, 244, 0.88);
+  --settings-input-bg: #ffffff;
+  --settings-input-text: var(--text-color);
+  --settings-input-muted: color-mix(in srgb, var(--text-color-secondary) 70%, transparent);
+  --settings-border: var(--app-border);
+  --settings-border-strong: var(--app-border-strong);
+  --settings-focus: color-mix(in srgb, var(--primary-color) 42%, var(--app-border));
   height: 100dvh;
   min-height: 100dvh;
   max-height: 100dvh;
@@ -367,6 +381,27 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.settings-page-shell.settings-page-shell-dark {
+  --text-color: #e6eef7;
+  --text-color-secondary: #a9bbcc;
+  --primary-color: #2dd4bf;
+  --surface-card: #0d1b2a;
+  --surface-border: rgba(148, 163, 184, 0.2);
+  --settings-bg: #07111c;
+  --settings-frame: #091624;
+  --settings-panel: #0d1b2a;
+  --settings-panel-soft: #101f2f;
+  --settings-panel-inset: #07111c;
+  --settings-input-bg: #0a1725;
+  --settings-input-text: #e6eef7;
+  --settings-input-muted: #8ea3b8;
+  --settings-border: rgba(148, 163, 184, 0.14);
+  --settings-border-strong: rgba(148, 163, 184, 0.24);
+  --settings-focus: rgba(45, 212, 191, 0.5);
+  background: var(--settings-bg);
+  color: #e6eef7;
 }
 
 .settings-page-shell > * {
@@ -379,8 +414,8 @@ watch(
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-strong) 98%, transparent);
+  border: 1px solid var(--settings-border);
+  background: var(--settings-frame);
 }
 
 .settings-page-topbar {
@@ -394,8 +429,8 @@ watch(
   align-items: center;
   gap: 0.65rem;
   padding: 0.5rem 0.85rem;
-  border-bottom: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-subtle) 96%, transparent);
+  border-bottom: 1px solid var(--settings-border);
+  background: var(--settings-panel-soft);
 }
 
 .settings-page-brand,
@@ -421,8 +456,8 @@ watch(
   height: 2.5rem;
   padding: 0.25rem;
   border-radius: 0.375rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-subtle) 95%, transparent);
+  border: 1px solid var(--settings-border);
+  background: var(--settings-panel);
   flex-shrink: 0;
 }
 
@@ -462,9 +497,9 @@ watch(
   min-width: 0;
   min-height: 2.55rem;
   padding: 0 0.8rem;
-  border: 1px solid var(--app-border);
+  border: 1px solid var(--settings-border);
   border-radius: 0.375rem;
-  background: color-mix(in srgb, var(--app-panel-subtle) 96%, transparent);
+  background: var(--settings-panel);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -475,8 +510,8 @@ watch(
 .settings-page-command:focus-within,
 .settings-page-command-open {
   z-index: 40;
-  border-color: color-mix(in srgb, var(--primary-color) 34%, var(--app-border));
-  background: color-mix(in srgb, var(--app-panel-strong) 98%, transparent);
+  border-color: var(--settings-focus);
+  background: var(--settings-panel);
 }
 
 .settings-page-command-search {
@@ -522,8 +557,8 @@ watch(
   align-items: center;
   min-height: 1.7rem;
   padding: 0 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 18%, var(--app-border));
-  background: color-mix(in srgb, var(--app-panel-subtle) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 18%, var(--settings-border));
+  background: var(--settings-panel-inset);
   color: var(--text-color-secondary);
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -539,8 +574,8 @@ watch(
   display: grid;
   gap: 0;
   padding: 0.35rem 0;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 16%, var(--app-border));
-  background: color-mix(in srgb, var(--app-panel-strong) 99%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 16%, var(--settings-border));
+  background: var(--settings-panel);
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
 }
 
@@ -565,8 +600,8 @@ watch(
 .settings-page-command-result-badge {
   width: 2rem;
   height: 2rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 16%, var(--app-border));
-  background: color-mix(in srgb, var(--app-panel-subtle) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 16%, var(--settings-border));
+  background: var(--settings-panel-inset);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -613,7 +648,7 @@ watch(
 .settings-page-summary-card {
   min-width: 4.5rem;
   padding: 0.35rem 0.6rem;
-  border-left: 1px solid var(--app-border);
+  border-left: 1px solid var(--settings-border);
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -641,7 +676,7 @@ watch(
   gap: 0.3rem;
   padding-right: 0.5rem;
   margin-right: 0.25rem;
-  border-right: 1px solid var(--app-border);
+  border-right: 1px solid var(--settings-border);
 }
 
 .settings-page-link-button {
@@ -668,9 +703,9 @@ watch(
 .settings-page-profile-card,
 .settings-page-meta-card,
 .settings-page-panel {
-  border: 1px solid var(--app-border);
+  border: 1px solid var(--settings-border);
   border-radius: 1rem;
-  background: color-mix(in srgb, var(--app-panel-strong) 98%, transparent);
+  background: var(--settings-panel);
 }
 
 .settings-page-profile-card,
@@ -685,7 +720,7 @@ watch(
   justify-content: space-between;
   gap: 0.45rem;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 10%, var(--app-panel-strong)), color-mix(in srgb, var(--app-panel-strong) 97%, transparent));
+    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 8%, var(--settings-panel)), var(--settings-panel));
 }
 
 .settings-page-profile-name,
@@ -717,6 +752,133 @@ watch(
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.settings-page-shell :deep(.settings-shell),
+.settings-page-shell :deep(.settings-content) {
+  background: var(--settings-panel);
+}
+
+.settings-page-shell :deep(.settings-nav),
+.settings-page-shell :deep(.settings-content-header) {
+  border-color: var(--settings-border);
+  background: var(--settings-panel-soft);
+}
+
+.settings-page-shell :deep(.settings-nav-hero),
+.settings-page-shell :deep(.settings-nav-item),
+.settings-page-shell :deep(.settings-card),
+.settings-page-shell :deep(.profile-hero-card),
+.settings-page-shell :deep(.profile-form-card),
+.settings-page-shell :deep(.storage-card),
+.settings-page-shell :deep(.feedback-card),
+.settings-page-shell :deep(.security-card) {
+  border-color: var(--settings-border);
+  background: var(--settings-panel);
+}
+
+.settings-page-shell :deep(.settings-nav-item:hover),
+.settings-page-shell :deep(.settings-nav-item-active) {
+  border-color: var(--settings-focus);
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--settings-panel-soft));
+}
+
+.settings-page-shell :deep(.p-inputtext),
+.settings-page-shell :deep(.p-textarea),
+.settings-page-shell :deep(.settings-select),
+.settings-page-shell :deep(.p-chips),
+.settings-page-shell :deep(.p-inputchips),
+.settings-page-shell :deep(.p-inputchips-input) {
+  border-color: var(--settings-border-strong) !important;
+  background: var(--settings-input-bg) !important;
+  color: var(--settings-input-text) !important;
+  box-shadow: none !important;
+}
+
+.settings-page-shell :deep(.p-chips-input-token),
+.settings-page-shell :deep(.p-chips-input-token input),
+.settings-page-shell :deep(.p-inputchips-input-item),
+.settings-page-shell :deep(.p-inputchips-input-item input) {
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--settings-input-text) !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.settings-page-shell :deep(.p-inputchips),
+.settings-page-shell :deep(.p-inputchips-input) {
+  width: 100%;
+}
+
+.settings-page-shell :deep(.p-inputchips-input) {
+  min-height: 2.875rem;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.35rem 0.55rem !important;
+}
+
+.settings-page-shell :deep(.p-inputtext::placeholder),
+.settings-page-shell :deep(.p-textarea::placeholder),
+.settings-page-shell :deep(.p-chips-input-token input::placeholder),
+.settings-page-shell :deep(.p-inputchips-input-item input::placeholder) {
+  color: var(--settings-input-muted) !important;
+  opacity: 1;
+}
+
+.settings-page-shell :deep(.p-inputtext:hover),
+.settings-page-shell :deep(.p-textarea:hover),
+.settings-page-shell :deep(.settings-select:hover),
+.settings-page-shell :deep(.p-chips:hover),
+.settings-page-shell :deep(.p-inputchips:hover),
+.settings-page-shell :deep(.p-inputchips-input:hover) {
+  border-color: color-mix(in srgb, var(--primary-color) 34%, var(--settings-border-strong)) !important;
+}
+
+.settings-page-shell :deep(.p-inputtext:enabled:focus),
+.settings-page-shell :deep(.p-textarea:enabled:focus),
+.settings-page-shell :deep(.settings-select:focus),
+.settings-page-shell :deep(.p-chips:focus-within),
+.settings-page-shell :deep(.p-inputchips:focus-within),
+.settings-page-shell :deep(.p-inputchips-input:focus-within) {
+  border-color: var(--settings-focus) !important;
+  box-shadow: 0 0 0 0.18rem color-mix(in srgb, var(--primary-color) 12%, transparent) !important;
+}
+
+.settings-page-shell :deep(.p-chips-token),
+.settings-page-shell :deep(.p-inputchips-chip),
+.settings-page-shell :deep(.p-inputchips-chip-item),
+.settings-page-shell :deep(.p-chip) {
+  border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--settings-border));
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--settings-panel-soft));
+  color: var(--text-color);
+}
+
+.settings-page-shell :deep(.p-inputchips-chip-icon),
+.settings-page-shell :deep(.p-chip-remove-icon) {
+  color: var(--settings-input-muted);
+}
+
+.settings-page-shell.settings-page-shell-dark :deep(.p-inputtext),
+.settings-page-shell.settings-page-shell-dark :deep(.p-textarea),
+.settings-page-shell.settings-page-shell-dark :deep(.settings-select),
+.settings-page-shell.settings-page-shell-dark :deep(.p-chips),
+.settings-page-shell.settings-page-shell-dark :deep(.p-chips-input-token input),
+.settings-page-shell.settings-page-shell-dark :deep(.p-inputchips),
+.settings-page-shell.settings-page-shell-dark :deep(.p-inputchips-input),
+.settings-page-shell.settings-page-shell-dark :deep(.p-inputchips-input-item input) {
+  caret-color: #5eead4;
+}
+
+.settings-page-shell.settings-page-shell-dark :deep(.p-button.p-button-outlined),
+.settings-page-shell.settings-page-shell-dark :deep(.p-button.p-button-secondary.p-button-outlined) {
+  border-color: rgba(148, 163, 184, 0.32) !important;
+  background: rgba(11, 22, 34, 0.55) !important;
+  color: #dbeafe !important;
+}
+
+.settings-page-shell.settings-page-shell-dark :deep(.p-button.p-button-text) {
+  color: #a7c7e8 !important;
 }
 
 @media (max-width: 1280px) {

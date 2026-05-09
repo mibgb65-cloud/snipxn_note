@@ -75,13 +75,14 @@
         </form>
 
         <!-- Forgot Password Form -->
-        <form v-else @submit.prevent="handleReset" class="auth-card-form">
-          <div class="field">
+        <form v-else @submit.prevent="handleReset" class="auth-card-form auth-reset-form">
+          <div class="field auth-code-field">
             <label for="reset-code" class="block font-medium mb-2">{{ t('auth.code') }}</label>
-            <div class="p-inputgroup">
-              <InputText id="reset-code" v-model="form.code" type="text" required />
+            <div class="auth-code-row">
+              <InputText id="reset-code" v-model="form.code" type="text" required class="auth-code-input" />
               <Button
                 :label="countdown > 0 ? t('auth.resendIn', { seconds: countdown }) : t('auth.sendCode')"
+                class="auth-code-button"
                 :disabled="isCodeSending || countdown > 0"
                 :loading="isCodeSending"
                 @click="handleSendCode"
@@ -94,7 +95,7 @@
             <Password
               id="reset-password"
               v-model="form.newPassword"
-              :feedback="true"
+              :feedback="false"
               toggleMask
               class="w-full"
               inputClass="w-full"
@@ -230,19 +231,58 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .auth-page {
+  --auth-page-bg: #f7fafc;
+  --auth-page-header: rgba(255, 255, 255, 0.9);
+  --auth-page-field: #ffffff;
+  --auth-page-input: #ffffff;
+  --auth-page-logo-bg: #f2f7f6;
+  --auth-page-code-button: #eef7f6;
+  --auth-page-code-button-hover: #dff1ef;
+  --auth-page-text: #102033;
+  --auth-page-muted: #516173;
+  --auth-page-subtle: #7a899a;
+  --auth-page-border: rgba(15, 23, 42, 0.1);
+  --auth-page-border-strong: rgba(15, 23, 42, 0.16);
+  --auth-page-link: #0f766e;
+  --auth-page-link-hover: #115e59;
+  --auth-page-icon: #0f766e;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--app-bg, var(--surface-ground));
-  color: var(--text-color);
+  background:
+    linear-gradient(180deg, rgba(236, 244, 246, 0.72), transparent 26rem),
+    var(--auth-page-bg);
+  color: var(--auth-page-text);
+}
+
+:global(html.app-dark) .auth-page {
+  --auth-page-bg: #050d16;
+  --auth-page-header: rgba(5, 13, 22, 0.88);
+  --auth-page-field: #0f1b29;
+  --auth-page-input: #0f1b29;
+  --auth-page-logo-bg: #102032;
+  --auth-page-code-button: #102032;
+  --auth-page-code-button-hover: #173047;
+  --auth-page-text: #f3f7fb;
+  --auth-page-muted: #b7c6d6;
+  --auth-page-subtle: #8ea3b8;
+  --auth-page-border: rgba(148, 163, 184, 0.18);
+  --auth-page-border-strong: rgba(148, 163, 184, 0.3);
+  --auth-page-link: #7dd3fc;
+  --auth-page-link-hover: #bae6fd;
+  --auth-page-icon: #5eead4;
+  background: var(--auth-page-bg);
 }
 
 .auth-page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--app-border);
+  padding: 0.78rem 1.25rem;
+  border-bottom: 1px solid var(--auth-page-border);
+  background: var(--auth-page-header);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .auth-back-link {
@@ -250,7 +290,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
-  color: var(--text-color);
+  color: var(--auth-page-text) !important;
   font-weight: 700;
   font-size: 0.95rem;
   transition: color 180ms;
@@ -266,8 +306,8 @@ onBeforeUnmount(() => {
   gap: 0.25rem;
   padding: 0.25rem;
   border-radius: 0.375rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-subtle, var(--surface-hover)) 92%, transparent);
+  border: 1px solid var(--auth-page-border);
+  background: var(--auth-page-field);
 }
 
 .auth-page-main {
@@ -275,15 +315,16 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: clamp(3rem, 10vh, 6.5rem) 1.25rem 3rem;
 }
 
 .auth-card {
-  width: min(26rem, 100%);
-  padding: 2rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-strong, var(--surface-card)) 98%, transparent);
+  width: min(28rem, 100%);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -295,14 +336,14 @@ onBeforeUnmount(() => {
 }
 
 .auth-logo-wrap {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 0.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--app-panel-strong) 92%, transparent);
-  border: 1px solid var(--app-border);
+  background: var(--auth-page-logo-bg);
+  border: 1px solid var(--auth-page-border);
 }
 
 .auth-card-title-block {
@@ -311,14 +352,15 @@ onBeforeUnmount(() => {
 
 .auth-card-title {
   margin: 0 0 0.35rem;
-  font-size: 1.5rem;
+  color: var(--auth-page-text) !important;
+  font-size: 1.65rem;
   font-weight: 800;
   letter-spacing: -0.04em;
 }
 
 .auth-card-subtitle {
   margin: 0;
-  color: var(--text-color-secondary);
+  color: var(--auth-page-muted) !important;
   font-size: 0.88rem;
   line-height: 1.6;
 }
@@ -329,9 +371,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.6rem;
   padding: 0.65rem 0.85rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-subtle) 92%, transparent);
+  border-radius: 0.42rem;
+  border: 1px solid var(--auth-page-border);
+  background: var(--auth-page-field);
   cursor: pointer;
   transition: border-color 180ms;
 }
@@ -341,7 +383,7 @@ onBeforeUnmount(() => {
 }
 
 .auth-email-display .pi-envelope {
-  color: var(--primary-color);
+  color: var(--auth-page-icon);
   font-size: 0.9rem;
 }
 
@@ -349,6 +391,7 @@ onBeforeUnmount(() => {
   flex: 1;
   font-size: 0.9rem;
   font-weight: 600;
+  color: var(--auth-page-text) !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -361,7 +404,7 @@ onBeforeUnmount(() => {
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--primary-color);
+  color: var(--auth-page-link);
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
@@ -377,20 +420,78 @@ onBeforeUnmount(() => {
 .auth-card-form {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.95rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--auth-page-border);
+}
+
+.auth-reset-form {
+  gap: 1rem;
 }
 
 .auth-row,
 .auth-footer {
-  color: var(--text-color-secondary);
+  color: var(--auth-page-muted) !important;
   font-size: 0.9rem;
+}
+
+.field label,
+.auth-row label {
+  color: var(--auth-page-text) !important;
+}
+
+.auth-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--auth-page-border-strong);
+  border-radius: 0.42rem;
+  background: var(--auth-page-input);
+  transition: border-color 180ms, box-shadow 180ms;
+}
+
+.auth-code-row:focus-within {
+  border-color: color-mix(in srgb, var(--auth-page-link) 48%, var(--auth-page-border));
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--auth-page-link) 12%, transparent);
+}
+
+.auth-code-row :deep(.auth-code-input.p-inputtext) {
+  min-height: 3rem;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.auth-code-button.p-button {
+  min-width: 6.4rem;
+  border: 0 !important;
+  border-left: 1px solid var(--auth-page-border-strong) !important;
+  border-radius: 0 !important;
+  background: var(--auth-page-code-button) !important;
+  color: var(--auth-page-text) !important;
+  font-size: 0.88rem;
+  font-weight: 800 !important;
+  white-space: nowrap;
+}
+
+.auth-code-button.p-button:enabled:hover {
+  background: var(--auth-page-code-button-hover) !important;
+  color: var(--auth-page-text) !important;
+}
+
+.auth-code-button.p-button:disabled {
+  background: var(--auth-page-field) !important;
+  color: var(--auth-page-subtle) !important;
+  opacity: 1;
 }
 
 .link-button {
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--primary-color);
+  color: var(--auth-page-link);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -409,9 +510,31 @@ onBeforeUnmount(() => {
   font-size: 1rem;
 }
 
+.auth-submit.p-button {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.auth-submit.p-button:enabled:hover {
+  background: #115e59 !important;
+  border-color: #115e59 !important;
+}
+
 :deep(.p-inputtext),
 :deep(.p-password-input) {
   min-height: 3rem;
+  border-radius: 0.42rem;
+  border-color: var(--auth-page-border-strong) !important;
+  background: var(--auth-page-input) !important;
+  color: var(--auth-page-text) !important;
+}
+
+:deep(.p-inputtext::placeholder),
+:deep(.p-password-input::placeholder) {
+  color: var(--auth-page-subtle) !important;
+  opacity: 1;
 }
 
 :deep(.p-password) {
@@ -420,17 +543,51 @@ onBeforeUnmount(() => {
 
 :deep(.p-inputtext:enabled:focus),
 :deep(.p-password-input:enabled:focus) {
-  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
+  background: var(--auth-page-input) !important;
+  border-color: color-mix(in srgb, var(--auth-page-link) 48%, var(--auth-page-border)) !important;
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--auth-page-link) 12%, transparent) !important;
 }
 
-:deep(.p-inputgroup .p-inputtext) {
-  border-start-end-radius: 0;
-  border-end-end-radius: 0;
+:global(html.app-dark) .auth-card {
+  box-shadow: none;
 }
 
-:deep(.p-inputgroup .p-button) {
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
+:global(html.app-dark) .auth-logo-wrap {
+  background: #132235;
+}
+
+:global(html.app-dark) .auth-email-display,
+:global(html.app-dark) .auth-page-controls {
+  background: #0b1622;
+}
+
+:global(html.app-dark) .auth-card-title,
+:global(html.app-dark) .field label,
+:global(html.app-dark) .auth-row label,
+:global(html.app-dark) .auth-email-text {
+  color: #f3f7fb;
+}
+
+:global(html.app-dark) .auth-card-subtitle,
+:global(html.app-dark) .auth-row,
+:global(html.app-dark) .auth-footer {
+  color: #b7c6d6;
+}
+
+:global(html.app-dark) .auth-submit.p-button {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+}
+
+:global(html.app-dark) :deep(.p-password-input),
+:global(html.app-dark) :deep(.p-inputtext) {
+  color: #f3f7fb !important;
+}
+
+:global(html.app-dark) :deep(.p-password .p-icon),
+:global(html.app-dark) :deep(.p-password-toggle-mask) {
+  color: #a9bbcc;
 }
 
 /* Animations */
@@ -445,7 +602,6 @@ onBeforeUnmount(() => {
 
 @media (max-width: 480px) {
   .auth-card {
-    padding: 1.25rem;
     border: none;
     background: transparent;
   }

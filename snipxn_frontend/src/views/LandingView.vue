@@ -308,6 +308,8 @@
           <a href="#features">{{ t('landing.featureEyebrow') }}</a>
           <a href="#download">{{ t('landing.downloadEyebrow') }}</a>
           <router-link to="/changelog">{{ t('landing.changelog') }}</router-link>
+          <router-link to="/terms">{{ t('auth.termsOfService') }}</router-link>
+          <router-link to="/privacy">{{ t('auth.privacyPolicy') }}</router-link>
           <a href="#" @click.prevent="openAuth()">{{ t('landing.enterAppCompact') }}</a>
           <a href="/workspace">{{ t('landing.enterWorkspaceCompact') }}</a>
         </nav>
@@ -443,17 +445,17 @@ onMounted(async () => {
    Page Shell
    ═══════════════════════════════════════════════ */
 .landing-page {
-  --landing-heading-color: color-mix(in srgb, var(--text-color) 78%, var(--primary-color) 22%);
-  --landing-title-color: color-mix(in srgb, var(--text-color) 72%, var(--primary-color) 28%);
-  --landing-copy-color: color-mix(in srgb, var(--text-color-secondary) 82%, var(--app-support) 18%);
-  --landing-muted-color: color-mix(in srgb, var(--text-color-secondary) 76%, var(--primary-color) 24%);
+  --landing-heading-color: var(--text-color);
+  --landing-title-color: color-mix(in srgb, var(--text-color) 92%, var(--primary-color) 8%);
+  --landing-copy-color: color-mix(in srgb, var(--text-color-secondary) 90%, var(--text-color) 10%);
+  --landing-muted-color: color-mix(in srgb, var(--text-color-secondary) 88%, transparent);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   color: var(--text-color);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--app-panel-inset, var(--surface-ground)) 82%, transparent) 0%, transparent 34rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--app-panel-inset, var(--surface-ground)) 42%, transparent) 0%, transparent 24rem),
     var(--surface-ground);
   overflow-x: hidden;
 }
@@ -463,20 +465,20 @@ onMounted(async () => {
    ═══════════════════════════════════════════════ */
 .landing-topbar {
   position: sticky;
-  top: 1rem;
+  top: 0.85rem;
   z-index: 40;
   width: min(1440px, calc(100% - 2rem));
-  margin: 1rem auto 0;
+  margin: 0.85rem auto 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: clamp(1rem, 2vw, 2.25rem);
-  padding: 0.72rem clamp(1rem, 1.7vw, 1.5rem);
-  border: 1px solid color-mix(in srgb, var(--app-border) 84%, transparent);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 78%, transparent);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  padding: 0.64rem clamp(0.9rem, 1.5vw, 1.35rem);
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 94%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow: var(--app-shadow-soft);
 }
 
@@ -593,7 +595,7 @@ onMounted(async () => {
   font-family: var(--font-mono);
   font-size: 0.74rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--primary-color);
   opacity: 0.85;
@@ -604,7 +606,7 @@ onMounted(async () => {
   font-family: var(--font-display, var(--font-sans));
   font-size: clamp(1.7rem, 3.8vw, 2.5rem);
   font-weight: 750;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
   line-height: 1.15;
   color: var(--landing-heading-color);
 }
@@ -640,8 +642,8 @@ onMounted(async () => {
    ═══════════════════════════════════════════════ */
 .hero-section {
   position: relative;
-  min-height: clamp(640px, 78svh, 800px);
-  padding-block: clamp(3.75rem, 9vh, 6.5rem) 4rem;
+  min-height: clamp(610px, 76svh, 760px);
+  padding-block: clamp(3.5rem, 8vh, 5.75rem) 3.5rem;
   padding-inline: 0;
   overflow: hidden;
   isolation: isolate;
@@ -653,8 +655,8 @@ onMounted(async () => {
   inset: 0;
   z-index: 1;
   background:
-    linear-gradient(90deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 98%, transparent) 40%, color-mix(in srgb, var(--surface-ground) 86%, transparent) 58%, transparent 82%),
-    linear-gradient(180deg, transparent 72%, var(--surface-ground) 100%);
+    linear-gradient(90deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 96%, transparent) 36%, color-mix(in srgb, var(--surface-ground) 72%, transparent) 62%, transparent 88%),
+    linear-gradient(180deg, transparent 76%, var(--surface-ground) 100%);
   pointer-events: none;
 }
 
@@ -670,11 +672,11 @@ onMounted(async () => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(color-mix(in srgb, var(--primary-color) 10%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--app-cta, #f97316) 8%, transparent) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 38%, #000 90%, transparent 100%);
-  opacity: 0.36;
+    linear-gradient(color-mix(in srgb, var(--text-color-secondary) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--text-color-secondary) 7%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 42%, #000 92%, transparent 100%);
+  opacity: 0.22;
 }
 
 .hero-content {
@@ -686,8 +688,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1.45rem;
-  max-width: 42rem;
+  gap: 1.25rem;
+  max-width: 38rem;
   margin-left: max(1.5rem, calc((100% - 1280px) / 2));
 }
 
@@ -703,7 +705,7 @@ onMounted(async () => {
   align-items: center;
   gap: 0.35rem;
   padding: 0.35rem 0.75rem;
-  border-radius: 2rem;
+  border-radius: 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.74rem;
   font-weight: 600;
@@ -718,18 +720,18 @@ onMounted(async () => {
 }
 
 .hero-badge-accent {
-  background: color-mix(in srgb, var(--app-cta, #f97316) 10%, transparent);
-  color: var(--app-cta-strong, #ea580c);
-  border: 1px solid color-mix(in srgb, var(--app-cta, #f97316) 18%, transparent);
+  background: color-mix(in srgb, var(--app-cta, #f97316) 8%, transparent);
+  color: color-mix(in srgb, var(--app-cta-strong, #ea580c) 86%, var(--text-color));
+  border: 1px solid color-mix(in srgb, var(--app-cta, #f97316) 15%, transparent);
 }
 
 .hero-title {
   margin: 0;
   font-family: var(--font-display, var(--font-sans));
-  max-width: 42rem;
-  font-size: clamp(2.85rem, 5.2vw, 4.85rem);
+  max-width: 38rem;
+  font-size: clamp(2.65rem, 5vw, 4.35rem);
   font-weight: 800;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
   line-height: 1.04;
   color: var(--text-color);
 }
@@ -766,23 +768,22 @@ onMounted(async () => {
 
 .hero-preview-main {
   position: absolute;
-  top: clamp(6.5rem, 13vh, 9rem);
-  right: max(-4rem, calc((100% - 1280px) / 2 - 8rem));
-  width: min(820px, 66vw);
-  transform: perspective(1200px) rotateX(1deg) rotateY(-4deg) rotateZ(0.5deg);
+  top: clamp(7.25rem, 14vh, 9.5rem);
+  right: max(-3rem, calc((100% - 1280px) / 2 - 5rem));
+  width: min(760px, 62vw);
+  transform: none;
   transform-origin: right center;
-  opacity: 0.86;
+  opacity: 0.98;
 }
 
 .preview-shell {
-  border-radius: 1.1rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 12%, var(--app-border));
+  border-radius: 0.85rem;
+  border: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
   overflow: hidden;
   box-shadow:
-    0 36px 120px -58px color-mix(in srgb, var(--primary-color) 38%, #020617),
-    0 18px 56px -34px color-mix(in srgb, var(--app-cta, #f97316) 36%, #020617),
-    var(--app-shadow);
+    0 24px 70px -50px rgba(2, 8, 23, 0.55),
+    var(--app-shadow-soft);
 }
 
 .preview-topbar {
@@ -838,7 +839,7 @@ onMounted(async () => {
   padding: 0.85rem;
   border-radius: 0.5rem;
   border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 94%, transparent);
+  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 88%, transparent);
 }
 
 .preview-col-label {
@@ -874,8 +875,8 @@ onMounted(async () => {
 }
 
 .preview-folder-active {
-  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
-  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  color: color-mix(in srgb, var(--primary-color) 86%, var(--text-color));
 }
 
 .preview-folder-active .pi {
@@ -911,8 +912,8 @@ onMounted(async () => {
 }
 
 .preview-note-active {
-  border-color: color-mix(in srgb, var(--primary-color) 30%, var(--app-border));
-  background: color-mix(in srgb, var(--primary-color) 6%, var(--app-panel-strong, var(--surface-card)));
+  border-color: color-mix(in srgb, var(--primary-color) 24%, var(--app-border));
+  background: color-mix(in srgb, var(--primary-color) 5%, var(--app-panel-strong, var(--surface-card)));
 }
 
 .preview-note-title {
@@ -933,8 +934,8 @@ onMounted(async () => {
   margin-top: 0.45rem;
   padding: 0.18rem 0.4rem;
   border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--app-cta, #f97316) 10%, transparent);
-  color: var(--app-cta-strong, #ea580c);
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+  color: color-mix(in srgb, var(--primary-color) 86%, var(--text-color));
   font-family: var(--font-mono);
   font-size: 0.66rem;
   font-weight: 600;
@@ -1004,8 +1005,8 @@ onMounted(async () => {
   border-radius: 1.8rem;
   border: 1px solid color-mix(in srgb, var(--app-cta, #f97316) 28%, var(--app-border));
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
-  box-shadow: 0 32px 90px -44px color-mix(in srgb, var(--app-cta, #f97316) 50%, #020617);
-  transform: rotate(2deg);
+  box-shadow: var(--app-shadow-soft);
+  transform: none;
 }
 
 .hero-phone-notch {
@@ -1044,8 +1045,8 @@ onMounted(async () => {
   gap: 0.35rem;
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
-  color: var(--app-cta-strong, #ea580c);
-  background: color-mix(in srgb, var(--app-cta, #f97316) 12%, transparent);
+  color: color-mix(in srgb, var(--primary-color) 84%, var(--text-color));
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 700;
@@ -1078,9 +1079,9 @@ onMounted(async () => {
    Features
    ═══════════════════════════════════════════════ */
 .features-section {
-  padding-block: 6rem;
+  padding-block: 5.25rem;
   border-top: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 38%, transparent);
+  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 24%, transparent);
 }
 
 .features-grid {
@@ -1096,7 +1097,7 @@ onMounted(async () => {
   border-radius: 0.5rem;
   border: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-hover)) 92%, transparent);
-  box-shadow: var(--app-shadow-soft);
+  box-shadow: none;
   overflow: hidden;
   transition:
     transform var(--motion-duration-sm, 220ms) var(--motion-ease-standard, ease),
@@ -1108,15 +1109,15 @@ onMounted(async () => {
   content: "";
   position: absolute;
   inset: 0 0 auto;
-  height: 3px;
+  height: 2px;
   background: var(--feature-accent, var(--primary-color));
-  opacity: 0.85;
+  opacity: 0.6;
 }
 
 .feature-card:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--feature-accent, var(--primary-color)) 28%, var(--app-border));
-  box-shadow: 0 24px 42px -34px color-mix(in srgb, var(--feature-accent, var(--primary-color)) 34%, #020617);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--feature-accent, var(--primary-color)) 22%, var(--app-border));
+  box-shadow: var(--app-shadow-soft);
 }
 
 .feature-card-icon {
@@ -1155,14 +1156,14 @@ onMounted(async () => {
   border-radius: 0.5rem;
   border: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-hover)) 92%, transparent);
-  box-shadow: var(--app-shadow-soft);
+  box-shadow: none;
   transition:
     transform var(--motion-duration-sm, 220ms) var(--motion-ease-standard, ease),
     border-color var(--motion-duration-sm, 220ms);
 }
 
 .workflow-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
 }
 
@@ -1181,7 +1182,7 @@ onMounted(async () => {
    Workflow
    ═══════════════════════════════════════════════ */
 .workflow-section {
-  padding-block: 6rem;
+  padding-block: 5.25rem;
   border-top: 1px solid var(--app-border);
 }
 
@@ -1207,11 +1208,9 @@ onMounted(async () => {
    Download
    ═══════════════════════════════════════════════ */
 .download-section {
-  padding-block: 6rem;
+  padding-block: 5.25rem;
   border-top: 1px solid var(--app-border);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 7%, transparent), color-mix(in srgb, var(--app-cta, #f97316) 6%, transparent)),
-    color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 28%, transparent);
+  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 26%, transparent);
 }
 
 .download-layout {
@@ -1272,13 +1271,9 @@ onMounted(async () => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--primary-color) 14%, var(--app-panel-raised, var(--surface-card))),
-    color-mix(in srgb, var(--app-support) 8%, var(--app-panel-raised, var(--surface-card)))
-  );
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 18%, var(--app-border));
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
   color: var(--landing-heading-color);
   text-decoration: none;
   font-weight: 600;
@@ -1290,9 +1285,9 @@ onMounted(async () => {
 }
 
 .download-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: var(--primary-color);
-  box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--primary-color) 30%, #020617);
+  box-shadow: var(--app-shadow-soft);
 }
 
 .download-btn .pi {
@@ -1346,23 +1341,17 @@ onMounted(async () => {
 
 .download-phone-frame {
   position: relative;
-  width: 240px;
-  padding: 1rem;
-  border-radius: 2rem;
-  border: 3px solid color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
+  width: 238px;
+  padding: 1.15rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
-  box-shadow:
-    var(--app-shadow),
-    inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+  box-shadow: var(--app-shadow-soft);
   overflow: hidden;
 }
 
 .download-phone-notch {
-  width: 80px;
-  height: 6px;
-  margin: 0 auto 1rem;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--app-border) 80%, transparent);
+  display: none;
 }
 
 .download-phone-screen {
@@ -1370,7 +1359,7 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   gap: 0.65rem;
-  padding: 1rem 0 0.5rem;
+  padding: 0;
 }
 
 .download-phone-logo {
@@ -1403,7 +1392,7 @@ onMounted(async () => {
    ═══════════════════════════════════════════════ */
 .cta-section {
   position: relative;
-  padding-block: 5.5rem 3.5rem;
+  padding-block: 5rem 3.25rem;
   border-top: 1px solid var(--app-border);
 }
 
@@ -1415,13 +1404,9 @@ onMounted(async () => {
   align-items: center;
   padding: 2.5rem;
   border-radius: 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--app-panel-raised) 94%, transparent),
-    color-mix(in srgb, var(--primary-color) 6%, var(--app-panel-subtle, var(--surface-hover)))
-  );
-  box-shadow: var(--app-shadow);
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
+  box-shadow: var(--app-shadow-soft);
 }
 
 .cta-title {
@@ -1559,9 +1544,9 @@ onMounted(async () => {
 
   .hero-preview-main {
     top: 8rem;
-    right: -8rem;
-    width: 760px;
-    opacity: 0.68;
+    right: -7rem;
+    width: 720px;
+    opacity: 0.58;
   }
 
   .hero-phone-preview {
@@ -1606,8 +1591,8 @@ onMounted(async () => {
 
   .hero-section::before {
     background:
-      linear-gradient(180deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 92%, transparent) 52%, var(--surface-ground) 100%),
-      linear-gradient(90deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 70%, transparent) 100%);
+      linear-gradient(180deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 94%, transparent) 54%, var(--surface-ground) 100%),
+      linear-gradient(90deg, var(--surface-ground) 0%, color-mix(in srgb, var(--surface-ground) 78%, transparent) 100%);
   }
 
   .hero-content {
@@ -1619,9 +1604,9 @@ onMounted(async () => {
   .hero-preview-main {
     top: 24rem;
     right: -18rem;
-    width: 720px;
-    opacity: 0.34;
-    transform: perspective(1200px) rotateX(0deg) rotateY(-5deg);
+    width: 680px;
+    opacity: 0.24;
+    transform: none;
   }
 
   .preview-body {

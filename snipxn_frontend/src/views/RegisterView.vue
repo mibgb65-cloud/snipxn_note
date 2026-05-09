@@ -2,6 +2,7 @@
   <div class="auth-page">
     <header class="auth-page-header">
       <router-link to="/" class="auth-back-link">
+        <i class="pi pi-arrow-left" />
         <span>{{ t('app.name') }}</span>
       </router-link>
       <div class="auth-page-controls">
@@ -12,6 +13,12 @@
 
     <main class="auth-page-main">
       <div class="auth-card animate-fade-in-up">
+        <div class="auth-card-brand">
+          <div class="auth-logo-wrap">
+            <img :src="logoUrl" alt="Snipxn" width="32" height="32" />
+          </div>
+        </div>
+
         <div class="auth-card-title-block">
           <h1 class="auth-card-title">
             {{ currentStep === 'password' ? t('auth.createPasswordTitle') : t('auth.checkInboxTitle') }}
@@ -64,13 +71,13 @@
           </div>
 
           <div class="auth-legal auth-legal-primary">
-            <button type="button" class="auth-legal-link" @click="showLegalToast('terms')">
+            <router-link to="/terms" class="auth-legal-link">
               {{ t('auth.termsOfService') }}
-            </button>
+            </router-link>
             <span class="auth-legal-separator">|</span>
-            <button type="button" class="auth-legal-link" @click="showLegalToast('privacy')">
+            <router-link to="/privacy" class="auth-legal-link">
               {{ t('auth.privacyPolicy') }}
-            </button>
+            </router-link>
           </div>
         </form>
 
@@ -118,13 +125,13 @@
           </button>
 
           <div class="auth-legal">
-            <button type="button" class="auth-legal-link" @click="showLegalToast('terms')">
+            <router-link to="/terms" class="auth-legal-link">
               {{ t('auth.termsOfService') }}
-            </button>
+            </router-link>
             <span class="auth-legal-separator">|</span>
-            <button type="button" class="auth-legal-link" @click="showLegalToast('privacy')">
+            <router-link to="/privacy" class="auth-legal-link">
               {{ t('auth.privacyPolicy') }}
-            </button>
+            </router-link>
           </div>
         </form>
       </div>
@@ -143,12 +150,14 @@ import Password from 'primevue/password';
 import Button from 'primevue/button';
 import ThemeToggle from '../components/common/ThemeToggle.vue';
 import LangToggle from '../components/common/LangToggle.vue';
+import { useLogoUrl } from '../composables/useLogoUrl';
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const authStore = useAuthStore();
 const toast = useToast();
+const { logoUrl } = useLogoUrl();
 
 const emailFromQuery = computed(() => String(route.query.email || '').trim());
 const redirectTarget = computed(() => route.query.redirect || null);
@@ -391,16 +400,6 @@ function handleCodePaste(event) {
   focusCodeInput(digits.length === 6 ? 5 : digits.length);
 }
 
-function showLegalToast(type) {
-  const isTerms = type === 'terms';
-  toast.add({
-    severity: 'info',
-    summary: isTerms ? t('auth.termsOfService') : t('auth.privacyPolicy'),
-    detail: isTerms ? t('auth.termsComingSoon') : t('auth.privacyComingSoon'),
-    life: 2400,
-  });
-}
-
 async function handlePasswordContinue() {
   submittedPasswordStep.value = true;
   actionErrorMessage.value = '';
@@ -530,11 +529,41 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .auth-page {
+  --auth-page-bg: #f7fafc;
+  --auth-page-header: rgba(255, 255, 255, 0.9);
+  --auth-page-field: #ffffff;
+  --auth-page-input: #ffffff;
+  --auth-page-text: #102033;
+  --auth-page-muted: #516173;
+  --auth-page-subtle: #7a899a;
+  --auth-page-border: rgba(15, 23, 42, 0.1);
+  --auth-page-border-strong: rgba(15, 23, 42, 0.16);
+  --auth-page-link: #0f766e;
+  --auth-page-link-hover: #115e59;
+  --auth-page-icon: #0f766e;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--app-bg, var(--surface-ground));
-  color: var(--text-color);
+  background:
+    linear-gradient(180deg, rgba(236, 244, 246, 0.72), transparent 26rem),
+    var(--auth-page-bg);
+  color: var(--auth-page-text);
+}
+
+:global(html.app-dark) .auth-page {
+  --auth-page-bg: #050d16;
+  --auth-page-header: rgba(5, 13, 22, 0.88);
+  --auth-page-field: #0f1b29;
+  --auth-page-input: #0f1b29;
+  --auth-page-text: #f3f7fb;
+  --auth-page-muted: #b7c6d6;
+  --auth-page-subtle: #8ea3b8;
+  --auth-page-border: rgba(148, 163, 184, 0.18);
+  --auth-page-border-strong: rgba(148, 163, 184, 0.3);
+  --auth-page-link: #7dd3fc;
+  --auth-page-link-hover: #bae6fd;
+  --auth-page-icon: #5eead4;
+  background: var(--auth-page-bg);
 }
 
 .auth-page-header {
@@ -542,7 +571,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--app-border);
+  border-bottom: 1px solid var(--auth-page-border);
+  background: var(--auth-page-header);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .auth-back-link {
@@ -550,7 +582,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
-  color: var(--text-color);
+  color: var(--auth-page-text) !important;
   font-weight: 700;
   font-size: 0.95rem;
   transition: color 180ms;
@@ -566,28 +598,44 @@ onBeforeUnmount(() => {
   gap: 0.25rem;
   padding: 0.25rem;
   border-radius: 0.375rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-inset, var(--surface-hover)) 92%, transparent);
+  border: 1px solid var(--auth-page-border);
+  background: var(--auth-page-field);
 }
 
 .auth-page-main {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: clamp(2.5rem, 10vh, 8rem) 1rem 3.25rem;
+  padding: clamp(3rem, 10vh, 6.5rem) 1.25rem 3rem;
 }
 
 .auth-card {
-  width: min(26rem, 100%);
-  padding: 2rem;
-  border-radius: 1rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 98%, transparent);
-  box-shadow: var(--app-shadow-soft);
+  width: min(28rem, 100%);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 1.35rem;
+}
+
+.auth-card-brand {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-logo-wrap {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--auth-page-link) 7%, var(--auth-page-field));
+  border: 1px solid var(--auth-page-border);
 }
 
 .auth-card-title-block {
@@ -600,14 +648,15 @@ onBeforeUnmount(() => {
 
 .auth-card-title {
   margin: 0;
-  font-size: 1.72rem;
+  color: var(--auth-page-text) !important;
+  font-size: 1.65rem;
   font-weight: 800;
   letter-spacing: -0.04em;
 }
 
 .auth-card-subtitle {
   margin: 0;
-  color: var(--text-color-secondary);
+  color: var(--auth-page-muted) !important;
   font-size: 0.92rem;
   font-weight: 500;
   line-height: 1.6;
@@ -617,6 +666,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--auth-page-border);
 }
 
 .auth-field {
@@ -626,13 +677,14 @@ onBeforeUnmount(() => {
 }
 
 .auth-label {
+  color: var(--auth-page-text) !important;
   font-weight: 700;
   font-size: 0.9rem;
   letter-spacing: -0.01em;
 }
 
 .auth-label-soft {
-  color: var(--text-color-secondary);
+  color: var(--auth-page-muted) !important;
   font-weight: 400;
 }
 
@@ -643,10 +695,10 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 0.9rem;
-  border-radius: 0.85rem;
-  border: 1px solid var(--app-border);
-  background: color-mix(in srgb, var(--app-panel-subtle) 94%, transparent);
-  color: var(--text-color);
+  border-radius: 0.42rem;
+  border: 1px solid var(--auth-page-border);
+  background: var(--auth-page-field);
+  color: var(--auth-page-text);
   font-size: 0.92rem;
   font-weight: 600;
 }
@@ -660,11 +712,12 @@ onBeforeUnmount(() => {
 }
 
 .auth-readonly-main .pi {
-  color: var(--primary-color);
+  color: var(--auth-page-icon);
   font-size: 0.92rem;
 }
 
 .auth-readonly-main span {
+  color: var(--auth-page-text) !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -675,7 +728,7 @@ onBeforeUnmount(() => {
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--primary-color);
+  color: var(--auth-page-link);
   font: inherit;
   font-size: 0.82rem;
   font-weight: 700;
@@ -694,10 +747,10 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   gap: 0.6rem;
   padding: 0.82rem 0.95rem;
-  border-radius: 0.95rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--app-border));
-  background: color-mix(in srgb, var(--primary-color) 7%, var(--app-panel-subtle));
-  color: var(--text-color-secondary);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(94, 234, 212, 0.2);
+  background: rgba(45, 212, 191, 0.07);
+  color: var(--auth-page-muted);
   font-size: 0.84rem;
   line-height: 1.5;
 }
@@ -741,10 +794,10 @@ onBeforeUnmount(() => {
   width: 100%;
   aspect-ratio: 0.9 / 1;
   min-height: 3.85rem;
-  border: 1px solid var(--app-border);
-  border-radius: 1.05rem;
-  background: color-mix(in srgb, var(--app-panel-subtle) 92%, transparent);
-  color: var(--text-color);
+  border: 1px solid var(--auth-page-border-strong);
+  border-radius: 0.5rem;
+  background: var(--auth-page-input);
+  color: var(--auth-page-text);
   text-align: center;
   font-size: 1.25rem;
   font-weight: 700;
@@ -753,14 +806,14 @@ onBeforeUnmount(() => {
 }
 
 .auth-code-input:hover {
-  border-color: color-mix(in srgb, var(--primary-color) 24%, var(--app-border));
+  border-color: color-mix(in srgb, var(--auth-page-link) 38%, var(--auth-page-border));
 }
 
 .auth-code-input:focus {
   outline: none;
-  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
-  border-color: color-mix(in srgb, var(--primary-color) 52%, var(--app-border));
-  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--primary-color) 12%, transparent);
+  background: var(--auth-page-input);
+  border-color: color-mix(in srgb, var(--auth-page-link) 48%, var(--auth-page-border));
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--auth-page-link) 12%, transparent);
   transform: translateY(-1px);
 }
 
@@ -779,7 +832,7 @@ onBeforeUnmount(() => {
   border: 0;
   padding: 0;
   background: transparent;
-  color: color-mix(in srgb, var(--text-color-secondary) 74%, transparent);
+  color: var(--auth-page-muted);
   font: inherit;
   font-size: 0.9rem;
   font-weight: 400;
@@ -788,7 +841,7 @@ onBeforeUnmount(() => {
 }
 
 .auth-resend-link:hover:not(:disabled) {
-  color: var(--text-color-secondary);
+  color: var(--auth-page-link);
   opacity: 1;
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -796,7 +849,7 @@ onBeforeUnmount(() => {
 
 .auth-resend-link:disabled {
   cursor: not-allowed;
-  color: color-mix(in srgb, var(--text-color-secondary) 54%, transparent);
+  color: var(--auth-page-subtle);
   opacity: 1;
 }
 
@@ -806,7 +859,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 0.45rem;
   flex-wrap: wrap;
-  color: var(--text-color-secondary);
+  color: var(--auth-page-muted) !important;
   font-size: 0.82rem;
 }
 
@@ -818,14 +871,15 @@ onBeforeUnmount(() => {
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--text-color-secondary);
+  color: var(--auth-page-link);
   font: inherit;
   cursor: pointer;
+  text-decoration: none;
   transition: color 180ms;
 }
 
 .auth-legal-link:hover {
-  color: var(--text-color);
+  color: var(--auth-page-link-hover);
 }
 
 .auth-legal-separator {
@@ -836,7 +890,7 @@ onBeforeUnmount(() => {
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--primary-color);
+  color: var(--auth-page-link);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -855,11 +909,32 @@ onBeforeUnmount(() => {
   font-size: 1rem;
 }
 
+.auth-submit.p-button {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.auth-submit.p-button:enabled:hover {
+  background: #115e59 !important;
+  border-color: #115e59 !important;
+}
+
 :deep(.p-inputtext),
 :deep(.p-password-input) {
   min-height: 3.1rem;
-  border-radius: 0.85rem;
+  border-radius: 0.42rem;
+  border-color: var(--auth-page-border-strong) !important;
+  background: var(--auth-page-input) !important;
+  color: var(--auth-page-text) !important;
   transition: border-color 180ms, box-shadow 180ms, background 180ms;
+}
+
+:deep(.p-inputtext::placeholder),
+:deep(.p-password-input::placeholder) {
+  color: var(--auth-page-subtle) !important;
+  opacity: 1;
 }
 
 :deep(.p-password) {
@@ -873,15 +948,58 @@ onBeforeUnmount(() => {
 
 :deep(.p-inputtext:enabled:focus),
 :deep(.p-password-input:enabled:focus) {
-  background: color-mix(in srgb, var(--app-panel-strong) 96%, transparent);
-  border-color: color-mix(in srgb, var(--primary-color) 48%, var(--app-border));
-  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--primary-color) 12%, transparent);
+  background: var(--auth-page-input) !important;
+  border-color: color-mix(in srgb, var(--auth-page-link) 48%, var(--auth-page-border)) !important;
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--auth-page-link) 12%, transparent) !important;
 }
 
 :deep(.p-inputtext.p-invalid),
 :deep(.p-password-input.p-invalid) {
-  border-color: color-mix(in srgb, var(--red-500) 55%, var(--app-border));
+  border-color: color-mix(in srgb, var(--red-500) 55%, var(--auth-page-border));
   background: color-mix(in srgb, var(--red-500) 4%, var(--app-panel-strong));
+}
+
+:global(html.app-dark) .auth-card {
+  box-shadow: none;
+}
+
+:global(html.app-dark) .auth-logo-wrap {
+  background: #132235;
+}
+
+:global(html.app-dark) .auth-readonly-field,
+:global(html.app-dark) .auth-page-controls,
+:global(html.app-dark) .auth-code-input {
+  background: #0b1622;
+}
+
+:global(html.app-dark) .auth-card-title,
+:global(html.app-dark) .auth-label,
+:global(html.app-dark) .auth-readonly-main span {
+  color: #f3f7fb;
+}
+
+:global(html.app-dark) .auth-card-subtitle,
+:global(html.app-dark) .auth-label-soft,
+:global(html.app-dark) .auth-legal,
+:global(html.app-dark) .auth-resend-link {
+  color: #b7c6d6;
+}
+
+:global(html.app-dark) .auth-submit.p-button {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+}
+
+:global(html.app-dark) :deep(.p-password-input),
+:global(html.app-dark) :deep(.p-inputtext) {
+  color: #f3f7fb !important;
+}
+
+:global(html.app-dark) :deep(.p-password .p-icon),
+:global(html.app-dark) :deep(.p-password-toggle-mask) {
+  color: #a9bbcc;
 }
 
 :deep(.p-inputtext.p-invalid:enabled:focus),
@@ -906,7 +1024,7 @@ onBeforeUnmount(() => {
 
   .auth-card {
     width: 100%;
-    padding: 1.35rem;
+    padding: 0;
   }
 
   .auth-page-header {

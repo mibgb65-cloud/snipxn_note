@@ -142,7 +142,7 @@
       :closable="!avatarBusy"
       :close-on-escape="!avatarBusy"
       :header="t('profile.avatarUploadTitle')"
-      class="profile-avatar-upload-dialog"
+      :class="['profile-avatar-upload-dialog', { 'profile-avatar-upload-dialog-dark': isDarkTheme }]"
       :style="{ width: 'min(48rem, calc(100vw - 1.5rem))' }"
       @hide="handleAvatarDialogHide"
     >
@@ -293,6 +293,7 @@ import Chips from 'primevue/chips';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
+import { useTheme } from '../../composables/useTheme';
 import { getAvatarLabel } from '../../utils/avatar';
 
 const props = defineProps({
@@ -313,6 +314,7 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'upload-avatar']);
 
 const { t } = useI18n();
+const { isDarkTheme } = useTheme();
 
 const avatarInput = ref(null);
 const avatarCropCanvas = ref(null);
@@ -997,6 +999,92 @@ function submit() {
   justify-content: flex-end;
   gap: 0.65rem;
   flex-wrap: wrap;
+}
+
+:global(.profile-avatar-upload-dialog-dark) {
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  background: #0d1b2a !important;
+  color: #e6eef7 !important;
+  box-shadow: 0 28px 72px -38px rgba(0, 0, 0, 0.88) !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .p-dialog-header),
+:global(.profile-avatar-upload-dialog-dark .p-dialog-content),
+:global(.profile-avatar-upload-dialog-dark .p-dialog-footer) {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+  background: #0d1b2a !important;
+  color: #e6eef7 !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .p-dialog-header) {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+:global(.profile-avatar-upload-dialog-dark .p-dialog-footer) {
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+:global(.profile-avatar-upload-dialog-dark .p-dialog-title) {
+  color: #f3f7fb !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .p-dialog-close-button) {
+  color: #a9bbcc !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-dropzone),
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-original-frame),
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-crop-stage) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: #081421 !important;
+  color: #b7c6d6 !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-original-frame) {
+  background:
+    linear-gradient(45deg, rgba(148, 163, 184, 0.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(148, 163, 184, 0.08) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(148, 163, 184, 0.08) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(148, 163, 184, 0.08) 75%),
+    #081421 !important;
+  background-position: 0 0, 0 0.5rem, 0.5rem -0.5rem, -0.5rem 0 !important;
+  background-size: 1rem 1rem !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-preview-kicker),
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-preview-meta),
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-crop-control),
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-dialog-empty) {
+  color: #a9bbcc !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-preview-name) {
+  color: #f3f7fb !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-crop-vignette) {
+  background: radial-gradient(circle, transparent 0 48%, rgba(2, 8, 23, 0.64) 49% 100%) !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .profile-avatar-crop-ring) {
+  border-color: rgba(241, 245, 249, 0.9) !important;
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.38),
+    inset 0 0 0 1px rgba(2, 8, 23, 0.52) !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark input[type='range']) {
+  accent-color: #2dd4bf;
+}
+
+:global(.profile-avatar-upload-dialog-dark .p-button.p-button-secondary.p-button-outlined) {
+  border-color: rgba(148, 163, 184, 0.32) !important;
+  background: rgba(11, 22, 34, 0.72) !important;
+  color: #dbeafe !important;
+}
+
+:global(.profile-avatar-upload-dialog-dark .p-button.p-button-secondary.p-button-text) {
+  color: #a7c7e8 !important;
 }
 
 .profile-form-grid {

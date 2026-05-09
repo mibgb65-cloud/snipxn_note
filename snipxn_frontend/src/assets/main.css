@@ -338,6 +338,73 @@ button,
   background: transparent;
 }
 
+html.app-dark :where(.p-inputtext, .p-password-input, .p-textarea, textarea, select) {
+  border-color: var(--app-border-strong) !important;
+  background: color-mix(in srgb, var(--app-panel-inset) 96%, transparent) !important;
+  color: var(--text-color) !important;
+  box-shadow: none;
+}
+
+html.app-dark .p-inputtext::placeholder,
+html.app-dark .p-password-input::placeholder,
+html.app-dark .p-textarea::placeholder,
+html.app-dark textarea::placeholder {
+  color: color-mix(in srgb, var(--text-color-secondary) 78%, transparent) !important;
+  opacity: 1;
+}
+
+html.app-dark :where(.p-inputtext:enabled:hover, .p-password-input:enabled:hover, .p-textarea:enabled:hover, textarea:enabled:hover, select:enabled:hover) {
+  border-color: color-mix(in srgb, var(--primary-color) 36%, var(--app-border-strong)) !important;
+}
+
+html.app-dark :where(.p-inputtext:enabled:focus, .p-password-input:enabled:focus, .p-textarea:enabled:focus, .p-textarea.p-focus, textarea:enabled:focus, select:enabled:focus) {
+  border-color: color-mix(in srgb, var(--primary-color) 64%, var(--app-border-strong)) !important;
+  background: color-mix(in srgb, var(--app-panel-raised) 86%, var(--app-panel-inset)) !important;
+  color: var(--text-color) !important;
+  box-shadow: 0 0 0 3px var(--app-focus-ring) !important;
+}
+
+html.app-dark :where(.p-paginator) {
+  border: 1px solid var(--app-border) !important;
+  background: color-mix(in srgb, var(--app-panel-inset) 95%, transparent) !important;
+  color: var(--text-color) !important;
+}
+
+html.app-dark :where(.p-paginator-content) {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+html.app-dark :where(.p-paginator-first, .p-paginator-prev, .p-paginator-next, .p-paginator-last, .p-paginator-page) {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--text-color-secondary) !important;
+}
+
+html.app-dark :where(.p-paginator-first:not(.p-disabled):hover, .p-paginator-prev:not(.p-disabled):hover, .p-paginator-next:not(.p-disabled):hover, .p-paginator-last:not(.p-disabled):hover, .p-paginator-page:not(.p-disabled):hover) {
+  border-color: color-mix(in srgb, var(--primary-color) 22%, var(--app-border)) !important;
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--app-panel-raised)) !important;
+  color: var(--text-color) !important;
+}
+
+html.app-dark :where(.p-paginator-page-selected) {
+  border-color: color-mix(in srgb, var(--primary-color) 34%, var(--app-border)) !important;
+  background: color-mix(in srgb, var(--primary-color) 18%, var(--app-panel-raised)) !important;
+  color: var(--primary-color) !important;
+}
+
+html.app-dark :where(.p-popover) {
+  border: 1px solid var(--app-border-strong) !important;
+  background: color-mix(in srgb, var(--app-panel-raised) 98%, transparent) !important;
+  color: var(--text-color) !important;
+  box-shadow: var(--app-shadow) !important;
+}
+
+html.app-dark :where(.p-popover-content) {
+  background: transparent !important;
+  color: var(--text-color) !important;
+}
+
 :where(.p-dialog) {
   overflow: hidden;
   border-radius: 0.5rem;

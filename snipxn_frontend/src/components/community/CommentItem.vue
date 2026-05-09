@@ -348,6 +348,26 @@ function showUserCard(event) {
 
 .comment-inline-compose-input {
   width: 100%;
+  min-height: 4rem;
+  border-color: var(--app-border-strong) !important;
+  background: color-mix(in srgb, var(--app-panel-inset) 96%, transparent) !important;
+  color: var(--text-color) !important;
+  box-shadow: none !important;
+}
+
+.comment-inline-compose-input::placeholder {
+  color: color-mix(in srgb, var(--text-color-secondary) 78%, transparent) !important;
+  opacity: 1;
+}
+
+.comment-inline-compose-input:enabled:hover {
+  border-color: color-mix(in srgb, var(--primary-color) 36%, var(--app-border-strong)) !important;
+}
+
+.comment-inline-compose-input:enabled:focus {
+  border-color: color-mix(in srgb, var(--primary-color) 58%, var(--app-border-strong)) !important;
+  background: color-mix(in srgb, var(--app-panel-raised) 88%, var(--app-panel-inset)) !important;
+  box-shadow: 0 0 0 3px var(--app-focus-ring) !important;
 }
 
 .comment-inline-compose-actions {

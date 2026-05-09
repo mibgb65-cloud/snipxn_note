@@ -2022,9 +2022,9 @@ watch(
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1.25rem;
   overflow: auto;
-  padding: 1.1rem 0 0.4rem;
+  padding: 1.25rem clamp(1rem, 2vw, 1.65rem) 1.35rem;
 }
 
 .community-inline-detail-toolbar,
@@ -2036,8 +2036,7 @@ watch(
 }
 
 .community-inline-detail-toolbar {
-  padding-top: 0.85rem;
-  padding-bottom: 0.9rem;
+  padding: 0.85rem clamp(1rem, 2vw, 1.65rem) 0.9rem;
   border-bottom: 1px solid var(--app-border);
   flex-shrink: 0;
 }
@@ -2087,7 +2086,8 @@ watch(
 }
 
 .community-inline-detail-article-shell {
-  padding-bottom: 0.25rem;
+  width: 100%;
+  padding-bottom: 0.35rem;
 }
 
 .community-inline-detail-chip {
@@ -2112,8 +2112,28 @@ watch(
 
 .community-inline-detail-content {
   min-height: 0;
+  max-width: 100%;
   color: var(--text-color);
+  font-size: 0.96rem;
   line-height: 1.78;
+}
+
+.community-inline-detail-content :deep(h1),
+.community-inline-detail-content :deep(h2),
+.community-inline-detail-content :deep(h3),
+.community-inline-detail-content :deep(h4),
+.community-inline-detail-content :deep(p),
+.community-inline-detail-content :deep(ul),
+.community-inline-detail-content :deep(ol),
+.community-inline-detail-content :deep(blockquote) {
+  max-width: 78ch;
+}
+
+.community-inline-detail-content :deep(.markdown-code-block),
+.community-inline-detail-content :deep(pre),
+.community-inline-detail-content :deep(img),
+.community-inline-detail-content :deep(table) {
+  max-width: 100%;
 }
 
 .community-inline-detail-content :deep(:last-child) {
@@ -2124,7 +2144,7 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-top: 0.4rem;
+  margin-top: 0.25rem;
   padding-top: 1.1rem;
   border-top: 1px solid var(--app-border);
   clear: both;
@@ -2242,6 +2262,14 @@ watch(
   margin-top: auto;
   padding-top: 0.85rem;
   border-top: 1px solid var(--app-border);
+  background: transparent !important;
+}
+
+.community-paginator :deep(.p-paginator-content) {
+  min-height: 3.2rem;
+  justify-content: center;
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-inset) 95%, transparent);
 }
 
 .community-insights-shell {
@@ -2557,6 +2585,23 @@ watch(
 .community-compose-form :deep(.p-inputtext),
 .community-compose-form :deep(.p-textarea) {
   width: 100%;
+  border-color: var(--app-border-strong) !important;
+  background: color-mix(in srgb, var(--app-panel-inset) 96%, transparent) !important;
+  color: var(--text-color) !important;
+  box-shadow: none !important;
+}
+
+.community-compose-form :deep(.p-inputtext::placeholder),
+.community-compose-form :deep(.p-textarea::placeholder) {
+  color: color-mix(in srgb, var(--text-color-secondary) 78%, transparent) !important;
+  opacity: 1;
+}
+
+.community-compose-form :deep(.p-inputtext:enabled:focus),
+.community-compose-form :deep(.p-textarea:enabled:focus) {
+  border-color: color-mix(in srgb, var(--primary-color) 58%, var(--app-border-strong)) !important;
+  background: color-mix(in srgb, var(--app-panel-raised) 88%, var(--app-panel-inset)) !important;
+  box-shadow: 0 0 0 3px var(--app-focus-ring) !important;
 }
 
 .community-compose-form :deep(.p-textarea) {

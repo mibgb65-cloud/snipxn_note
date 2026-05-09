@@ -160,6 +160,25 @@ defineExpose({ show });
 </script>
 
 <style scoped>
+:global(.user-hovercard-popover.p-popover) {
+  border: 1px solid var(--app-border) !important;
+  border-radius: 0.5rem !important;
+  background: color-mix(in srgb, var(--app-panel-raised) 98%, transparent) !important;
+  color: var(--text-color) !important;
+  box-shadow: var(--app-shadow) !important;
+}
+
+:global(.user-hovercard-popover .p-popover-content) {
+  padding: 1rem !important;
+  background: transparent !important;
+  color: var(--text-color) !important;
+}
+
+:global(html.app-dark .user-hovercard-popover.p-popover) {
+  border-color: var(--app-border-strong) !important;
+  background: color-mix(in srgb, var(--app-panel-raised) 98%, transparent) !important;
+}
+
 .user-hovercard {
   display: flex;
   flex-direction: column;

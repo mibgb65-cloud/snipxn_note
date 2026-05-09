@@ -317,23 +317,25 @@ function handleWorkspaceClick() {
 .changelog-page {
   min-height: 100dvh;
   color: var(--text-color);
-  background: var(--surface-ground);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--app-panel-inset, var(--surface-ground)) 34%, transparent) 0%, transparent 20rem),
+    var(--surface-ground);
 }
 
 .changelog-topbar {
   position: sticky;
-  top: 1rem;
+  top: 0.85rem;
   z-index: 40;
   width: min(1240px, calc(100% - 2rem));
-  margin: 1rem auto 0;
+  margin: 0.85rem auto 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 0.9rem;
   border: 1px solid var(--app-border);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 92%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 95%, transparent);
   box-shadow: var(--app-shadow-soft);
 }
 
@@ -396,17 +398,17 @@ function handleWorkspaceClick() {
 }
 
 .changelog-main {
-  width: min(1240px, calc(100% - 2rem));
+  width: min(1160px, calc(100% - 2rem));
   margin: 0 auto;
-  padding: 4rem 0 5rem;
+  padding: 3.5rem 0 5rem;
 }
 
 .changelog-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-  gap: 1.25rem;
-  align-items: end;
-  margin-bottom: 1.25rem;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1rem;
 }
 
 .changelog-hero-copy {
@@ -416,11 +418,11 @@ function handleWorkspaceClick() {
 .changelog-kicker {
   display: inline-flex;
   align-items: center;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--app-border));
-  border-radius: 999px;
+  padding: 0.28rem 0.52rem;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 18%, var(--app-border));
+  border-radius: 0.42rem;
   color: var(--primary-color);
-  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 800;
@@ -428,17 +430,18 @@ function handleWorkspaceClick() {
 }
 
 .changelog-title {
-  margin: 1rem 0 0;
-  max-width: 48rem;
+  margin: 0.85rem 0 0;
+  max-width: 42rem;
   font-family: var(--font-display, var(--font-sans));
-  font-size: clamp(2rem, 6vw, 4.75rem);
+  font-size: clamp(2rem, 4.8vw, 3.65rem);
   font-weight: 800;
-  line-height: 1.03;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
 }
 
 .changelog-subtitle {
-  max-width: 42rem;
-  margin: 1rem 0 0;
+  max-width: 39rem;
+  margin: 0.85rem 0 0;
   color: var(--text-color-secondary);
   font-size: 1rem;
   line-height: 1.75;
@@ -447,42 +450,42 @@ function handleWorkspaceClick() {
 .changelog-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .changelog-summary-item {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  padding: 1rem;
+  gap: 0.42rem;
+  padding: 0.9rem;
   border: 1px solid var(--app-border);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--app-panel-strong, var(--surface-card)) 96%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 95%, transparent);
 }
 
 .changelog-summary-item strong {
-  font-size: 1.35rem;
+  font-size: 1.22rem;
   line-height: 1;
 }
 
 .changelog-layout {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 190px minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
 
 .changelog-index {
   position: sticky;
-  top: 6.5rem;
+  top: 6.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 1rem;
+  padding: 0.8rem;
   border: 1px solid var(--app-border);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--app-panel-subtle, var(--surface-card)) 94%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 94%, transparent);
 }
 
 .changelog-index-link {
@@ -490,8 +493,8 @@ function handleWorkspaceClick() {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: 0.42rem;
   color: var(--text-color);
   text-decoration: none;
   transition: color 180ms, background 180ms;
@@ -510,15 +513,16 @@ function handleWorkspaceClick() {
 .changelog-feed {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.9rem;
 }
 
 .release-card {
   scroll-margin-top: 7rem;
   border: 1px solid var(--app-border);
-  border-radius: 0.875rem;
-  background: color-mix(in srgb, var(--app-panel-strong, var(--surface-card)) 97%, transparent);
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--app-panel-raised, var(--surface-card)) 96%, transparent);
   overflow: hidden;
+  box-shadow: none;
 }
 
 .release-card-header {
@@ -526,7 +530,7 @@ function handleWorkspaceClick() {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: start;
-  padding: 1.25rem;
+  padding: 1.15rem;
   border-bottom: 1px solid var(--app-border);
 }
 
@@ -535,15 +539,16 @@ function handleWorkspaceClick() {
 }
 
 .release-title {
-  margin: 0.45rem 0 0;
-  font-size: clamp(1.35rem, 3vw, 2rem);
+  margin: 0.38rem 0 0;
+  font-size: clamp(1.22rem, 2.4vw, 1.65rem);
   font-weight: 800;
   line-height: 1.18;
+  letter-spacing: -0.018em;
 }
 
 .release-summary {
   max-width: 48rem;
-  margin: 0.75rem 0 0;
+  margin: 0.62rem 0 0;
   color: var(--text-color-secondary);
   line-height: 1.7;
 }
@@ -559,9 +564,9 @@ function handleWorkspaceClick() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.42rem 0.65rem;
+  padding: 0.36rem 0.56rem;
   border: 1px solid var(--platform-border);
-  border-radius: 999px;
+  border-radius: 0.42rem;
   color: var(--platform-color);
   background: var(--platform-bg);
   font-size: 0.78rem;
@@ -577,7 +582,7 @@ function handleWorkspaceClick() {
 
 .release-section {
   min-width: 0;
-  padding: 1.25rem;
+  padding: 1.15rem;
   border-right: 1px solid var(--app-border);
 }
 
@@ -605,7 +610,7 @@ function handleWorkspaceClick() {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--platform-border);
-  border-radius: 0.5rem;
+  border-radius: 0.42rem;
   color: var(--platform-color);
   background: var(--platform-bg);
   flex-shrink: 0;
@@ -614,7 +619,7 @@ function handleWorkspaceClick() {
 .release-list {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.58rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -624,7 +629,7 @@ function handleWorkspaceClick() {
   position: relative;
   padding-left: 1rem;
   color: var(--text-color-secondary);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.65;
 }
 
@@ -632,10 +637,10 @@ function handleWorkspaceClick() {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.7em;
-  width: 0.38rem;
-  height: 0.38rem;
-  border-radius: 999px;
+  top: 0.72em;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 0.1rem;
   background: var(--primary-color);
 }
 

@@ -231,7 +231,7 @@
     "forgotPasswordSubtitle": "Reset your password by email code without changing the current device ID.",
     "heroEyebrow": "Programmer Workspace",
     "heroTitle": "Keep snippets, Markdown notes, and device sessions in one workspace",
-    "heroBody": "Snipxn focuses on capturing, organizing, revisiting, and continuing code notes in a lighter workflow, so the graduation project feels like a real product instead of a scaffolded demo.",
+    "heroBody": "Snipxn focuses on capturing, organizing, revisiting, and continuing code notes in a lighter workflow, keeping snippets and Markdown notes in one clear workspace.",
     "featureEditor": "Markdown editing with live preview",
     "featureSync": "Multi-device sessions and account control",
     "featureOffline": "A note model ready for offline sync",
@@ -265,6 +265,146 @@
     "privacyPolicy": "Privacy Policy",
     "termsComingSoon": "The terms page is not available yet",
     "privacyComingSoon": "The privacy page is not available yet"
+  },
+  "legal": {
+    "navSubtitle": "Terms and privacy",
+    "backHome": "Back home",
+    "lastUpdated": "Last updated",
+    "documentSwitch": "Switch legal document",
+    "indexTitle": "Contents",
+    "terms": {
+      "kicker": "Terms",
+      "title": "Terms of Service",
+      "summary": "These terms explain the basic rights, responsibilities, and service boundaries that apply when you use Snipxn. By continuing to access or use the product, you agree to these rules.",
+      "lastUpdatedValue": "May 9, 2026",
+      "sections": [
+        {
+          "id": "acceptance",
+          "title": "Acceptance",
+          "body": [
+            "By registering, signing in, accessing, or using Snipxn, you agree to follow these Terms of Service. If you do not agree with any part of them, please stop using the product.",
+            "Snipxn may update these terms when product features, legal requirements, or operational needs change. Material changes will be reflected on this page or communicated in the product."
+          ]
+        },
+        {
+          "id": "account",
+          "title": "Account and security",
+          "body": [
+            "You are responsible for your account information, credentials, and device sessions. Use a valid email address and keep your password, verification codes, and third-party authorizations secure.",
+            "If you notice unauthorized access or an unusual device session, update your password, remove the affected session, and contact us through the available support channel."
+          ]
+        },
+        {
+          "id": "content",
+          "title": "Content and ownership",
+          "body": [
+            "Code snippets, Markdown notes, titles, tags, and related content that you create, import, edit, or sync in Snipxn remain yours.",
+            "To provide saving, syncing, preview, sharing, and recovery features, you allow Snipxn to process, store, and display that content only as needed to operate the product. This does not transfer ownership of your content to Snipxn."
+          ]
+        },
+        {
+          "id": "acceptable-use",
+          "title": "Acceptable use",
+          "body": [
+            "Do not use Snipxn for illegal activity, infringement, abusive traffic, bypassing security limits, uploading malicious code, disrupting the service, or accessing accounts or data without authorization.",
+            "If your activity affects system security, service stability, or the rights of other users, Snipxn may limit features, suspend the account, or remove violating content."
+          ]
+        },
+        {
+          "id": "service",
+          "title": "Service changes and availability",
+          "body": [
+            "Snipxn may continue to adjust product features, interface details, sync behavior, and third-party sign-in capabilities. Some features may be in testing, under revision, or temporarily unavailable.",
+            "We work to keep the service stable, but do not guarantee that it will always be error-free, uninterrupted, or compatible with every device environment."
+          ]
+        },
+        {
+          "id": "termination",
+          "title": "Stopping use and account handling",
+          "body": [
+            "You may stop using Snipxn at any time and manage, export, or delete your own content where product features allow it.",
+            "If an account is abnormal for a long period, violates these terms, or creates security risk, Snipxn may reasonably limit sign-in, freeze sessions, or terminate service access."
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "Contact and feedback",
+          "body": [
+            "If you have questions about these terms, account status, or product usage, contact us through the support channel provided by the project maintainer. We will handle feedback within a reasonable time."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "kicker": "Privacy",
+      "title": "Privacy Policy",
+      "summary": "This policy explains what information Snipxn collects, how that information is used, and how you can manage your data.",
+      "lastUpdatedValue": "May 9, 2026",
+      "sections": [
+        {
+          "id": "collection",
+          "title": "Information we collect",
+          "body": [
+            "To provide account, sync, editing, and sharing features, Snipxn may collect your email address, nickname, birthday, avatar, sign-in method, device sessions, notes, code snippets, tags, folders, and basic activity records.",
+            "When you use third-party sign-in such as Google or GitHub, we receive the necessary account identifiers and authorization information returned by that provider to complete sign-in and account binding."
+          ]
+        },
+        {
+          "id": "usage",
+          "title": "How we use information",
+          "body": [
+            "We use this information to create and protect accounts, sync your workspace content, restore sessions, provide share links, improve the product experience, handle security risks, and respond to your requests.",
+            "We do not use your private notes or code snippets for unrelated ad targeting, and we do not publish non-public content without your authorization."
+          ]
+        },
+        {
+          "id": "storage",
+          "title": "Storage and security",
+          "body": [
+            "Snipxn uses reasonable technical and administrative measures to protect data, including authentication, session management, access controls, and necessary protection during data transmission.",
+            "No internet service can be absolutely secure. You should also protect your password, verification codes, and devices, and avoid staying signed in on shared environments."
+          ]
+        },
+        {
+          "id": "sharing",
+          "title": "Sharing and third-party services",
+          "body": [
+            "We share necessary information only to provide product features, comply with legal requirements, protect users and service security, or when you explicitly authorize it.",
+            "Third-party sign-in, hosting, storage, or analytics providers may process some information under their own policies. We aim to choose providers with reasonable security practices."
+          ]
+        },
+        {
+          "id": "control",
+          "title": "Your choices and controls",
+          "body": [
+            "You can edit your profile, manage device sessions, delete or update note content, and export or clean up your data where product features allow it.",
+            "If you need to access, correct, or delete account-related information, submit a request through the support channel. We will handle it according to account security and legal requirements."
+          ]
+        },
+        {
+          "id": "local-storage",
+          "title": "Local storage",
+          "body": [
+            "Snipxn stores necessary information in your browser, such as sign-in tokens, theme, language, font, and some interface preferences, to keep you signed in and preserve your settings.",
+            "You can clear this data through browser settings, but you may need to sign in again or reconfigure preferences afterward."
+          ]
+        },
+        {
+          "id": "minors",
+          "title": "Minors",
+          "body": [
+            "If you are a minor, use Snipxn with consent and guidance from a parent or guardian. Guardians who believe an account or content requires handling may contact us through the support channel."
+          ]
+        },
+        {
+          "id": "updates",
+          "title": "Policy updates",
+          "body": [
+            "We may update this Privacy Policy due to feature changes, compliance requirements, or operational changes. The updated policy will appear on this page, and the page date controls."
+          ]
+        }
+      ]
+    }
   },
   "sidebar": {
     "home": "Home",

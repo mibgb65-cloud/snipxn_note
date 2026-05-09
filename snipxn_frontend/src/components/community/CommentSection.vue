@@ -317,6 +317,26 @@ async function handlePageChange(event) {
 
 .comment-compose-input {
   width: 100%;
+  min-height: 4.4rem;
+  border-color: var(--app-border-strong) !important;
+  background: color-mix(in srgb, var(--app-panel-inset) 96%, transparent) !important;
+  color: var(--text-color) !important;
+  box-shadow: none !important;
+}
+
+.comment-compose-input::placeholder {
+  color: color-mix(in srgb, var(--text-color-secondary) 78%, transparent) !important;
+  opacity: 1;
+}
+
+.comment-compose-input:enabled:hover {
+  border-color: color-mix(in srgb, var(--primary-color) 36%, var(--app-border-strong)) !important;
+}
+
+.comment-compose-input:enabled:focus {
+  border-color: color-mix(in srgb, var(--primary-color) 58%, var(--app-border-strong)) !important;
+  background: color-mix(in srgb, var(--app-panel-raised) 88%, var(--app-panel-inset)) !important;
+  box-shadow: 0 0 0 3px var(--app-focus-ring) !important;
 }
 
 .comment-compose-actions {
@@ -333,6 +353,12 @@ async function handlePageChange(event) {
 
 .comment-paginator {
   margin-top: 0.75rem;
+}
+
+.comment-paginator :deep(.p-paginator-content) {
+  justify-content: center;
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-panel-inset) 95%, transparent);
 }
 
 .comment-loading {

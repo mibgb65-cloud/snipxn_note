@@ -95,42 +95,101 @@ const toggleMenu = (event) => {
   margin-top: 1px;
 }
 
-:deep(.lang-menu) {
+:global(.lang-menu.p-menu) {
   border-radius: 1rem;
   border: 1px solid var(--app-border);
   box-shadow: var(--app-shadow-soft);
   background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
   backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   overflow: hidden;
   min-width: 140px;
+  padding: 0.35rem;
 }
 
-html.app-dark :deep(.lang-menu) {
-  background: color-mix(in srgb, var(--app-panel-raised) 96%, transparent);
+:global(.lang-menu .p-menu-list) {
+  margin: 0;
+  padding: 0;
 }
 
-:deep(.lang-menu .p-menuitem-link) {
-  padding: 0.75rem 1rem;
-  transition: all 0.2s;
-  border-radius: 6px;
-  margin: 0.25rem;
+:global(.lang-menu .p-menuitem) {
+  margin: 0;
 }
 
-:deep(.lang-menu .p-menuitem-link:hover) {
+:global(.lang-menu .p-menuitem-content) {
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--text-color);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+:global(.lang-menu .p-menuitem-link) {
+  gap: 0.5rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: inherit;
+  color: var(--text-color);
+  transition: color 180ms ease;
+}
+
+:global(.lang-menu .p-menuitem-content:hover),
+:global(.lang-menu .p-menuitem-content[data-p-focused='true']) {
   background: color-mix(in srgb, var(--primary-color) 8%, var(--app-panel-raised));
+}
+
+:global(.lang-menu .p-menuitem-content:hover .p-menuitem-link),
+:global(.lang-menu .p-menuitem-content:hover .p-menuitem-label),
+:global(.lang-menu .p-menuitem-content:hover .p-menuitem-icon),
+:global(.lang-menu .p-menuitem-content[data-p-focused='true'] .p-menuitem-link),
+:global(.lang-menu .p-menuitem-content[data-p-focused='true'] .p-menuitem-label),
+:global(.lang-menu .p-menuitem-content[data-p-focused='true'] .p-menuitem-icon) {
   color: var(--primary-color);
 }
 
-:deep(.lang-menu .p-menuitem-icon) {
-  margin-right: 0.5rem;
+:global(.lang-menu .p-menuitem-label),
+:global(.lang-menu .p-menuitem-icon) {
+  color: var(--text-color);
+}
+
+:global(.lang-menu .p-menuitem-icon) {
   font-size: 0.85rem;
 }
 
-:deep(.invisible) {
+:global(html.app-dark .lang-menu.p-menu) {
+  border-color: var(--app-border-strong);
+  background: color-mix(in srgb, var(--app-panel-raised) 98%, transparent) !important;
+  box-shadow: 0 18px 36px -24px rgba(0, 0, 0, 0.72);
+}
+
+:global(html.app-dark .lang-menu .p-menuitem-content) {
+  background: transparent !important;
+  color: #e6eef7 !important;
+}
+
+:global(html.app-dark .lang-menu .p-menuitem-link),
+:global(html.app-dark .lang-menu .p-menuitem-label),
+:global(html.app-dark .lang-menu .p-menuitem-icon) {
+  color: #e6eef7 !important;
+}
+
+:global(html.app-dark .lang-menu .p-menuitem-content:hover),
+:global(html.app-dark .lang-menu .p-menuitem-content[data-p-focused='true']) {
+  background: color-mix(in srgb, var(--primary-color) 14%, var(--app-panel-inset)) !important;
+}
+
+:global(html.app-dark .lang-menu .p-menuitem-content:hover .p-menuitem-link),
+:global(html.app-dark .lang-menu .p-menuitem-content:hover .p-menuitem-label),
+:global(html.app-dark .lang-menu .p-menuitem-content:hover .p-menuitem-icon),
+:global(html.app-dark .lang-menu .p-menuitem-content[data-p-focused='true'] .p-menuitem-link),
+:global(html.app-dark .lang-menu .p-menuitem-content[data-p-focused='true'] .p-menuitem-label),
+:global(html.app-dark .lang-menu .p-menuitem-content[data-p-focused='true'] .p-menuitem-icon) {
+  color: var(--primary-color) !important;
+}
+
+:global(.invisible) {
   visibility: hidden;
 }
 
-:deep(.text-primary) {
+:global(.text-primary) {
   color: var(--primary-color);
 }
 </style>

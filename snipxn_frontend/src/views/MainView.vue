@@ -1360,6 +1360,15 @@ onBeforeUnmount(() => {
   --editor-pane-header-surface: color-mix(in srgb, var(--app-panel-subtle) 98%, transparent);
   --panel-accent: color-mix(in srgb, var(--primary-color) 10%, transparent);
   --panel-accent-soft: color-mix(in srgb, var(--primary-color) 6%, transparent);
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+.workspace-editor :deep(textarea),
+.workspace-editor :deep(.markdown-editor-shell),
+.workspace-editor :deep(.markdown-textarea) {
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 :deep(.p-splitter) {

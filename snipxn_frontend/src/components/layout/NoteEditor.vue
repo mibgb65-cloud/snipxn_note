@@ -70,8 +70,13 @@
                   :value="markdownContent"
                   :readonly="isTrashView"
                   :placeholder="t('notes.contentPlaceholder')"
+                  @beforeinput="handleTextareaBeforeInput"
                   @input="handleMarkdownInput"
+                  @pointerdown.stop
+                  @mousedown.stop
                   @click="syncSelectionFromEvent"
+                  @mouseup="syncSelectionSoon"
+                  @touchend="syncSelectionSoon"
                   @keyup="syncSelectionFromEvent"
                   @select="syncSelectionFromEvent"
                   @focus="syncSelectionFromEvent"
@@ -294,6 +299,12 @@ let scrollSyncSource = null;
 const selectionStart = ref(0);
 const selectionEnd = ref(0);
 const pendingSelection = ref(null);
+const EDIT_HISTORY_LIMIT = 120;
+let undoStack = [];
+let redoStack = [];
+let pendingInputSnapshot = null;
+let pendingInputType = '';
+let applyingHistoryState = false;
 const noteHasPublicShare = ref(false);
 const codePanelExpanded = ref(false);
 const runningCode = ref(false);
@@ -318,7 +329,6 @@ const markdownTextareaStyle = computed(() => (
   isDarkTheme.value
     ? {
         color: '#e6f0fa',
-        WebkitTextFillColor: '#e6f0fa',
         caretColor: '#5eead4',
       }
     : {}
@@ -389,6 +399,7 @@ watch(
     selectionStart.value = 0;
     selectionEnd.value = 0;
     pendingSelection.value = null;
+    resetEditHistory();
     codeRunnerStdin.value = '';
     codeRunResult.value = null;
     aiReviewResult.value = '';
@@ -457,13 +468,17 @@ function syncSelectionFromElement() {
   selectionEnd.value = textarea.selectionEnd ?? selectionStart.value;
 }
 
-function syncSelectionFromEvent(event) {
-  selectionStart.value = event.target.selectionStart ?? 0;
-  selectionEnd.value = event.target.selectionEnd ?? selectionStart.value;
+function syncSelectionFromTarget(target) {
+  if (!target) {
+    return;
+  }
+
+  selectionStart.value = target.selectionStart ?? 0;
+  selectionEnd.value = target.selectionEnd ?? selectionStart.value;
 
   // Dismiss AI slash hint when cursor moves away from /ai line
   if (showAiSlashHint.value) {
-    const ta = event.target;
+    const ta = target;
     const pos = ta.selectionStart;
     const val = ta.value;
     const lnStart = val.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
@@ -472,6 +487,116 @@ function syncSelectionFromEvent(event) {
       showAiSlashHint.value = false;
     }
   }
+}
+
+function syncSelectionFromEvent(event) {
+  syncSelectionFromTarget(event.target);
+}
+
+function syncSelectionSoon(event) {
+  const target = event.target;
+  requestAnimationFrame(() => syncSelectionFromTarget(target));
+}
+
+function resetEditHistory() {
+  undoStack = [];
+  redoStack = [];
+  pendingInputSnapshot = null;
+  pendingInputType = '';
+  applyingHistoryState = false;
+}
+
+function createEditSnapshot(target = markdownTextareaRef.value) {
+  if (target) {
+    return {
+      value: target.value,
+      start: target.selectionStart ?? 0,
+      end: target.selectionEnd ?? target.selectionStart ?? 0,
+    };
+  }
+
+  return {
+    value: markdownContent.value,
+    start: selectionStart.value,
+    end: selectionEnd.value,
+  };
+}
+
+function pushUndoSnapshot(snapshot) {
+  if (!snapshot || applyingHistoryState) {
+    return;
+  }
+
+  const latest = undoStack[undoStack.length - 1];
+
+  if (
+    latest
+    && latest.value === snapshot.value
+    && latest.start === snapshot.start
+    && latest.end === snapshot.end
+  ) {
+    return;
+  }
+
+  undoStack.push(snapshot);
+
+  if (undoStack.length > EDIT_HISTORY_LIMIT) {
+    undoStack.shift();
+  }
+
+  redoStack = [];
+}
+
+function applyEditHistoryState(snapshot) {
+  if (!snapshot) {
+    return false;
+  }
+
+  applyingHistoryState = true;
+  pendingInputSnapshot = null;
+  pendingInputType = '';
+  emitContent(snapshot.value, { start: snapshot.start, end: snapshot.end });
+
+  nextTick(() => {
+    const textarea = markdownTextareaRef.value;
+
+    if (textarea) {
+      const start = Math.min(snapshot.start, textarea.value.length);
+      const end = Math.min(snapshot.end, textarea.value.length);
+      textarea.focus();
+      textarea.setSelectionRange(start, end);
+      selectionStart.value = start;
+      selectionEnd.value = end;
+    }
+
+    applyingHistoryState = false;
+  });
+
+  return true;
+}
+
+function restoreUndoHistory() {
+  if (!undoStack.length) {
+    return false;
+  }
+
+  const current = createEditSnapshot();
+  const previous = undoStack.pop();
+  redoStack.push(current);
+
+  return applyEditHistoryState(previous);
+}
+
+function restoreRedoHistory() {
+  if (!redoStack.length) {
+    return false;
+  }
+
+  const current = createEditSnapshot();
+  const next = redoStack.pop();
+  undoStack.push(current);
+
+  return applyEditHistoryState(next);
 }
 
 function emitContent(nextContent, nextSelection = null, focusTextarea = true) {
@@ -623,8 +748,37 @@ function handlePreviewScroll() {
   requestAnimationFrame(() => { scrollSyncSource = null; });
 }
 
+function handleTextareaBeforeInput(event) {
+  pendingInputType = event.inputType || '';
+
+  if (pendingInputType.startsWith('history') || applyingHistoryState) {
+    pendingInputSnapshot = null;
+    return;
+  }
+
+  pendingInputSnapshot = createEditSnapshot(event.target);
+}
+
 function handleMarkdownInput(event) {
+  const inputType = pendingInputType;
+  const snapshot = pendingInputSnapshot || {
+    value: markdownContent.value,
+    start: selectionStart.value,
+    end: selectionEnd.value,
+  };
+  pendingInputSnapshot = null;
+  pendingInputType = '';
+
   syncSelectionFromEvent(event);
+
+  if (
+    !applyingHistoryState
+    && !inputType.startsWith('history')
+    && snapshot.value !== event.target.value
+  ) {
+    pushUndoSnapshot(snapshot);
+  }
+
   emit('update:content', event.target.value);
 
   const ta = event.target;
@@ -659,6 +813,8 @@ function getSelectedLineRange(content, start, end) {
 }
 
 function replaceSelection({ text, start = selectionStart.value, end = selectionEnd.value, nextStart, nextEnd, focusTextarea = true }) {
+  pushUndoSnapshot(createEditSnapshot());
+
   const nextContent = `${markdownContent.value.slice(0, start)}${text}${markdownContent.value.slice(end)}`;
   const selection = {
     start: nextStart ?? start + text.length,
@@ -1224,6 +1380,21 @@ function handleInsertAiResult() {
 }
 
 async function handleTextareaKeydown(event) {
+  const key = event.key.toLowerCase();
+  const hasCommandModifier = event.ctrlKey || event.metaKey;
+
+  if (hasCommandModifier && (key === 'z' || key === 'y')) {
+    const shouldRedo = key === 'y' || (key === 'z' && event.shiftKey);
+    const restored = shouldRedo ? restoreRedoHistory() : restoreUndoHistory();
+
+    if (restored) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    return;
+  }
+
   if (event.key !== 'Enter' || props.isTrashView) return;
 
   const ta = event.target;
@@ -1242,7 +1413,9 @@ async function handleTextareaKeydown(event) {
   if (!prompt) return;
 
   event.preventDefault();
+  event.stopPropagation();
   showAiSlashHint.value = false;
+  pushUndoSnapshot(createEditSnapshot(ta));
   const language = activeCodeBlock.value?.language
     || activeCodeBlock.value?.editorLanguage
     || String(props.note?.primaryLanguage || '').trim()
@@ -1593,6 +1766,8 @@ async function handleCancelShare() {
   min-height: 0;
   padding: 0.95rem 1rem 0.5rem;
   color: var(--text-color);
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 .ai-slash-hint {
@@ -1715,12 +1890,26 @@ async function handleCancelShare() {
   outline: 0;
   background: transparent;
   color: var(--text-color) !important;
-  -webkit-text-fill-color: currentColor;
   caret-color: var(--primary-color);
   font: inherit;
   font-family: var(--font-sans);
   line-height: 1.8;
   tab-size: 2;
+  cursor: text;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+.markdown-textarea::selection {
+  background-color: rgba(13, 148, 136, 0.28);
+  color: #0f172a;
+}
+
+.markdown-textarea::-moz-selection {
+  background-color: rgba(13, 148, 136, 0.28);
+  color: #0f172a;
 }
 
 .markdown-textarea::placeholder {
@@ -1930,9 +2119,7 @@ async function handleCancelShare() {
   border-radius: 0.5rem;
 }
 
-:global(html.app-dark) .markdown-textarea,
 :global(html.app-dark) .ai-generate-textarea,
-:global(html.app-dark) .markdown-editor-shell,
 :global(html.app-dark) .editor-pane,
 :global(html.app-dark) .preview-pane,
 :global(html.app-dark) .markdown-preview {
@@ -1940,11 +2127,23 @@ async function handleCancelShare() {
   -webkit-text-fill-color: #e6f0fa !important;
 }
 
+:global(html.app-dark) .markdown-editor-shell {
+  color: #e6f0fa !important;
+}
+
 :global(html.app-dark) .markdown-editor-shell .markdown-textarea {
   color: #e6f0fa !important;
-  -webkit-text-fill-color: #e6f0fa !important;
   caret-color: #5eead4 !important;
-  text-shadow: 0 0 0 #e6f0fa;
+}
+
+:global(html.app-dark) .markdown-textarea::selection {
+  background-color: rgba(45, 212, 191, 0.42);
+  color: #f8fafc;
+}
+
+:global(html.app-dark) .markdown-textarea::-moz-selection {
+  background-color: rgba(45, 212, 191, 0.42);
+  color: #f8fafc;
 }
 
 .ai-generate-result {

@@ -231,7 +231,7 @@ import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Skeleton from 'primevue/skeleton';
 import { runCode } from '../../api/sandbox';
-import { reviewCode as apiReviewCode, generateCode as apiGenerateCode } from '../../api/ai';
+import { reviewCode as apiReviewCode, generateCodeStream as apiGenerateCodeStream } from '../../api/ai';
 import { shareNote as apiShareNote, cancelShare as apiCancelShare, checkShare as apiCheckShare } from '../../api/note';
 import { uploadFile } from '../../api/file';
 import { renderMarkdown } from '../../utils/markdown';
@@ -1153,6 +1153,20 @@ async function handleAiGenerate() {
   }
 
   generatingCode.value = true;
+  aiGenerateResult.value = '';
+  aiGenerateRawContent.value = '';
+  let renderFrame = 0;
+
+  const scheduleResultRender = () => {
+    if (renderFrame) {
+      return;
+    }
+
+    renderFrame = requestAnimationFrame(() => {
+      renderFrame = 0;
+      aiGenerateResult.value = renderMarkdown(aiGenerateRawContent.value);
+    });
+  };
 
   try {
     const language = activeCodeBlock.value?.language
@@ -1160,15 +1174,27 @@ async function handleAiGenerate() {
       || String(props.note?.primaryLanguage || '').trim()
       || '';
 
-    const res = await apiGenerateCode({
+    await apiGenerateCodeStream({
       description: aiPrompt.value.trim(),
       language,
+    }, {
+      onChunk: (chunk) => {
+        aiGenerateRawContent.value += chunk;
+        scheduleResultRender();
+      },
     });
 
-    const raw = res.data?.content || '';
-    aiGenerateRawContent.value = raw;
-    aiGenerateResult.value = renderMarkdown(raw);
+    if (renderFrame) {
+      cancelAnimationFrame(renderFrame);
+      renderFrame = 0;
+    }
+    aiGenerateResult.value = renderMarkdown(aiGenerateRawContent.value);
   } catch (error) {
+    if (renderFrame) {
+      cancelAnimationFrame(renderFrame);
+      renderFrame = 0;
+    }
+
     toast.add({
       severity: 'error',
       summary: t('common.error'),
@@ -1222,15 +1248,9 @@ async function handleTextareaKeydown(event) {
     || String(props.note?.primaryLanguage || '').trim()
     || '';
 
-  // Remove the /ai ... line
   const insertPos = lineStart;
-  replaceSelection({
-    start: lineStart,
-    end: lineEnd,
-    text: '',
-    nextStart: insertPos,
-    nextEnd: insertPos,
-  });
+  let streamedContent = `${content.slice(0, lineStart)}${content.slice(lineEnd)}`;
+  emitContent(streamedContent, { start: insertPos, end: insertPos });
 
   // Show loading animation, calculate position after DOM updates
   aiGeneratingCharPos.value = insertPos;
@@ -1239,40 +1259,53 @@ async function handleTextareaKeydown(event) {
   updateAiGeneratingPosition();
 
   try {
-    const res = await apiGenerateCode({ description: prompt, language });
-    const raw = res.data?.content || '';
+    let insertedLength = 0;
+    let pendingChunk = '';
+    let flushFrame = 0;
 
-    // Hide loading animation
-    aiSlashGenerating.value = false;
+    const flushPendingChunk = () => {
+      flushFrame = 0;
+      if (!pendingChunk) {
+        return;
+      }
 
-    // Typewriter effect: insert characters incrementally
-    if (raw) {
-      const charsPerTick = 4;
-      const tickInterval = 18;
-      let charIndex = 0;
-
-      await new Promise((resolve) => {
-        const timer = setInterval(() => {
-          const end = Math.min(charIndex + charsPerTick, raw.length);
-          const chunk = raw.slice(charIndex, end);
-          charIndex = end;
-
-          const currentPos = insertPos + charIndex - chunk.length;
-          replaceSelection({
-            start: currentPos,
-            end: currentPos,
-            text: chunk,
-            nextStart: currentPos + chunk.length,
-            nextEnd: currentPos + chunk.length,
-          });
-
-          if (charIndex >= raw.length) {
-            clearInterval(timer);
-            resolve();
-          }
-        }, tickInterval);
+      const chunk = pendingChunk;
+      pendingChunk = '';
+      const currentPos = insertPos + insertedLength;
+      streamedContent = `${streamedContent.slice(0, currentPos)}${chunk}${streamedContent.slice(currentPos)}`;
+      insertedLength += chunk.length;
+      emitContent(streamedContent, {
+        start: currentPos + chunk.length,
+        end: currentPos + chunk.length,
       });
+    };
+
+    const scheduleFlush = () => {
+      if (flushFrame) {
+        return;
+      }
+
+      flushFrame = requestAnimationFrame(flushPendingChunk);
+    };
+
+    await apiGenerateCodeStream({ description: prompt, language }, {
+      onChunk: (chunk) => {
+        if (!chunk) {
+          return;
+        }
+
+        aiSlashGenerating.value = false;
+        pendingChunk += chunk;
+        scheduleFlush();
+      },
+    });
+
+    if (flushFrame) {
+      cancelAnimationFrame(flushFrame);
+      flushFrame = 0;
     }
+    flushPendingChunk();
+    aiSlashGenerating.value = false;
   } catch (error) {
     aiSlashGenerating.value = false;
     toast.add({
